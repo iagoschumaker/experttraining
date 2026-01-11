@@ -366,18 +366,8 @@ export default function SuperAdminExercisesPage() {
   // ============================================================================
 
   const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
-    <form onSubmit={onSubmit}>
-      <DialogHeader>
-        <DialogTitle className="text-white flex items-center gap-2">
-          <Dumbbell className="h-5 w-5 text-amber-500" />
-          {isEdit ? 'Editar Exercício' : 'Novo Exercício'}
-        </DialogTitle>
-        <DialogDescription className="text-gray-400">
-          {isEdit ? 'Atualize os dados do exercício' : 'Cadastre um novo exercício do método'}
-        </DialogDescription>
-      </DialogHeader>
-      
-      <Tabs defaultValue="basic" className="mt-4">
+    <form id="exercise-form" onSubmit={onSubmit} className="space-y-4">
+      <Tabs defaultValue="basic">
         <TabsList className="grid w-full grid-cols-3 bg-gray-800">
           <TabsTrigger value="basic">Básico</TabsTrigger>
           <TabsTrigger value="prescription">Prescrição</TabsTrigger>
@@ -593,15 +583,6 @@ export default function SuperAdminExercisesPage() {
           </div>
         </TabsContent>
       </Tabs>
-      
-      <DialogFooter className="mt-4">
-        <Button type="button" variant="outline" onClick={() => isEdit ? setIsEditOpen(false) : setIsCreateOpen(false)}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">
-          {saving ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar Exercício'}
-        </Button>
-      </DialogFooter>
     </form>
   )
 
@@ -629,7 +610,26 @@ export default function SuperAdminExercisesPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-amber-500" />
+                Novo Exercício
+              </DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Cadastre um novo exercício do método
+              </DialogDescription>
+            </DialogHeader>
+            
             <FormContent onSubmit={handleCreate} />
+            
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" form="exercise-form" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">
+                {saving ? 'Salvando...' : 'Criar Exercício'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -969,7 +969,26 @@ export default function SuperAdminExercisesPage() {
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Dumbbell className="h-5 w-5 text-amber-500" />
+              Editar Exercício
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Atualize os dados do exercício
+            </DialogDescription>
+          </DialogHeader>
+          
           <FormContent onSubmit={handleUpdate} isEdit />
+          
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="exercise-form" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
