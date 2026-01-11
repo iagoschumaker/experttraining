@@ -1,0 +1,674 @@
+// ============================================================================
+// EXPERT TRAINING - PRISMA SCHEMA
+// ============================================================================
+// Sistema SaaS Multi-Tenant para treino funcional híbrido
+// Modelo: Usuário pode pertencer a VÁRIOS studios (papel por studio)
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum StudioStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserStudioRole {
+  STUDIO_ADMIN
+  TRAINER
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum AssessmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ============================================================================
+// CORE: USERS
+// ============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  isSuperAdmin  Boolean  @default(false) @map("is_superadmin")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  studios       UserStudio[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  lessons       Lesson[]      // Aulas ministradas pelo trainer
+  clients       Client[]      @relation("ClientTrainer") // Alunos atribuídos ao trainer
+
+  @@map("users")
+}
+
+// ============================================================================
+// CORE: STUDIOS (TENANTS)
+// ============================================================================
+
+model Studio {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique // URL-friendly identifier
+  status      StudioStatus @default(ACTIVE)
+  planId      String?      @map("plan_id")
+  logoUrl     String?      @map("logo_url")
+  settings    Json?        @default("{}") // Configurações específicas do studio
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  plan        Plan?        @relation(fields: [planId], references: [id])
+  users       UserStudio[]
+  clients     Client[]
+  workouts    Workout[]
+  auditLogs   AuditLog[]
+  lessons     Lesson[]     // Aulas realizadas no studio
+
+  @@map("studios")
+}
+
+// ============================================================================
+// CORE: USER-STUDIO (TABELA PIVÔ - CRÍTICA)
+// ============================================================================
+// Esta tabela implementa a regra fundamental:
+// - Usuário pode pertencer a VÁRIOS studios
+// - O papel (role) é POR STUDIO, não global
+
+model UserStudio {
+  id        String          @id @default(cuid())
+  userId    String          @map("user_id")
+  studioId  String          @map("studio_id")
+  role      UserStudioRole
+  isActive  Boolean         @default(true) @map("is_active")
+  joinedAt  DateTime        @default(now()) @map("joined_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studio    Studio          @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([userId, studioId]) // Um usuário só pode ter um vínculo por studio
+  @@index([userId])
+  @@index([studioId])
+  @@map("user_studios")
+}
+
+// ============================================================================
+// BILLING: PLANS
+// ============================================================================
+
+model Plan {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  priceMonthly    Decimal  @map("price_monthly") @db.Decimal(10, 2)
+  priceYearly     Decimal? @map("price_yearly") @db.Decimal(10, 2)
+  maxTrainers     Int      @default(5) @map("max_trainers")
+  maxClients      Int      @default(100) @map("max_clients")
+  features        Json     @default("[]") // Array de features habilitadas
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  studios         Studio[]
+
+  @@map("plans")
+}
+
+// ============================================================================
+// CLIENTS (ALUNOS)
+// ============================================================================
+
+model Client {
+  id              String    @id @default(cuid())
+  studioId        String    @map("studio_id")
+  trainerId       String?   @map("trainer_id") // ID do usuário treinador responsável
+  
+  // Dados pessoais
+  name            String
+  email           String?
+  phone           String?
+  birthDate       DateTime? @map("birth_date")
+  gender          String?
+  
+  // Dados físicos
+  height          Decimal?  @db.Decimal(5, 2) // em cm
+  weight          Decimal?  @db.Decimal(5, 2) // em kg
+  
+  // Medidas corporais
+  chest           Decimal?  @db.Decimal(5, 2) // Peitoral em cm
+  waist           Decimal?  @db.Decimal(5, 2) // Cintura em cm
+  hip             Decimal?  @db.Decimal(5, 2) // Quadril em cm
+  arm             Decimal?  @db.Decimal(5, 2) // Braço em cm
+  thigh           Decimal?  @db.Decimal(5, 2) // Coxa em cm
+  calf            Decimal?  @db.Decimal(5, 2) // Panturrilha em cm
+  
+  // Histórico e observações
+  history         String?   @db.Text // Histórico de lesões, patologias, etc
+  objectives      String?   @db.Text // Objetivos do aluno
+  notes           String?   @db.Text // Notas do treinador
+  goal            String?   // Objetivo principal (HYPERTROPHY, STRENGTH, etc)
+  
+  // Status
+  status          ClientStatus @default(ACTIVE)
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  studio          Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  trainer         User?       @relation("ClientTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+  assessments     Assessment[]
+  workouts        Workout[]
+  lessonClients   LessonClient[]  // Participações em aulas
+
+  @@index([studioId])
+  @@index([trainerId])
+  @@map("clients")
+}
+
+// ============================================================================
+// ASSESSMENTS (AVALIAÇÕES)
+// ============================================================================
+// Avaliações funcionais baseadas em:
+// - Queixas (complaints)
+// - Mapa de dor (pain_map)
+// - Testes de movimento (movement_tests)
+// - Nível atual (level)
+
+model Assessment {
+  id            String           @id @default(cuid())
+  clientId      String           @map("client_id")
+  assessorId    String           @map("assessor_id") // ID do usuário que fez a avaliação
+  
+  // Status
+  status        AssessmentStatus @default(PENDING)
+  
+  // Input da avaliação (JSON estruturado)
+  inputJson     Json             @map("input_json")
+  // Estrutura esperada:
+  // {
+  //   "complaints": ["dor lombar", "rigidez cervical"],
+  //   "painMap": { "lower_back": 7, "neck": 4 },
+  //   "movementTests": {
+  //     "squat": { "score": 2, "observations": "valgo de joelho" },
+  //     "hinge": { "score": 3, "observations": "" },
+  //     "push": { "score": 2, "observations": "escápula alada" },
+  //     "pull": { "score": 3, "observations": "" },
+  //     "rotation": { "score": 1, "observations": "limitação torácica" },
+  //     "gait": { "score": 2, "observations": "" }
+  //   },
+  //   "level": "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  // }
+  
+  // 📊 DADOS CORPORAIS (OPCIONAIS) - Para controle de evolução
+  // NÃO influencia no motor de decisão, apenas para relatórios
+  bodyMetricsJson   Json?            @map("body_metrics_json")
+  // Estrutura esperada:
+  // {
+  //   "weight": 85.5,           // Peso em kg
+  //   "height": 175,            // Altura em cm
+  //   "measurements": {
+  //     "waist": 88,            // Cintura em cm
+  //     "hip": 102,             // Quadril em cm
+  //     "thigh_left": 58,       // Coxa esquerda em cm
+  //     "thigh_right": 59,      // Coxa direita em cm
+  //     "arm_left": 32,         // Braço esquerdo em cm
+  //     "arm_right": 33,        // Braço direito em cm
+  //     "chest": 98             // Peitoral em cm
+  //   }
+  // }
+  
+  // Output do motor de decisão (JSON estruturado)
+  resultJson    Json?            @map("result_json")
+  // Estrutura esperada:
+  // {
+  //   "functionalPattern": "CORRECTIVE_DOMINANT",
+  //   "primaryFocus": "hip_mobility",
+  //   "secondaryFocus": ["thoracic_rotation", "core_stability"],
+  //   "allowedBlocks": ["HIP_MOB_L1", "CORE_STAB_L1", "THORACIC_L1"],
+  //   "blockedBlocks": ["HEAVY_SQUAT", "OLYMPIC_LIFT"],
+  //   "recommendations": ["Priorizar padrão hingde antes de agachamento"]
+  // }
+  
+  // Métricas
+  confidence    Decimal?         @db.Decimal(5, 2) // 0-100%
+  
+  // Timestamps
+  completedAt   DateTime?        @map("completed_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([assessorId])
+  @@map("assessments")
+}
+
+// ============================================================================
+// BLOCKS (BLOCOS DE TREINO) - DADOS PROTEGIDOS DO MÉTODO
+// ============================================================================
+// ⚠️ REGRA ABSOLUTA: Blocos são CORE DATA do Método Expert Training
+// - NÃO são configuráveis por studios
+// - NÃO são editáveis por treinadores
+// - APENAS SuperAdmin pode criar/alterar/excluir
+// - is_locked = true significa dado imutável do método
+
+model Block {
+  id                    String    @id @default(cuid())
+  code                  String    @unique // Ex: "COND_A", "INI_FORCA_A", "INT_HIIT_B"
+  name                  String    // Ex: "Condicionamento Inicial A"
+  description           String?   @db.Text
+  
+  // 🔒 PROTEÇÃO DO MÉTODO
+  isLocked              Boolean   @default(true) @map("is_locked")  // Dado protegido do método
+  createdBy             String    @default("SUPERADMIN") @map("created_by")
+  
+  // 1️⃣ IDENTIDADE DO BLOCO
+  sourceSheet           String?   @map("source_sheet") // "Condicionamento Híbrido", "Híbrido Iniciante", etc.
+  levelMin              Int       @default(1) @map("level_min") // Nível mínimo para usar este bloco
+  levelMax              Int?      @map("level_max") // Nível máximo (opcional)
+  phase                 String?   // "Adaptação Geral", "Desenvolvimento", "Performance"
+  
+  // Mantido para compatibilidade
+  level                 Int       @default(1)
+  levelName             String?   @map("level_name") // "CONDICIONAMENTO", "INICIANTE", etc.
+  
+  // 2️⃣ INTENÇÃO E PAPEL NO TREINO
+  trainingIntent        String?   @map("training_intent") // adaptação, aprendizagem, estímulo_principal, estímulo_secundário, performance
+  blockRoleInSession    String?   @map("block_role_in_session") // aquecimento, principal, metabólico, finalização
+  
+  // 3️⃣ EXIGÊNCIA FÍSICA REAL
+  primaryCapacity       String    @map("primary_capacity")
+  // Capacidades: CONDITIONING, STRENGTH, POWER, HYPERTROPHY, ENDURANCE, MOBILITY, STABILITY
+  
+  secondaryCapacities   String[]  @map("secondary_capacities")
+  
+  // Níveis de demanda
+  fatigueLevel          String?   @map("fatigue_level") // baixo, médio, alto
+  cardiorespiratoryDemand String? @map("cardiorespiratory_demand") // baixo, médio, alto
+  neuromuscularDemand   String?   @map("neuromuscular_demand") // baixo, médio, alto
+  
+  // Cargas e impactos
+  axialLoad             String?   @map("axial_load") // nenhum, baixo, moderado, alto
+  impactLevel           String?   @map("impact_level") // nenhum, baixo, moderado, alto
+  
+  // Estresse articular (array de articulações afetadas)
+  jointStress           String[]  @default([]) @map("joint_stress") // joelho, quadril, lombar, ombro, etc.
+  
+  // 📊 MÉTRICAS LEGADAS (manter para compatibilidade)
+  complexity            Int       @default(1) // 1-5 (complexidade técnica)
+  impact                Int       @default(1) // 1-5 (impacto no corpo)
+  
+  // Padrão de movimento principal
+  movementPattern       String?   @map("movement_pattern")
+  // Padrões: SQUAT, HINGE, LUNGE, PUSH, PULL, ROTATION, GAIT, CARRY, CARDIO
+  
+  // Risco
+  riskLevel             RiskLevel @default(LOW) @map("risk_level")
+  
+  // 📋 METADADOS DO MÉTODO
+  suggestedFrequency    Int?      @map("suggested_frequency") // vezes por semana
+  estimatedDuration     Int?      @map("estimated_duration")  // minutos
+  blockOrder            Int?      @map("block_order")         // ordem na sessão
+  
+  // 4️⃣ PRÉ-REQUISITOS E RESTRIÇÕES
+  // Pré-requisitos (JSON estruturado)
+  prerequisites         Json?     @default("{}") // { required_level, required_patterns, required_stability }
+  
+  // 🚫 RESTRIÇÕES (MOTOR DE DECISÃO)
+  // Condições que BLOQUEIAM este bloco
+  blockedIf             Json?     @default("[]") @map("blocked_if")
+  // Ex: ["dor_lombar", "dor_joelho", "nivel_insuficiente"]
+  
+  // Condições que PERMITEM este bloco
+  allowedIf             Json?     @default("[]") @map("allowed_if")
+  // Ex: ["nivel_adequado", "ausencia_dor", "boa_mobilidade"]
+  
+  // Contraindicações legadas
+  contraindications     Json?     @default("[]")
+  
+  // 5️⃣ EXERCÍCIOS COM FUNÇÃO
+  // Exercícios do bloco (JSON estruturado)
+  exercises             Json      @default("[]")
+  // Estrutura: [{ exercise_name, exercise_role, time_or_reps, rest, tempo_execution, technical_focus }]
+  
+  // Progressões e regressões
+  prerequisiteBlockId   String?   @map("prerequisite_block_id")
+  progressionBlockId    String?   @map("progression_block_id")
+  
+  // Status
+  isActive              Boolean   @default(true) @map("is_active")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  // Auto-referência para progressões
+  prerequisiteBlock     Block?    @relation("BlockProgression", fields: [prerequisiteBlockId], references: [id])
+  progressionBlocks     Block[]   @relation("BlockProgression")
+  
+  // Exercícios relacionados
+  exercisesList         Exercise[]
+
+  @@index([primaryCapacity])
+  @@index([level])
+  @@index([levelMin])
+  @@index([trainingIntent])
+  @@index([blockRoleInSession])
+  @@index([isLocked])
+  @@map("blocks")
+}
+
+// ============================================================================
+// EXERCISES (EXERCÍCIOS) - DADOS PROTEGIDOS DO MÉTODO
+// ============================================================================
+// ⚠️ REGRA ABSOLUTA: Exercícios são CORE DATA do Método Expert Training
+// - NÃO são customizáveis por studios
+// - NÃO são alteráveis por treinadores
+// - NÃO podem ser reordenados fora da lógica do bloco
+// - APENAS SuperAdmin pode criar/alterar/excluir
+
+model Exercise {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?  @db.Text
+  
+  // 🔒 PROTEÇÃO DO MÉTODO
+  isLocked        Boolean  @default(true) @map("is_locked")
+  createdBy       String   @default("SUPERADMIN") @map("created_by")
+  
+  // 🎯 ESPECIFICAÇÕES DO EXERCÍCIO
+  type            String?  // Cardio, Força, Mobilidade, etc.
+  muscleGroup     String?  @map("muscle_group")
+  equipment       String?
+  difficulty      String?  // BEGINNER, INTERMEDIATE, ADVANCED
+  
+  // ⏱️ PRESCRIÇÃO (do método)
+  defaultSets     Int?     @map("default_sets")
+  defaultReps     String?  @map("default_reps")     // "10-12" ou "30s"
+  defaultTime     String?  @map("default_time")     // "30s", "1min"
+  defaultRest     String?  @map("default_rest")     // "30s", "1min"
+  
+  // 📝 NOTAS TÉCNICAS (protegidas)
+  technicalNotes  String?  @db.Text @map("technical_notes")
+  
+  // Instruções e mídia
+  instructions    String?  @db.Text
+  videoUrl        String?  @map("video_url")
+  
+  // 📋 ORDEM NO BLOCO
+  orderInBlock    Int?     @map("order_in_block")
+  
+  // Relacionamento com bloco
+  blockId         String?  @map("block_id")
+  block           Block?   @relation(fields: [blockId], references: [id])
+  
+  // Status
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([blockId])
+  @@index([muscleGroup])
+  @@index([isLocked])
+  @@map("exercises")
+}
+
+// ============================================================================
+// RULES (REGRAS DO MOTOR DE DECISÃO) - DADOS PROTEGIDOS DO MÉTODO
+// ============================================================================
+// ⚠️ REGRA ABSOLUTA: Regras são CORE DATA do Método Expert Training
+// Motor IF → THEN para decisão de treino
+// - NÃO são configuráveis por studios
+// - APENAS SuperAdmin pode criar/alterar/excluir
+
+model Rule {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?  @db.Text
+  
+  // 🔒 PROTEÇÃO DO MÉTODO
+  isLocked        Boolean  @default(true) @map("is_locked")
+  createdBy       String   @default("SUPERADMIN") @map("created_by")
+  
+  // Condição (JSON com lógica IF)
+  conditionJson   Json     @map("condition_json")
+  // Estrutura:
+  // {
+  //   "operator": "AND" | "OR",
+  //   "conditions": [
+  //     { "field": "painMap.lower_back", "operator": ">=", "value": 5 },
+  //     { "field": "movementTests.squat.score", "operator": "<=", "value": 2 },
+  //     { "field": "level", "operator": "==", "value": "BEGINNER" }
+  //   ]
+  // }
+  
+  // Ações (THEN)
+  allowedBlocks   String[] @map("allowed_blocks")  // IDs ou códigos dos blocos permitidos
+  blockedBlocks   String[] @map("blocked_blocks")  // IDs ou códigos dos blocos bloqueados
+  recommendations String[] @default([])            // Recomendações textuais
+  
+  // Prioridade (maior = mais importante)
+  priority        Int      @default(0)
+  
+  // Status
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([priority])
+  @@map("rules")
+}
+
+// ============================================================================
+// WORKOUTS (TREINOS MONTADOS)
+// ============================================================================
+
+model Workout {
+  id            String   @id @default(cuid())
+  clientId      String   @map("client_id")
+  studioId      String   @map("studio_id")
+  createdById   String   @map("created_by_id") // Treinador que montou
+  
+  // Identificação
+  name          String?  // Ex: "Treino A - Foco Mobilidade"
+  
+  // Blocos utilizados (array de IDs)
+  blocksUsed    String[] @map("blocks_used")
+  
+  // Estrutura do treino (JSON detalhado)
+  scheduleJson  Json     @map("schedule_json")
+  // Estrutura:
+  // {
+  //   "warmup": ["DYNAMIC_WARM_L1"],
+  //   "main": ["HIP_MOB_L1", "CORE_STAB_L1", "SQUAT_L1"],
+  //   "cooldown": ["BREATH_L1"],
+  //   "notes": "Manter RPE máximo de 6"
+  // }
+  
+  // Período de validade
+  startDate     DateTime? @map("start_date")
+  endDate       DateTime? @map("end_date")
+  
+  // Status
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  studio        Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([studioId])
+  @@map("workouts")
+}
+
+// ============================================================================
+// AUTH: REFRESH TOKENS
+// ============================================================================
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  token       String   @unique
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+  
+  // Device info (opcional, para controle de sessões)
+  userAgent   String?  @map("user_agent")
+  ipAddress   String?  @map("ip_address")
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ============================================================================
+// AUDIT: LOGS
+// ============================================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  @map("user_id")
+  studioId    String?  @map("studio_id")
+  
+  // Ação
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc
+  entity      String   // User, Client, Assessment, etc
+  entityId    String?  @map("entity_id")
+  
+  // Dados
+  oldData     Json?    @map("old_data")
+  newData     Json?    @map("new_data")
+  metadata    Json?    // IP, User-Agent, etc
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  studio      Studio?  @relation(fields: [studioId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([studioId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// LESSONS (AULAS) - CONTROLE DE PRESENÇA E ANTI-BURLA
+// ============================================================================
+// Registro de aulas realizadas com foto de presença
+// - Comprova uso real do sistema
+// - Impede burlar licenciamento
+// - Métricas para Studio e SuperAdmin
+
+model Lesson {
+  id            String   @id @default(cuid())
+  studioId      String   @map("studio_id")
+  trainerId     String   @map("trainer_id")
+  
+  // Tipo de aula
+  type          LessonType @default(INDIVIDUAL) // INDIVIDUAL ou GROUP
+  
+  // Foto de presença (obrigatória para validar)
+  photoUrl      String?  @map("photo_url")
+  photoKey      String?  @map("photo_key") // Para storage (S3, etc)
+  
+  // Timestamps
+  startedAt     DateTime @default(now()) @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  duration      Int?     // Duração em minutos (calculado)
+  
+  // Observações
+  notes         String?  @db.Text
+  
+  // Status
+  status        LessonStatus @default(STARTED)
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  studio        Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  trainer       User     @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  clients       LessonClient[]
+  
+  @@index([studioId])
+  @@index([trainerId])
+  @@index([startedAt])
+  @@index([status])
+  @@map("lessons")
+}
+
+// Tabela pivô para múltiplos alunos por aula
+model LessonClient {
+  id        String   @id @default(cuid())
+  lessonId  String   @map("lesson_id")
+  clientId  String   @map("client_id")
+  
+  // Presença confirmada
+  attended  Boolean  @default(true)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relacionamentos
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@unique([lessonId, clientId])
+  @@index([lessonId])
+  @@index([clientId])
+  @@map("lesson_clients")
+}
+
+enum LessonType {
+  INDIVIDUAL
+  GROUP
+}
+
+enum LessonStatus {
+  STARTED
+  COMPLETED
+  CANCELLED
+}

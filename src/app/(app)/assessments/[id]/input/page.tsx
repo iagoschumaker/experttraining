@@ -1,0 +1,952 @@
+'use client'
+
+// ============================================================================
+// EXPERT TRAINING - ASSESSMENT INPUT PAGE
+// ============================================================================
+// Formulário completo de avaliação: Queixas, Mapa de Dor, Testes de Movimento
+// ============================================================================
+
+import { useEffect, useState } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Save,
+  Play,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Plus,
+} from 'lucide-react'
+
+// Types
+interface MovementTest {
+  score: number
+  observations: string
+}
+
+interface AssessmentInput {
+  complaints: string[]
+  painMap: Record<string, number>
+  movementTests: {
+    squat: MovementTest
+    hinge: MovementTest
+    lunge: MovementTest
+    push: MovementTest
+    pull: MovementTest
+    rotation: MovementTest
+    gait: MovementTest
+  }
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+}
+
+// Body metrics interface (optional)
+interface BodyMetrics {
+  weight?: number
+  height?: number
+  bodyFat?: number
+  measurements?: {
+    chest?: number
+    waist?: number
+    hip?: number
+    arm?: number
+    thigh?: number
+    calf?: number
+  }
+  notes?: string
+}
+
+interface Assessment {
+  id: string
+  status: string
+  inputJson: AssessmentInput | null
+  client: {
+    id: string
+    name: string
+    history: string | null
+    objectives: string | null
+  }
+}
+
+// Pain map body regions
+const BODY_REGIONS = [
+  { id: 'neck', label: 'Pescoço' },
+  { id: 'shoulder_left', label: 'Ombro Esquerdo' },
+  { id: 'shoulder_right', label: 'Ombro Direito' },
+  { id: 'upper_back', label: 'Parte Superior das Costas' },
+  { id: 'lower_back', label: 'Lombar' },
+  { id: 'hip_left', label: 'Quadril Esquerdo' },
+  { id: 'hip_right', label: 'Quadril Direito' },
+  { id: 'knee_left', label: 'Joelho Esquerdo' },
+  { id: 'knee_right', label: 'Joelho Direito' },
+  { id: 'ankle_left', label: 'Tornozelo Esquerdo' },
+  { id: 'ankle_right', label: 'Tornozelo Direito' },
+  { id: 'elbow_left', label: 'Cotovelo Esquerdo' },
+  { id: 'elbow_right', label: 'Cotovelo Direito' },
+  { id: 'wrist_left', label: 'Punho Esquerdo' },
+  { id: 'wrist_right', label: 'Punho Direito' },
+]
+
+// Movement tests config
+const MOVEMENT_TESTS = [
+  {
+    id: 'squat',
+    name: 'Agachamento',
+    description: 'Avalie a qualidade do agachamento profundo',
+  },
+  {
+    id: 'hinge',
+    name: 'Hinge (Dobradiça)',
+    description: 'Avalie o padrão de dobradiça de quadril',
+  },
+  {
+    id: 'lunge',
+    name: 'Lunge (Avanço)',
+    description: 'Avalie o padrão de avanço unilateral',
+  },
+  {
+    id: 'push',
+    name: 'Empurrar',
+    description: 'Avalie o padrão de empurrar (flexão)',
+  },
+  {
+    id: 'pull',
+    name: 'Puxar',
+    description: 'Avalie o padrão de puxar',
+  },
+  {
+    id: 'rotation',
+    name: 'Rotação',
+    description: 'Avalie a capacidade rotacional do tronco',
+  },
+  {
+    id: 'gait',
+    name: 'Marcha',
+    description: 'Avalie o padrão de caminhada/corrida',
+  },
+] as const
+
+const SCORE_LABELS = [
+  { value: 0, label: 'Incapaz', color: 'bg-red-500' },
+  { value: 1, label: 'Com Compensação', color: 'bg-orange-500' },
+  { value: 2, label: 'Aceitável', color: 'bg-yellow-500' },
+  { value: 3, label: 'Excelente', color: 'bg-green-500' },
+]
+
+// Common complaints
+const COMMON_COMPLAINTS = [
+  'Dor lombar',
+  'Dor no joelho',
+  'Dor no ombro',
+  'Dor cervical',
+  'Falta de mobilidade',
+  'Fraqueza muscular',
+  'Desequilíbrio',
+  'Fadiga excessiva',
+  'Dificuldade respiratória',
+  'Tensão muscular',
+]
+
+export default function AssessmentInputPage() {
+  const router = useRouter()
+  const params = useParams()
+  const assessmentId = params.id as string
+
+  const [assessment, setAssessment] = useState<Assessment | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [step, setStep] = useState(1) // 1: Complaints, 2: Pain Map, 3: Movement Tests, 4: Body Metrics, 5: Level
+  const [newComplaint, setNewComplaint] = useState('')
+
+  // Form state
+  const [formData, setFormData] = useState<AssessmentInput>({
+    complaints: [],
+    painMap: {},
+    movementTests: {
+      squat: { score: 0, observations: '' },
+      hinge: { score: 0, observations: '' },
+      lunge: { score: 0, observations: '' },
+      push: { score: 0, observations: '' },
+      pull: { score: 0, observations: '' },
+      rotation: { score: 0, observations: '' },
+      gait: { score: 0, observations: '' },
+    },
+    level: 'BEGINNER',
+  })
+
+  // Body metrics (optional)
+  const [bodyMetrics, setBodyMetrics] = useState<BodyMetrics>({
+    weight: undefined,
+    height: undefined,
+    bodyFat: undefined,
+    measurements: {},
+    notes: '',
+  })
+
+  // Fetch assessment
+  useEffect(() => {
+    const fetchAssessment = async () => {
+      try {
+        const res = await fetch(`/api/assessments/${assessmentId}`)
+        const data = await res.json()
+
+        if (data.success) {
+          setAssessment(data.data)
+          if (data.data.inputJson) {
+            setFormData(data.data.inputJson)
+          }
+        } else {
+          alert('Avaliação não encontrada')
+          router.push('/assessments')
+        }
+      } catch (error) {
+        console.error('Error fetching assessment:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAssessment()
+  }, [assessmentId, router])
+
+  // Add complaint
+  const addComplaint = (complaint: string) => {
+    if (complaint && !formData.complaints.includes(complaint)) {
+      setFormData({
+        ...formData,
+        complaints: [...formData.complaints, complaint],
+      })
+    }
+    setNewComplaint('')
+  }
+
+  // Remove complaint
+  const removeComplaint = (complaint: string) => {
+    setFormData({
+      ...formData,
+      complaints: formData.complaints.filter((c) => c !== complaint),
+    })
+  }
+
+  // Update pain level
+  const updatePainLevel = (region: string, level: number) => {
+    setFormData({
+      ...formData,
+      painMap: {
+        ...formData.painMap,
+        [region]: level,
+      },
+    })
+  }
+
+  // Update movement test
+  const updateMovementTest = (
+    test: keyof AssessmentInput['movementTests'],
+    field: 'score' | 'observations',
+    value: number | string
+  ) => {
+    setFormData({
+      ...formData,
+      movementTests: {
+        ...formData.movementTests,
+        [test]: {
+          ...formData.movementTests[test],
+          [field]: value,
+        },
+      },
+    })
+  }
+
+  // Save progress
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/assessments/${assessmentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inputJson: formData,
+          status: 'IN_PROGRESS',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!data.success) {
+        alert(data.error || 'Erro ao salvar')
+      }
+    } catch (error) {
+      console.error('Error saving:', error)
+      alert('Erro ao salvar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Process assessment
+  const handleProcess = async () => {
+    setProcessing(true)
+    try {
+      // First save the data with bodyMetrics
+      // Filter out empty values from bodyMetrics
+      const cleanBodyMetrics: BodyMetrics = {}
+      if (bodyMetrics.weight) cleanBodyMetrics.weight = bodyMetrics.weight
+      if (bodyMetrics.height) cleanBodyMetrics.height = bodyMetrics.height
+      if (bodyMetrics.bodyFat) cleanBodyMetrics.bodyFat = bodyMetrics.bodyFat
+      if (bodyMetrics.notes) cleanBodyMetrics.notes = bodyMetrics.notes
+      if (bodyMetrics.measurements) {
+        const measurements: BodyMetrics['measurements'] = {}
+        if (bodyMetrics.measurements.chest) measurements.chest = bodyMetrics.measurements.chest
+        if (bodyMetrics.measurements.waist) measurements.waist = bodyMetrics.measurements.waist
+        if (bodyMetrics.measurements.hip) measurements.hip = bodyMetrics.measurements.hip
+        if (bodyMetrics.measurements.arm) measurements.arm = bodyMetrics.measurements.arm
+        if (bodyMetrics.measurements.thigh) measurements.thigh = bodyMetrics.measurements.thigh
+        if (bodyMetrics.measurements.calf) measurements.calf = bodyMetrics.measurements.calf
+        if (Object.keys(measurements).length > 0) {
+          cleanBodyMetrics.measurements = measurements
+        }
+      }
+
+      await fetch(`/api/assessments/${assessmentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inputJson: formData,
+          bodyMetrics: Object.keys(cleanBodyMetrics).length > 0 ? cleanBodyMetrics : undefined,
+        }),
+      })
+
+      // Then process
+      const res = await fetch(`/api/assessments/${assessmentId}/process`, {
+        method: 'POST',
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        router.push(`/assessments/${assessmentId}`)
+      } else {
+        alert(data.error || 'Erro ao processar avaliação')
+      }
+    } catch (error) {
+      console.error('Error processing:', error)
+      alert('Erro ao processar avaliação')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    )
+  }
+
+  if (!assessment) {
+    return null
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/assessments">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Avaliação: {assessment.client.name}
+            </h1>
+            <p className="text-sm text-gray-500">
+              Preencha os dados da avaliação funcional
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" onClick={handleSave} disabled={saving}>
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? 'Salvando...' : 'Salvar Rascunho'}
+        </Button>
+      </div>
+
+      {/* Client info */}
+      {(assessment.client.history || assessment.client.objectives) && (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {assessment.client.objectives && (
+                <div>
+                  <Label className="text-muted-foreground">Objetivos</Label>
+                  <p className="mt-1">{assessment.client.objectives}</p>
+                </div>
+              )}
+              {assessment.client.history && (
+                <div>
+                  <Label className="text-muted-foreground">Histórico</Label>
+                  <p className="mt-1">{assessment.client.history}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progress steps */}
+      <div className="flex items-center justify-center gap-2">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <button
+            key={s}
+            onClick={() => setStep(s)}
+            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors ${
+              step === s
+                ? 'bg-primary text-primary-foreground'
+                : step > s
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-200 text-gray-600'
+            }`}
+          >
+            {step > s ? <CheckCircle className="h-5 w-5" /> : s}
+          </button>
+        ))}
+      </div>
+      <div className="text-center text-sm text-gray-500">
+        {step === 1 && 'Etapa 1: Queixas do Cliente'}
+        {step === 2 && 'Etapa 2: Mapa de Dor'}
+        {step === 3 && 'Etapa 3: Testes de Movimento'}
+        {step === 4 && 'Etapa 4: Medidas Corporais (Opcional)'}
+        {step === 5 && 'Etapa 5: Nível e Processamento'}
+      </div>
+
+      {/* Step 1: Complaints */}
+      {step === 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Queixas do Cliente</CardTitle>
+            <CardDescription>
+              Registre as queixas e sintomas relatados pelo cliente
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Selected complaints */}
+            <div className="flex flex-wrap gap-2">
+              {formData.complaints.map((complaint) => (
+                <Badge key={complaint} variant="secondary" className="gap-1 py-1">
+                  {complaint}
+                  <button
+                    onClick={() => removeComplaint(complaint)}
+                    className="ml-1 rounded-full hover:bg-gray-300"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {formData.complaints.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma queixa registrada
+                </p>
+              )}
+            </div>
+
+            {/* Common complaints */}
+            <div>
+              <Label className="mb-2 block">Queixas Comuns</Label>
+              <div className="flex flex-wrap gap-2">
+                {COMMON_COMPLAINTS.filter(
+                  (c) => !formData.complaints.includes(c)
+                ).map((complaint) => (
+                  <Button
+                    key={complaint}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addComplaint(complaint)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    {complaint}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom complaint */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Adicionar outra queixa..."
+                value={newComplaint}
+                onChange={(e) => setNewComplaint(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addComplaint(newComplaint)
+                  }
+                }}
+              />
+              <Button onClick={() => addComplaint(newComplaint)}>
+                Adicionar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Pain Map */}
+      {step === 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Mapa de Dor</CardTitle>
+            <CardDescription>
+              Indique a intensidade da dor em cada região (0 = sem dor, 10 = dor
+              extrema)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {BODY_REGIONS.map((region) => (
+                <div key={region.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>{region.label}</Label>
+                    <span
+                      className={`text-sm font-medium ${
+                        (formData.painMap[region.id] || 0) === 0
+                          ? 'text-green-600'
+                          : (formData.painMap[region.id] || 0) <= 3
+                          ? 'text-yellow-600'
+                          : (formData.painMap[region.id] || 0) <= 6
+                          ? 'text-orange-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {formData.painMap[region.id] || 0}/10
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    value={formData.painMap[region.id] || 0}
+                    onChange={(e) =>
+                      updatePainLevel(region.id, parseInt(e.target.value))
+                    }
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200"
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Movement Tests */}
+      {step === 3 && (
+        <div className="space-y-4">
+          {MOVEMENT_TESTS.map((test) => (
+            <Card key={test.id}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">{test.name}</CardTitle>
+                <CardDescription>{test.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="mb-2 block">Pontuação</Label>
+                  <div className="flex gap-2">
+                    {SCORE_LABELS.map((score) => (
+                      <button
+                        key={score.value}
+                        onClick={() =>
+                          updateMovementTest(
+                            test.id as keyof AssessmentInput['movementTests'],
+                            'score',
+                            score.value
+                          )
+                        }
+                        className={`flex-1 rounded-lg border-2 p-3 text-center transition-colors ${
+                          formData.movementTests[
+                            test.id as keyof AssessmentInput['movementTests']
+                          ].score === score.value
+                            ? `${score.color} border-transparent text-white`
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-xl font-bold">{score.value}</div>
+                        <div className="text-xs">{score.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor={`obs-${test.id}`}>Observações</Label>
+                  <Input
+                    id={`obs-${test.id}`}
+                    placeholder="Observações sobre compensações, assimetrias..."
+                    value={
+                      formData.movementTests[
+                        test.id as keyof AssessmentInput['movementTests']
+                      ].observations
+                    }
+                    onChange={(e) =>
+                      updateMovementTest(
+                        test.id as keyof AssessmentInput['movementTests'],
+                        'observations',
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Step 4: Body Metrics (Optional) */}
+      {step === 4 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Medidas Corporais</CardTitle>
+            <CardDescription>
+              Registre as medidas corporais do cliente (todos os campos são opcionais)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Basic metrics */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="weight">Peso (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.1"
+                  placeholder="Ex: 75.5"
+                  value={bodyMetrics.weight || ''}
+                  onChange={(e) => setBodyMetrics({
+                    ...bodyMetrics,
+                    weight: e.target.value ? parseFloat(e.target.value) : undefined
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="height">Altura (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  placeholder="Ex: 175"
+                  value={bodyMetrics.height || ''}
+                  onChange={(e) => setBodyMetrics({
+                    ...bodyMetrics,
+                    height: e.target.value ? parseFloat(e.target.value) : undefined
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bodyFat">% Gordura Corporal</Label>
+                <Input
+                  id="bodyFat"
+                  type="number"
+                  step="0.1"
+                  placeholder="Ex: 18.5"
+                  value={bodyMetrics.bodyFat || ''}
+                  onChange={(e) => setBodyMetrics({
+                    ...bodyMetrics,
+                    bodyFat: e.target.value ? parseFloat(e.target.value) : undefined
+                  })}
+                />
+              </div>
+            </div>
+
+            {/* Circumference measurements */}
+            <div>
+              <Label className="mb-3 block text-base font-medium">Circunferências (cm)</Label>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="chest" className="text-sm">Peitoral</Label>
+                  <Input
+                    id="chest"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 100"
+                    value={bodyMetrics.measurements?.chest || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: {
+                        ...bodyMetrics.measurements,
+                        chest: e.target.value ? parseFloat(e.target.value) : undefined
+                      }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="waist" className="text-sm">Cintura</Label>
+                  <Input
+                    id="waist"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 80"
+                    value={bodyMetrics.measurements?.waist || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: {
+                        ...bodyMetrics.measurements,
+                        waist: e.target.value ? parseFloat(e.target.value) : undefined
+                      }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hip" className="text-sm">Quadril</Label>
+                  <Input
+                    id="hip"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 95"
+                    value={bodyMetrics.measurements?.hip || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: {
+                        ...bodyMetrics.measurements,
+                        hip: e.target.value ? parseFloat(e.target.value) : undefined
+                      }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="arm" className="text-sm">Braço</Label>
+                  <Input
+                    id="arm"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 35"
+                    value={bodyMetrics.measurements?.arm || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: {
+                        ...bodyMetrics.measurements,
+                        arm: e.target.value ? parseFloat(e.target.value) : undefined
+                      }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="thigh" className="text-sm">Coxa</Label>
+                  <Input
+                    id="thigh"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 55"
+                    value={bodyMetrics.measurements?.thigh || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: {
+                        ...bodyMetrics.measurements,
+                        thigh: e.target.value ? parseFloat(e.target.value) : undefined
+                      }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="calf" className="text-sm">Panturrilha</Label>
+                  <Input
+                    id="calf"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 38"
+                    value={bodyMetrics.measurements?.calf || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: {
+                        ...bodyMetrics.measurements,
+                        calf: e.target.value ? parseFloat(e.target.value) : undefined
+                      }
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="metricsNotes">Observações</Label>
+              <Input
+                id="metricsNotes"
+                placeholder="Observações sobre as medidas..."
+                value={bodyMetrics.notes || ''}
+                onChange={(e) => setBodyMetrics({
+                  ...bodyMetrics,
+                  notes: e.target.value
+                })}
+              />
+            </div>
+
+            {/* BMI Calculation (if height and weight provided) */}
+            {bodyMetrics.weight && bodyMetrics.height && (
+              <div className="rounded-lg bg-blue-50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-blue-800">IMC Calculado:</span>
+                  <span className="text-lg font-bold text-blue-900">
+                    {(bodyMetrics.weight / Math.pow(bodyMetrics.height / 100, 2)).toFixed(1)} kg/m²
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 5: Level and Process */}
+      {step === 5 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nível de Experiência</CardTitle>
+            <CardDescription>
+              Selecione o nível de experiência do cliente com treinamento
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  value: 'BEGINNER',
+                  label: 'Iniciante',
+                  description: 'Pouca ou nenhuma experiência com treinamento',
+                },
+                {
+                  value: 'INTERMEDIATE',
+                  label: 'Intermediário',
+                  description: 'Experiência moderada, pratica regularmente',
+                },
+                {
+                  value: 'ADVANCED',
+                  label: 'Avançado',
+                  description: 'Experiência significativa, atleta ou similar',
+                },
+              ].map((level) => (
+                <button
+                  key={level.value}
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      level: level.value as AssessmentInput['level'],
+                    })
+                  }
+                  className={`rounded-lg border-2 p-4 text-left transition-colors ${
+                    formData.level === level.value
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="font-medium">{level.label}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {level.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div className="rounded-lg bg-gray-50 p-4">
+              <h4 className="mb-2 font-medium">Resumo da Avaliação</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Queixas:</span>
+                  <span>{formData.complaints.length} registrada(s)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Regiões com dor:
+                  </span>
+                  <span>
+                    {
+                      Object.values(formData.painMap).filter((v) => v > 0)
+                        .length
+                    }{' '}
+                    região(ões)
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Score médio de movimento:
+                  </span>
+                  <span>
+                    {(
+                      Object.values(formData.movementTests).reduce(
+                        (acc, t) => acc + t.score,
+                        0
+                      ) / 7
+                    ).toFixed(1)}
+                    /3
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Nível:</span>
+                  <span>
+                    {formData.level === 'BEGINNER'
+                      ? 'Iniciante'
+                      : formData.level === 'INTERMEDIATE'
+                      ? 'Intermediário'
+                      : 'Avançado'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Process button */}
+            <Button
+              onClick={handleProcess}
+              disabled={processing}
+              className="w-full"
+              size="lg"
+            >
+              {processing ? (
+                <>
+                  <AlertCircle className="mr-2 h-4 w-4 animate-pulse" />
+                  Processando Avaliação...
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Processar Avaliação
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => setStep((s) => Math.max(1, s - 1))}
+          disabled={step === 1}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Anterior
+        </Button>
+        {step < 5 && (
+          <Button onClick={() => setStep((s) => Math.min(5, s + 1))}>
+            Próximo
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
