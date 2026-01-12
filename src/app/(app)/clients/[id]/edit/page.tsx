@@ -38,6 +38,60 @@ export default function EditClientPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  
+  function formatDate(value: string) {
+    // Remove tudo que não é número
+    const numbers = value.replace(/\D/g, '')
+    
+    // Aplica a máscara
+    if (numbers.length <= 2) {
+      return numbers
+    } else if (numbers.length <= 4) {
+      return numbers.slice(0, 2) + '/' + numbers.slice(2)
+    } else {
+      return numbers.slice(0, 2) + '/' + numbers.slice(2, 4) + '/' + numbers.slice(4, 8)
+    }
+  }
+
+  function handleDateChange(value: string) {
+    const formatted = formatDate(value)
+    setFormData({ ...formData, birthDate: formatted })
+  }
+
+  function convertDateToISO(dateStr: string): string | null {
+    if (!dateStr) return null
+    
+    // Se já está no formato ISO (YYYY-MM-DD)
+    if (dateStr.includes('-') && dateStr.length === 10) {
+      return dateStr
+    }
+    
+    // Converte de DD/MM/AAAA para YYYY-MM-DD
+    const parts = dateStr.split('/')
+    if (parts.length === 3 && parts[2].length === 4) {
+      const [day, month, year] = parts
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+    
+    return null
+  }
+
+  function convertISOToBR(dateStr: string): string {
+    if (!dateStr) return ''
+    
+    // Se já está no formato brasileiro
+    if (dateStr.includes('/')) return dateStr
+    
+    // Converte de YYYY-MM-DD para DD/MM/AAAA
+    const parts = dateStr.split('T')[0].split('-')
+    if (parts.length === 3) {
+      const [year, month, day] = parts
+      return `${day}/${month}/${year}`
+    }
+    
+    return dateStr
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -119,7 +173,7 @@ export default function EditClientPage() {
       }
 
       if (formData.birthDate) {
-        updateData.birthDate = formData.birthDate
+        updateData.birthDate = convertDateToISO(formData.birthDate)
       }
       if (formData.gender) {
         updateData.gender = formData.gender
@@ -245,11 +299,21 @@ export default function EditClientPage() {
                   <Label htmlFor="birthDate">Data de Nascimento</Label>
                   <Input
                     id="birthDate"
+                    type="text"
+                    value={formData.birthDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    className="md:hidden"
+                  />
+                  <Input
+                    id="birthDate-desktop"
                     type="date"
                     value={formData.birthDate}
                     onChange={(e) =>
                       setFormData({ ...formData, birthDate: e.target.value })
                     }
+                    className="hidden md:block"
                   />
                 </div>
                 <div className="space-y-2">

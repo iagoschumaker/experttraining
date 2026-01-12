@@ -10,6 +10,53 @@ import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
 
+function normalizeGender(value: string): 'M' | 'F' | 'O' {
+  switch (value) {
+    case 'M':
+    case 'MALE':
+    case 'male':
+      return 'M'
+    case 'F':
+    case 'FEMALE':
+    case 'female':
+      return 'F'
+    case 'O':
+    case 'OTHER':
+    case 'other':
+      return 'O'
+    default:
+      return 'O'
+  }
+}
+
+function parseBirthDate(value: unknown): Date | null {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value !== 'string') return null
+
+  const input = value.trim()
+  if (!input) return null
+
+  // YYYY-MM-DD
+  const isoDateOnly = /^\d{4}-\d{2}-\d{2}$/
+  if (isoDateOnly.test(input)) {
+    const [y, m, d] = input.split('-').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    return Number.isNaN(dt.getTime()) ? null : dt
+  }
+
+  // DD/MM/YYYY
+  const brDate = /^\d{2}\/\d{2}\/\d{4}$/
+  if (brDate.test(input)) {
+    const [d, m, y] = input.split('/').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    return Number.isNaN(dt.getTime()) ? null : dt
+  }
+
+  // ISO datetime or other Date-parseable strings (defensive)
+  const dt = new Date(input)
+  return Number.isNaN(dt.getTime()) ? null : dt
+}
+
 // ============================================================================
 // GET - List Clients
 // ============================================================================
@@ -109,10 +156,35 @@ export async function GET(request: NextRequest) {
 // ============================================================================
 const createClientSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  email: z.string().email('Email inválido').optional().nullable(),
+  email: z.union([
+    z.string().email('Email inválido'),
+    z.literal(''),
+    z.null(),
+    z.undefined()
+  ]).optional().nullable().transform(val => val === '' ? null : val),
   phone: z.string().optional().nullable(),
-  birthDate: z.string().optional().nullable(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+  birthDate: z.union([z.string(), z.literal(''), z.null(), z.undefined()])
+    .optional()
+    .nullable()
+    .transform((val, ctx) => {
+      const parsed = parseBirthDate(val)
+      if (val && val !== '' && parsed === null) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Data de nascimento inválida' })
+      }
+      return parsed
+    }),
+  gender: z.union([
+    z.enum(['M', 'F', 'O', 'MALE', 'FEMALE', 'OTHER', 'male', 'female', 'other']),
+    z.literal(''),
+    z.null(),
+    z.undefined()
+  ])
+    .optional()
+    .nullable()
+    .transform((val) => {
+      if (val === '' || val === null || val === undefined) return null
+      return normalizeGender(val)
+    }),
   height: z.number().positive().optional().nullable(),
   weight: z.number().positive().optional().nullable(),
   history: z.string().optional().nullable(),
@@ -120,6 +192,12 @@ const createClientSchema = z.object({
   notes: z.string().optional().nullable(),
   goal: z.string().optional().nullable(),
   trainerId: z.string().optional().nullable(),
+  chest: z.number().positive().optional().nullable(),
+  waist: z.number().positive().optional().nullable(),
+  hip: z.number().positive().optional().nullable(),
+  arm: z.number().positive().optional().nullable(),
+  thigh: z.number().positive().optional().nullable(),
+  calf: z.number().positive().optional().nullable(),
 })
 
 export async function POST(request: NextRequest) {
@@ -136,7 +214,14 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.errors[0].message },
+        {
+          success: false,
+          error: 'input inválido',
+          issues: validation.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
         { status: 400 }
       )
     }
@@ -174,7 +259,7 @@ export async function POST(request: NextRequest) {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        birthDate: data.birthDate ? new Date(data.birthDate) : null,
+        birthDate: data.birthDate,
         gender: data.gender,
         height: data.height,
         weight: data.weight,
@@ -182,6 +267,12 @@ export async function POST(request: NextRequest) {
         objectives: data.objectives,
         notes: data.notes,
         goal: data.goal,
+        chest: data.chest,
+        waist: data.waist,
+        hip: data.hip,
+        arm: data.arm,
+        thigh: data.thigh,
+        calf: data.calf,
         status: 'ACTIVE',
       },
     })
