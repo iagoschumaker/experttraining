@@ -10,15 +10,85 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Shadcn compatibility
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+        
+        // Expert Training Design System
+        // Base Backgrounds
+        'bg-primary': {
+          DEFAULT: '#0F1215', // Dark: Cinza carvão
+          light: '#FFFFFF',   // Light: Branco
         },
+        'bg-secondary': {
+          DEFAULT: '#151A1F', // Dark: Cinza grafite
+          light: '#F5F7FA',   // Light: Cinza muito claro
+        },
+        'surface': {
+          DEFAULT: '#1C232B', // Dark: Cards/containers
+          light: '#FFFFFF',   // Light: Cards
+          hover: '#2A333D',   // Dark: Hover state
+        },
+        'border-color': {
+          DEFAULT: '#2A333D', // Dark: Bordas
+          light: '#E2E8F0',   // Light: Bordas
+          divider: '#323C47', // Dark: Divisores
+        },
+        
+        // Expert Training Primary (Azul Ciano)
+        primary: {
+          DEFAULT: '#00C2D1',
+          hover: '#00A9B6',
+          active: '#008E99',
+          focus: '#33D6E2',
+          foreground: '#FFFFFF',
+        },
+        
+        // Expert Training Accent (Amarelo Mostarda)
+        accent: {
+          DEFAULT: '#F2B705',
+          hover: '#D9A404',
+          soft: '#3A2E0A',
+          'soft-light': '#FFF4CC',
+          foreground: '#000000',
+        },
+        
+        // Text colors
+        'text-primary': {
+          DEFAULT: '#E6EAF0', // Dark: Branco suave
+          light: '#0F172A',   // Light: Cinza muito escuro
+        },
+        'text-secondary': {
+          DEFAULT: '#AEB6C2', // Dark: Cinza claro
+          light: '#475569',   // Light: Cinza médio
+        },
+        'text-disabled': {
+          DEFAULT: '#7A8491', // Dark: Cinza opaco
+          light: '#94A3B8',   // Light: Cinza claro
+        },
+        
+        // Status colors
+        success: {
+          DEFAULT: '#22C55E',
+          foreground: '#FFFFFF',
+        },
+        warning: {
+          DEFAULT: '#F2B705',
+          foreground: '#000000',
+        },
+        error: {
+          DEFAULT: '#EF4444',
+          foreground: '#FFFFFF',
+        },
+        info: {
+          DEFAULT: '#00C2D1',
+          foreground: '#FFFFFF',
+        },
+        
+        // Shadcn required colors
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
@@ -31,10 +101,6 @@ const config: Config = {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
@@ -42,20 +108,6 @@ const config: Config = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
-        },
-        // Expert Training brand colors
-        expert: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
         },
       },
       borderRadius: {

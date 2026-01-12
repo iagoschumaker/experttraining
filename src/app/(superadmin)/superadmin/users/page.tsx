@@ -8,19 +8,21 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { FloatingActionButton } from '@/components/ui'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
+  ResponsiveTable, ResponsiveHeader, ResponsiveBody, ResponsiveRow, ResponsiveCell, ResponsiveHeaderCell
+} from '@/components/ui'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Users, Plus, Search, Pencil, Trash2, Shield, User } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Users, Plus, Search, Pencil, Trash2, Shield, User, GraduationCap } from 'lucide-react'
 
 interface UserStudio { studio: { id: string; name: string }; role: string }
 interface UserData {
@@ -32,16 +34,36 @@ interface UserData {
   userStudios: UserStudio[]
 }
 
+interface ClientData {
+  id: string
+  name: string
+  email: string | null
+  studio: { id: string; name: string } | null
+  trainer: { id: string; name: string } | null
+  createdAt: string
+}
+
 interface Studio { id: string; name: string }
 
 export default function SuperAdminUsersPage() {
   const [users, setUsers] = useState<UserData[]>([])
+  const [clients, setClients] = useState<ClientData[]>([])
   const [studios, setStudios] = useState<Studio[]>([])
   const [loading, setLoading] = useState(true)
+  const [clientsLoading, setClientsLoading] = useState(true)
+  
+  // Users State
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+
+  // Clients State
+  const [clientSearch, setClientSearch] = useState('')
+  const [clientPage, setClientPage] = useState(1)
+  const [clientTotalPages, setClientTotalPages] = useState(1)
+  const [clientTotal, setClientTotal] = useState(0)
+  
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -51,6 +73,9 @@ export default function SuperAdminUsersPage() {
     name: '', email: '', password: '', isSuperAdmin: false, studioId: '', studioRole: 'TRAINER',
   })
 
+  useEffect(() => { fetchStudios() }, [])
+
+  // Fetch Users
   const fetchUsers = async () => {
     setLoading(true)
     try {
@@ -63,6 +88,23 @@ export default function SuperAdminUsersPage() {
     finally { setLoading(false) }
   }
 
+  // Fetch Clients
+  const fetchClients = async () => {
+    setClientsLoading(true)
+    try {
+      const params = new URLSearchParams({ page: clientPage.toString(), pageSize: '15' })
+      if (clientSearch) params.set('search', clientSearch)
+      const res = await fetch(`/api/superadmin/clients?${params}`)
+      const data = await res.json()
+      if (data.success) { 
+        setClients(data.data.items)
+        setClientTotalPages(data.data.totalPages)
+        setClientTotal(data.data.total) 
+      }
+    } catch (error) { console.error('Error:', error) }
+    finally { setClientsLoading(false) }
+  }
+
   const fetchStudios = async () => {
     try {
       const res = await fetch('/api/superadmin/studios?pageSize=100')
@@ -71,7 +113,8 @@ export default function SuperAdminUsersPage() {
     } catch (error) { console.error('Error:', error) }
   }
 
-  useEffect(() => { fetchUsers(); fetchStudios() }, [page, search])
+  useEffect(() => { fetchUsers() }, [page, search])
+  useEffect(() => { fetchClients() }, [clientPage, clientSearch])
 
   const resetForm = () => setFormData({ name: '', email: '', password: '', isSuperAdmin: false, studioId: '', studioRole: 'TRAINER' })
 
@@ -125,37 +168,37 @@ export default function SuperAdminUsersPage() {
   const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
     <form onSubmit={onSubmit}>
       <DialogHeader>
-        <DialogTitle className="text-white">{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
-        <DialogDescription className="text-gray-400">{isEdit ? 'Atualize os dados' : 'Cadastre um novo usuário'}</DialogDescription>
+        <DialogTitle className="text-foreground">{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
+        <DialogDescription className="text-muted-foreground">{isEdit ? 'Atualize os dados' : 'Cadastre um novo usuário'}</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-gray-300">Nome *</Label>
-            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required />
+            <Label className="text-muted-foreground">Nome *</Label>
+            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-card border-border text-foreground" required />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-300">Email *</Label>
-            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required />
+            <Label className="text-muted-foreground">Email *</Label>
+            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="bg-card border-border text-foreground" required />
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="text-gray-300">Senha {isEdit ? '(deixe vazio para manter)' : '*'}</Label>
-          <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required={!isEdit} />
+          <Label className="text-muted-foreground">Senha {isEdit ? '(deixe vazio para manter)' : '*'}</Label>
+          <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="bg-card border-border text-foreground" required={!isEdit} />
         </div>
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={(e) => setFormData({ ...formData, isSuperAdmin: e.target.checked })} className="rounded border-gray-700" />
-          <Label htmlFor="isSuperAdmin" className="text-gray-300">Super Administrador</Label>
+          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={(e) => setFormData({ ...formData, isSuperAdmin: e.target.checked })} className="rounded border-border" />
+          <Label htmlFor="isSuperAdmin" className="text-muted-foreground">Super Administrador</Label>
         </div>
-        <div className="p-4 rounded-lg bg-gray-800/50 border border-gray-700 space-y-4">
+        <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
           <h4 className="font-medium text-amber-500">Vínculo com Studio</h4>
           <div className="grid grid-cols-2 gap-4">
             <Select value={formData.studioId} onValueChange={(v) => setFormData({ ...formData, studioId: v })}>
-              <SelectTrigger className="bg-gray-900 border-gray-700 text-white"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
+              <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
               <SelectContent>{studios.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={formData.studioRole} onValueChange={(v) => setFormData({ ...formData, studioRole: v })}>
-              <SelectTrigger className="bg-gray-900 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="OWNER">Proprietário</SelectItem><SelectItem value="ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
             </Select>
           </div>
@@ -163,7 +206,7 @@ export default function SuperAdminUsersPage() {
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => isEdit ? setIsEditOpen(false) : setIsCreateOpen(false)}>Cancelar</Button>
-        <Button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">{saving ? 'Salvando...' : 'Salvar'}</Button>
+        <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Salvar'}</Button>
       </DialogFooter>
     </form>
   )
@@ -172,108 +215,197 @@ export default function SuperAdminUsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Usuários</h1>
-          <p className="text-sm text-gray-400">Gerencie os usuários do sistema</p>
+          <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-amber-500 hover:bg-amber-600 text-black" onClick={resetForm}><Plus className="h-4 w-4" /> Novo Usuário</Button>
+            <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}><Plus className="h-4 w-4" /> Novo Usuário</Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-700 max-w-lg"><FormContent onSubmit={handleCreate} /></DialogContent>
+          <DialogContent className="bg-card border-border max-w-lg"><FormContent onSubmit={handleCreate} /></DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gray-800 border-gray-700">
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Total</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total (Staff)</CardTitle>
             <Users className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{total}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{total}</div></CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Super Admins</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Alunos</CardTitle>
+            <GraduationCap className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold text-foreground">{clientTotal}</div></CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Super Admins</CardTitle>
             <Shield className="h-4 w-4 text-red-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{users.filter((u) => u.isSuperAdmin).length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{users.filter((u) => u.isSuperAdmin).length}</div></CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Usuários</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Usuários (Staff)</CardTitle>
             <User className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{users.filter((u) => !u.isSuperAdmin).length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{users.filter((u) => !u.isSuperAdmin).length}</div></CardContent>
         </Card>
       </div>
 
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input placeholder="Buscar usuários..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="pl-10 bg-gray-900 border-gray-700 text-white" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-gray-700" />)}</div>
-          ) : users.length === 0 ? (
-            <div className="py-12 text-center"><Users className="mx-auto h-12 w-12 text-gray-600" /><h3 className="mt-4 text-lg font-medium text-white">Nenhum usuário</h3></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">Nome</TableHead>
-                  <TableHead className="text-gray-400">Email</TableHead>
-                  <TableHead className="text-gray-400">Studios</TableHead>
-                  <TableHead className="text-gray-400">Tipo</TableHead>
-                  <TableHead className="text-gray-400 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u.id} className="border-gray-700">
-                    <TableCell className="font-medium text-white">{u.name}</TableCell>
-                    <TableCell className="text-gray-400">{u.email}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {u.userStudios && u.userStudios.length > 0 ? (
-                          <>
-                            {u.userStudios.slice(0, 2).map((us) => (
-                              <Badge key={us.studio.id} variant="outline" className="border-gray-600 text-gray-400 text-xs">{us.studio.name} ({us.role})</Badge>
-                            ))}
-                            {u.userStudios.length > 2 && <Badge variant="outline" className="border-gray-600 text-gray-400 text-xs">+{u.userStudios.length - 2}</Badge>}
-                          </>
-                        ) : (
-                          <span className="text-gray-500 text-xs">Nenhum estúdio</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-gray-600">Usuário</Badge>}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="hover:bg-gray-700"><Pencil className="h-4 w-4 text-gray-400" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} className="hover:bg-gray-700"><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-400">Página {page} de {totalPages}</p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="border-gray-700">Anterior</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-gray-700">Próxima</Button>
+      <Tabs defaultValue="staff" className="space-y-4">
+        <TabsList className="bg-muted">
+          <TabsTrigger value="staff">Equipe (Staff)</TabsTrigger>
+          <TabsTrigger value="clients">Alunos (Clients)</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="staff">
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Buscar staff..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="pl-10 bg-background border-border text-foreground" />
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-muted" />)}</div>
+              ) : users.length === 0 ? (
+                <div className="py-12 text-center"><Users className="mx-auto h-12 w-12 text-muted" /><h3 className="mt-4 text-lg font-medium text-foreground">Nenhum usuário</h3></div>
+              ) : (
+                <div className="responsive-table-wrapper">
+                  <table className="responsive-table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Studios</th>
+                        <th>Tipo</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((u) => (
+                        <tr key={u.id}>
+                          <td data-label="Nome" className="font-medium text-foreground">{u.name}</td>
+                          <td data-label="Email" className="text-muted-foreground">{u.email}</td>
+                          <td data-label="Studios">
+                            <div className="flex flex-wrap gap-1">
+                              {u.userStudios && u.userStudios.length > 0 ? (
+                                <>
+                                  {u.userStudios.slice(0, 2).map((us) => (
+                                    <Badge key={us.studio.id} variant="outline" className="border-border text-muted-foreground text-xs">{us.studio.name} ({us.role})</Badge>
+                                  ))}
+                                  {u.userStudios.length > 2 && <Badge variant="outline" className="border-border text-muted-foreground text-xs">+{u.userStudios.length - 2}</Badge>}
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">Nenhum estúdio</span>
+                              )}
+                            </div>
+                          </td>
+                          <td data-label="Tipo">{u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-muted">Usuário</Badge>}</td>
+                          <td data-label="Ações">
+                            <div className="flex gap-1 justify-end">
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Página {page} de {totalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="border-border">Anterior</Button>
+                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-border">Próxima</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="clients">
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Buscar alunos..." value={clientSearch} onChange={(e) => { setClientSearch(e.target.value); setClientPage(1) }} className="pl-10 bg-background border-border text-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {clientsLoading ? (
+                <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-muted" />)}</div>
+              ) : clients.length === 0 ? (
+                <div className="py-12 text-center"><GraduationCap className="mx-auto h-12 w-12 text-muted" /><h3 className="mt-4 text-lg font-medium text-foreground">Nenhum aluno encontrado</h3></div>
+              ) : (
+                <div className="responsive-table-wrapper">
+                  <table className="responsive-table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Studio</th>
+                        <th>Responsável</th>
+                        <th>Data Cadastro</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clients.map((c) => (
+                        <tr key={c.id}>
+                          <td data-label="Nome" className="font-medium text-foreground">{c.name}</td>
+                          <td data-label="Email" className="text-muted-foreground">{c.email || '-'}</td>
+                          <td data-label="Studio">
+                            {c.studio ? (
+                              <Badge variant="outline" className="border-border text-muted-foreground text-xs">{c.studio.name}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td data-label="Responsável" className="text-muted-foreground">{c.trainer?.name || '-'}</td>
+                          <td data-label="Data Cadastro" className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('pt-BR')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {clientTotalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Página {clientPage} de {clientTotalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setClientPage((p) => Math.max(1, p - 1))} disabled={clientPage === 1} className="border-border">Anterior</Button>
+                    <Button variant="outline" size="sm" onClick={() => setClientPage((p) => Math.min(clientTotalPages, p + 1))} disabled={clientPage === clientTotalPages} className="border-border">Próxima</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700 max-w-lg"><FormContent onSubmit={handleUpdate} isEdit /></DialogContent>
+        <DialogContent className="bg-card border-border max-w-lg"><FormContent onSubmit={handleUpdate} isEdit /></DialogContent>
       </Dialog>
+      
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton 
+        actions={[
+          {
+            label: 'Novo Usuário',
+            onClick: resetForm,
+            icon: <Plus className="h-5 w-5" />
+          }
+        ]}
+      />
     </div>
   )
 }

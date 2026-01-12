@@ -95,8 +95,8 @@ export default function SuperAdminDashboardPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">
           Visão geral do sistema Expert Training
         </p>
       </div>
@@ -105,9 +105,9 @@ export default function SuperAdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat, index) => (
           <Link key={index} href={stat.href || '#'}>
-            <Card className="bg-slate-900 border-slate-800 hover:border-amber-500/50 transition-colors cursor-pointer">
+            <Card className="bg-card border-border hover:border-amber-500/50 transition-colors cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-400">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
@@ -116,14 +116,14 @@ export default function SuperAdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <Skeleton className="h-8 w-16 bg-slate-800" />
+                  <Skeleton className="h-8 w-16 bg-muted" />
                 ) : (
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white">
+                    <span className="text-3xl font-bold text-foreground">
                       {stat.isString ? stat.value : stat.value}
                     </span>
                     {stat.total !== undefined && !stat.isString && (
-                      <span className="text-slate-500 text-sm">
+                      <span className="text-muted-foreground text-sm">
                         / {stat.total}
                       </span>
                     )}
@@ -139,16 +139,16 @@ export default function SuperAdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-3">
         {secondaryStats.map((stat, index) => (
           <Link key={index} href={stat.href}>
-            <Card className="bg-slate-900 border-slate-800 hover:border-amber-500/50 transition-colors cursor-pointer">
+            <Card className="bg-card border-border hover:border-amber-500/50 transition-colors cursor-pointer">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-amber-500">{stat.icon}</span>
-                    <span className="text-slate-400">{stat.title}</span>
+                    <span className="text-muted-foreground">{stat.title}</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white">{stat.value}</span>
-                    {stat.total !== undefined && <span className="text-slate-500 text-sm">/ {stat.total}</span>}
+                    <span className="text-xl font-bold text-foreground">{stat.value}</span>
+                    {stat.total !== undefined && <span className="text-muted-foreground text-sm">/ {stat.total}</span>}
                   </div>
                 </div>
               </CardContent>
@@ -160,27 +160,27 @@ export default function SuperAdminDashboardPage() {
       {/* Alerts and Info */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Suspended Studios */}
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-400" />
               Studios Suspensos
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-20 w-full bg-slate-800" />
+              <Skeleton className="h-20 w-full bg-muted" />
             ) : !data?.suspendedStudiosList?.length ? (
-              <div className="text-center py-4 text-slate-400">
+              <div className="text-center py-4 text-muted-foreground">
                 <p>Nenhum studio suspenso</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {data.suspendedStudiosList.map((studio) => (
-                  <div key={studio.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                  <div key={studio.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-slate-400" />
-                      <span className="text-white">{studio.name}</span>
+                      <Building2 className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-foreground">{studio.name}</span>
                     </div>
                     <Badge variant="destructive">Suspenso</Badge>
                   </div>
@@ -191,9 +191,9 @@ export default function SuperAdminDashboardPage() {
         </Card>
 
         {/* System Status */}
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
               Status do Sistema
             </CardTitle>
@@ -201,15 +201,15 @@ export default function SuperAdminDashboardPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Regras Ativas</span>
-                <span className="text-white font-medium">{stats?.activeRules ?? 0}</span>
+                <span className="text-muted-foreground">Regras Ativas</span>
+                <span className="text-foreground font-medium">{stats?.activeRules ?? 0}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Blocos Ativos</span>
-                <span className="text-white font-medium">{stats?.activeBlocks ?? 0}</span>
+                <span className="text-muted-foreground">Blocos Ativos</span>
+                <span className="text-foreground font-medium">{stats?.activeBlocks ?? 0}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Motor de Decisão</span>
+                <span className="text-muted-foreground">Motor de Decisão</span>
                 <Badge variant={data?.systemStatus?.decisionEngine === 'operational' ? 'success' : 'secondary'}>
                   {data?.systemStatus?.decisionEngine === 'operational' ? 'Operacional' : 'Sem regras'}
                 </Badge>
@@ -221,21 +221,21 @@ export default function SuperAdminDashboardPage() {
 
       {/* Recent Activity */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Studios Recentes</CardTitle>
+            <CardTitle className="text-lg text-foreground">Studios Recentes</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-20 w-full bg-slate-800" />
+              <Skeleton className="h-20 w-full bg-muted" />
             ) : !data?.recentStudios?.length ? (
-              <div className="text-center py-4 text-slate-400">Nenhum studio</div>
+              <div className="text-center py-4 text-muted-foreground">Nenhum studio</div>
             ) : (
               <div className="space-y-3">
                 {data.recentStudios.map((studio) => (
-                  <div key={studio.id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
-                    <span className="text-white">{studio.name}</span>
-                    <Badge className={studio.status === 'ACTIVE' ? 'bg-green-500' : studio.status === 'SUSPENDED' ? 'bg-red-500' : 'bg-gray-500'}>
+                  <div key={studio.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-foreground">{studio.name}</span>
+                    <Badge className={studio.status === 'ACTIVE' ? 'bg-green-500' : studio.status === 'SUSPENDED' ? 'bg-red-500' : 'bg-muted'}>
                       {studio.status === 'ACTIVE' ? 'Ativo' : studio.status === 'SUSPENDED' ? 'Suspenso' : 'Inativo'}
                     </Badge>
                   </div>
@@ -245,22 +245,22 @@ export default function SuperAdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Usuários Recentes</CardTitle>
+            <CardTitle className="text-lg text-foreground">Usuários Recentes</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-20 w-full bg-slate-800" />
+              <Skeleton className="h-20 w-full bg-muted" />
             ) : !data?.recentUsers?.length ? (
-              <div className="text-center py-4 text-slate-400">Nenhum usuário</div>
+              <div className="text-center py-4 text-muted-foreground">Nenhum usuário</div>
             ) : (
               <div className="space-y-3">
                 {data.recentUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
+                  <div key={user.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <div>
-                      <p className="text-white">{user.name}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="text-foreground">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
                 ))}

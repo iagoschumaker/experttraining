@@ -15,7 +15,7 @@ import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
 const createStudioSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   slug: z.string().min(1, 'Slug é obrigatório').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
-  planId: z.string().optional(),
+  planId: z.string().min(1, 'Plano é obrigatório'),
   status: z.enum(['ACTIVE', 'SUSPENDED']).default('ACTIVE'),
   adminEmail: z.string().email('Email inválido'),
   adminPassword: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional(),
@@ -118,10 +118,20 @@ export async function GET(request: NextRequest) {
           .filter(Boolean)
           .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0] || null
 
+        // Count active trainers (excluding admins)
+        const activeTrainers = await prisma.userStudio.count({
+          where: {
+            studioId: studio.id,
+            isActive: true,
+            role: 'TRAINER',
+          },
+        })
+
         return {
           ...studio,
           lessonsThisMonth,
           lastActivity,
+          activeTrainers,
         }
       })
     )
@@ -212,7 +222,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         slug,
-        planId: planId || null,
+        planId,
         status,
       },
     })

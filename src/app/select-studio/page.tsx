@@ -103,7 +103,7 @@ export default function SelectStudioPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-lg space-y-4">
           <Skeleton className="h-12 w-48 mx-auto" />
           <Skeleton className="h-6 w-64 mx-auto" />
@@ -119,7 +119,7 @@ export default function SelectStudioPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-lg space-y-8 animate-fade-in">
         {/* Header */}
         <div className="text-center">

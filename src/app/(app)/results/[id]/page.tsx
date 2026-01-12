@@ -109,7 +109,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     )
   }
@@ -264,7 +264,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <ul className="space-y-2">
               {resultJson.recommendations.map((rec: string, index: number) => (
                 <li key={index} className="flex items-start gap-2">
-                  <span className="text-primary mt-1">•</span>
+                  <span className="text-amber-500 mt-1">•</span>
                   <span className="text-sm">{rec}</span>
                 </li>
               ))}
@@ -314,7 +314,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
               {resultJson.scoresAnalysis?.averageScore && (
                 <div className="pt-3 border-t flex items-center justify-between">
                   <span className="text-sm font-semibold">Média</span>
-                  <span className="text-sm font-bold text-primary">
+                  <span className="text-sm font-bold text-amber-500">
                     {resultJson.scoresAnalysis.averageScore.toFixed(1)}/3
                   </span>
                 </div>

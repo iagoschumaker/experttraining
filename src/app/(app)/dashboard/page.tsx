@@ -185,8 +185,8 @@ export default function DashboardPage() {
                     href={`/clients/${client.id}`}
                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-amber-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{client.name}</p>
@@ -217,8 +217,8 @@ export default function DashboardPage() {
                     href={`/assessments/${assessment.id}`}
                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                      <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                      <ClipboardCheck className="w-5 h-5 text-purple-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{assessment.clientName}</p>
@@ -239,8 +239,8 @@ export default function DashboardPage() {
         <Link href="/clients/new">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-6">
-              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-amber-500" />
               </div>
               <div>
                 <p className="font-semibold">Novo Aluno</p>
@@ -253,8 +253,8 @@ export default function DashboardPage() {
         <Link href="/assessments/new">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-6">
-              <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                <ClipboardCheck className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <ClipboardCheck className="w-6 h-6 text-green-500" />
               </div>
               <div>
                 <p className="font-semibold">Nova Avaliação</p>
@@ -267,8 +267,8 @@ export default function DashboardPage() {
         <Link href="/workouts">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-6">
-              <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                <Dumbbell className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Dumbbell className="w-6 h-6 text-purple-500" />
               </div>
               <div>
                 <p className="font-semibold">Treinos</p>

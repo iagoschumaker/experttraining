@@ -49,7 +49,13 @@ interface StudioData {
   name: string
   slug: string
   status: 'ACTIVE' | 'SUSPENDED'
-  plan: { id: string; name: string } | null
+  plan: { 
+    id: string
+    name: string
+    minTrainers: number
+    recommendedMax: number | null
+    pricePerTrainer: number
+  } | null
   metrics: {
     totalLessons: number
     lessonsThisMonth: number
@@ -59,6 +65,7 @@ interface StudioData {
     totalClients: number
     activeClients: number
     totalTrainers: number
+    activeTrainers: number
     avgLessonsPerWeek: number
     lastActivity: string | null
   }
@@ -266,7 +273,7 @@ export default function StudioDetailsPage() {
           <Button
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
-            className={activeTab === tab.id ? 'bg-amber-500 text-black' : 'text-gray-400'}
+            className={activeTab === tab.id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
             onClick={() => setActiveTab(tab.id as TabType)}
           >
             <tab.icon className="h-4 w-4 mr-2" />
@@ -395,59 +402,116 @@ export default function StudioDetailsPage() {
 
       {/* Tab: Trainers */}
       {activeTab === 'trainers' && (
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Trainers do Studio</CardTitle>
-            <CardDescription className="text-gray-400">
-              {trainers.length} trainer(s) cadastrado(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loadingTab ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-gray-700" />)}
-              </div>
-            ) : trainers.length === 0 ? (
-              <div className="py-8 text-center text-gray-400">
-                Nenhum trainer cadastrado
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Nome</TableHead>
-                    <TableHead className="text-gray-400">Role</TableHead>
-                    <TableHead className="text-gray-400">Alunos</TableHead>
-                    <TableHead className="text-gray-400">Aulas (mês)</TableHead>
-                    <TableHead className="text-gray-400">Avaliações (mês)</TableHead>
-                    <TableHead className="text-gray-400">Última Atividade</TableHead>
-                    <TableHead className="text-gray-400 text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {trainers.map((t) => (
-                    <TableRow key={t.id} className="border-gray-700">
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-white">{t.name}</div>
-                          <div className="text-xs text-gray-500">{t.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
-                          {t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-400">{t.metrics.clients}</TableCell>
-                      <TableCell>
-                        <span className={t.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}>
-                          {t.metrics.lessonsThisMonth}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-gray-400">{t.metrics.assessmentsThisMonth}</TableCell>
-                      <TableCell className="text-gray-400 text-sm">
-                        {formatDate(t.metrics.lastActivity)}
-                      </TableCell>
+        <div className="space-y-4">
+          {/* Plan Limits Info Card */}
+          {studio?.plan && (
+            <Card className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-amber-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <UserCheck className="h-5 w-5 text-amber-400 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-amber-400">
+                        Plano: {studio.plan.name}
+                      </h3>
+                      <Badge className={
+                        (studio.metrics.activeTrainers || 0) >= studio.plan.minTrainers
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-red-500/20 text-red-400'
+                      }>
+                        {studio.metrics.activeTrainers || 0} / {studio.plan.minTrainers} trainers ativos
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <p className="text-gray-400 mb-1">Trainers Cadastrados</p>
+                        <p className="text-white font-medium text-base">{trainers.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 mb-1">Trainers Ativos</p>
+                        <p className="text-green-400 font-medium text-base">
+                          {trainers.filter(t => t.isActive).length}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 mb-1">Limite do Plano</p>
+                        <p className="text-amber-400 font-medium text-base">
+                          Mín: {studio.plan.minTrainers}
+                          {studio.plan.recommendedMax && ` • Máx: ${studio.plan.recommendedMax}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-amber-500/20">
+                      <p className="text-xs text-amber-300">
+                        💡 <strong>Importante:</strong> O limite do plano é para trainers <strong>ATIVOS</strong>, não cadastrados. 
+                        Você pode ter vários trainers cadastrados, mas apenas os que o plano cobrir poderão estar ativos.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Trainers do Studio</CardTitle>
+              <CardDescription className="text-gray-400">
+                {trainers.length} trainer(s) cadastrado(s) • {trainers.filter(t => t.isActive).length} ativo(s)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTab ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-gray-700" />)}
+                </div>
+              ) : trainers.length === 0 ? (
+                <div className="py-8 text-center text-gray-400">
+                  Nenhum trainer cadastrado
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-700">
+                      <TableHead className="text-gray-400">Nome</TableHead>
+                      <TableHead className="text-gray-400">Status</TableHead>
+                      <TableHead className="text-gray-400">Role</TableHead>
+                      <TableHead className="text-gray-400">Alunos</TableHead>
+                      <TableHead className="text-gray-400">Aulas (mês)</TableHead>
+                      <TableHead className="text-gray-400">Avaliações (mês)</TableHead>
+                      <TableHead className="text-gray-400">Última Atividade</TableHead>
+                      <TableHead className="text-gray-400 text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {trainers.map((t) => (
+                      <TableRow key={t.id} className="border-gray-700">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-white">{t.name}</div>
+                            <div className="text-xs text-gray-500">{t.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={t.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+                            {t.isActive ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
+                            {t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-400">{t.metrics.clients}</TableCell>
+                        <TableCell>
+                          <span className={t.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}>
+                            {t.metrics.lessonsThisMonth}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-gray-400">{t.metrics.assessmentsThisMonth}</TableCell>
+                        <TableCell className="text-gray-400 text-sm">
+                          {formatDate(t.metrics.lastActivity)}
+                        </TableCell>
                       <TableCell className="text-right">
                         <Link href={`/superadmin/studios/${studioId}/trainers/${t.userId}`}>
                           <Button variant="ghost" size="icon" className="hover:bg-gray-700">
@@ -462,6 +526,7 @@ export default function StudioDetailsPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       )}
 
       {/* Tab: Alunos */}

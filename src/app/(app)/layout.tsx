@@ -13,12 +13,12 @@ export default function AppLayout({
       <AppSidebar />
       
       {/* Main Content */}
-      <div className="pl-64 transition-all duration-300">
+      <div className="md:pl-64 transition-all duration-300">
         {/* Header */}
         <AppHeader />
         
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-3 sm:p-4 md:p-6">
           {children}
         </main>
       </div>

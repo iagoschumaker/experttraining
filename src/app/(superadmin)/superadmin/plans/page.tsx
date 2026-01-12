@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { FloatingActionButton } from '@/components/ui'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,16 +19,20 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
-import { CreditCard, Plus, Search, Pencil, Trash2, Building2 } from 'lucide-react'
+import { CreditCard, Plus, Search, Pencil, Trash2, Building2, Users, Star, CheckCircle2 } from 'lucide-react'
 
 interface Plan {
   id: string
   name: string
-  price: number
-  maxUsers: number
-  maxClients: number
+  slug: string
+  tier: 'START' | 'PRO' | 'PREMIUM'
+  description: string | null
+  pricePerTrainer: number
+  minTrainers: number
+  recommendedMax: number | null
   features: string[]
   isActive: boolean
+  isVisible: boolean
   _count?: { studios: number }
 }
 
@@ -44,7 +49,16 @@ export default function SuperAdminPlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
 
   const [formData, setFormData] = useState({
-    name: '', price: 0, maxUsers: 5, maxClients: 50, features: '', isActive: true,
+    name: '',
+    slug: '',
+    tier: 'START' as 'START' | 'PRO' | 'PREMIUM',
+    description: '',
+    pricePerTrainer: 0,
+    minTrainers: 1,
+    recommendedMax: 4,
+    features: '',
+    isActive: true,
+    isVisible: true,
   })
 
   const fetchPlans = async () => {
@@ -54,21 +68,32 @@ export default function SuperAdminPlansPage() {
       if (search) params.set('search', search)
       const res = await fetch(`/api/superadmin/plans?${params}`)
       const data = await res.json()
-      if (data.success) { setPlans(data.data.items); setTotalPages(data.data.totalPages); setTotal(data.data.total) }
+      if (data.success) { setPlans(data.data.items || []); setTotalPages(data.data.totalPages); setTotal(data.data.total) }
     } catch (error) { console.error('Error:', error) }
     finally { setLoading(false) }
   }
 
   useEffect(() => { fetchPlans() }, [page, search])
 
-  const resetForm = () => setFormData({ name: '', price: 0, maxUsers: 5, maxClients: 50, features: '', isActive: true })
+  const resetForm = () => setFormData({
+    name: '',
+    slug: '',
+    tier: 'START' as 'START' | 'PRO' | 'PREMIUM',
+    description: '',
+    pricePerTrainer: 0,
+    minTrainers: 1,
+    recommendedMax: 4,
+    features: '',
+    isActive: true,
+    isVisible: true,
+  })
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
       const features = formData.features.split('\n').map((f) => f.trim()).filter(Boolean)
-      const body = { name: formData.name, price: formData.price, maxUsers: formData.maxUsers, maxClients: formData.maxClients, features, isActive: formData.isActive }
+      const body = { ...formData, features }
       const res = await fetch('/api/superadmin/plans', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (data.success) { setIsCreateOpen(false); resetForm(); fetchPlans() }
@@ -79,7 +104,18 @@ export default function SuperAdminPlansPage() {
 
   const openEdit = (plan: Plan) => {
     setSelectedPlan(plan)
-    setFormData({ name: plan.name, price: plan.price, maxUsers: plan.maxUsers, maxClients: plan.maxClients, features: plan.features.join('\n'), isActive: plan.isActive })
+    setFormData({
+      name: plan.name,
+      slug: plan.slug,
+      tier: plan.tier,
+      description: plan.description || '',
+      pricePerTrainer: plan.pricePerTrainer,
+      minTrainers: plan.minTrainers,
+      recommendedMax: plan.recommendedMax || 0,
+      features: plan.features.join('\n'),
+      isActive: plan.isActive,
+      isVisible: plan.isVisible,
+    })
     setIsEditOpen(true)
   }
 
@@ -89,7 +125,7 @@ export default function SuperAdminPlansPage() {
     setSaving(true)
     try {
       const features = formData.features.split('\n').map((f) => f.trim()).filter(Boolean)
-      const body = { name: formData.name, price: formData.price, maxUsers: formData.maxUsers, maxClients: formData.maxClients, features, isActive: formData.isActive }
+      const body = { ...formData, features }
       const res = await fetch(`/api/superadmin/plans/${selectedPlan.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (data.success) { setIsEditOpen(false); fetchPlans() }
@@ -113,40 +149,56 @@ export default function SuperAdminPlansPage() {
   const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
     <form onSubmit={onSubmit}>
       <DialogHeader>
-        <DialogTitle className="text-white">{isEdit ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
-        <DialogDescription className="text-gray-400">{isEdit ? 'Atualize o plano' : 'Cadastre um novo plano'}</DialogDescription>
+        <DialogTitle className="text-foreground">{isEdit ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
+        <DialogDescription className="text-muted-foreground">{isEdit ? 'Atualize o plano' : 'Cadastre um novo plano'}</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-4">
-        <div className="space-y-2">
-          <Label className="text-gray-300">Nome *</Label>
-          <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Nome *</Label>
+            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} className="bg-background border-border text-foreground" required />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Slug</Label>
+            <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-background border-border text-foreground" />
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label className="text-gray-300">Preço (R$) *</Label>
-            <Input type="number" min={0} step={0.01} value={formData.price} onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" required />
+            <Label className="text-muted-foreground">Preço/Trainer (R$) *</Label>
+            <Input type="number" min={0} step={0.01} value={formData.pricePerTrainer} onChange={(e) => setFormData({ ...formData, pricePerTrainer: parseFloat(e.target.value) || 0 })} className="bg-background border-border text-foreground" required />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-300">Máx. Usuários</Label>
-            <Input type="number" min={1} value={formData.maxUsers} onChange={(e) => setFormData({ ...formData, maxUsers: parseInt(e.target.value) || 1 })} className="bg-gray-800 border-gray-700 text-white" />
+            <Label className="text-muted-foreground">Mín. Trainers</Label>
+            <Input type="number" min={1} value={formData.minTrainers} onChange={(e) => setFormData({ ...formData, minTrainers: parseInt(e.target.value) || 1 })} className="bg-background border-border text-foreground" />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-300">Máx. Clientes</Label>
-            <Input type="number" min={1} value={formData.maxClients} onChange={(e) => setFormData({ ...formData, maxClients: parseInt(e.target.value) || 1 })} className="bg-gray-800 border-gray-700 text-white" />
+            <Label className="text-muted-foreground">Máx. Rec.</Label>
+            <Input type="number" min={1} value={formData.recommendedMax} onChange={(e) => setFormData({ ...formData, recommendedMax: parseInt(e.target.value) || 1 })} className="bg-background border-border text-foreground" />
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="text-gray-300">Features (uma por linha)</Label>
-          <Textarea value={formData.features} onChange={(e) => setFormData({ ...formData, features: e.target.value })} className="bg-gray-800 border-gray-700 text-white" rows={4} placeholder="Até 5 usuários&#10;Até 50 clientes&#10;Suporte por email" />
+          <Label className="text-muted-foreground">Descrição</Label>
+          <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-background border-border text-foreground" rows={2} />
         </div>
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id="isActive" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} className="rounded border-gray-700" />
-          <Label htmlFor="isActive" className="text-gray-300">Plano ativo</Label>
+        <div className="space-y-2">
+          <Label className="text-muted-foreground">Features (uma por linha)</Label>
+          <Textarea value={formData.features} onChange={(e) => setFormData({ ...formData, features: e.target.value })} className="bg-background border-border text-foreground" rows={4} placeholder="Acesso completo ao sistema&#10;Alunos ilimitados" />
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="isActive" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} className="rounded border-border" />
+            <Label htmlFor="isActive" className="text-muted-foreground">Plano ativo</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="isVisible" checked={formData.isVisible} onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })} className="rounded border-border" />
+            <Label htmlFor="isVisible" className="text-muted-foreground">Plano visível</Label>
+          </div>
         </div>
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => isEdit ? setIsEditOpen(false) : setIsCreateOpen(false)}>Cancelar</Button>
-        <Button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">{saving ? 'Salvando...' : 'Salvar'}</Button>
+        <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Salvar'}</Button>
       </DialogFooter>
     </form>
   )
@@ -155,99 +207,104 @@ export default function SuperAdminPlansPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Planos</h1>
-          <p className="text-sm text-gray-400">Gerencie os planos de assinatura</p>
+          <h1 className="text-2xl font-bold text-foreground">Planos</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os planos de assinatura</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-amber-500 hover:bg-amber-600 text-black" onClick={resetForm}><Plus className="h-4 w-4" /> Novo Plano</Button>
+            <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}><Plus className="h-4 w-4" /> Novo Plano</Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-700"><FormContent onSubmit={handleCreate} /></DialogContent>
+          <DialogContent className="bg-card border-border"><FormContent onSubmit={handleCreate} /></DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Total de Planos</CardTitle>
-            <CreditCard className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{total}</div></CardContent>
-        </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Planos Ativos</CardTitle>
-            <CreditCard className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{plans.filter((p) => p.isActive).length}</div></CardContent>
-        </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Studios Vinculados</CardTitle>
-            <Building2 className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{plans.reduce((a, p) => a + (p._count?.studios || 0), 0)}</div></CardContent>
-        </Card>
-      </div>
+      {loading ? (
+        <div className="grid gap-8 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="bg-card border-border">
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-1/4" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="py-12 text-center">
+          <CreditCard className="mx-auto h-12 w-12 text-muted" />
+          <h3 className="mt-4 text-lg font-medium text-foreground">Nenhum plano encontrado</h3>
+          <p className="text-muted-foreground">Crie um novo plano para começar a gerenciar as assinaturas.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+          {plans.map((plan) => (
+            <Card 
+              key={plan.id} 
+              className={`bg-card border-border flex flex-col ${plan.tier === 'PRO' ? 'border-amber-500' : ''}`}
+            >
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xl font-bold text-foreground">{plan.name}</CardTitle>
+                  {plan.tier === 'PRO' && <Badge className="bg-amber-500 text-black">Mais Popular</Badge>}
+                </div>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
+              </CardHeader>
+              <CardContent className="flex-grow space-y-6">
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-amber-500">{formatCurrency(plan.pricePerTrainer)}</span>
+                  <span className="ml-2 text-sm text-muted-foreground">/ trainer / mês</span>
+                </div>
+                
+                <div className="text-xs text-muted-foreground">
+                  Mínimo de <span className="font-bold text-foreground">{plan.minTrainers}</span> {plan.minTrainers > 1 ? 'trainers' : 'trainer'}.
+                  {plan.recommendedMax && ` Recomendado até ${plan.recommendedMax} trainers.`}
+                </div>
 
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input placeholder="Buscar planos..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="pl-10 bg-gray-900 border-gray-700 text-white" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-gray-700" />)}</div>
-          ) : plans.length === 0 ? (
-            <div className="py-12 text-center"><CreditCard className="mx-auto h-12 w-12 text-gray-600" /><h3 className="mt-4 text-lg font-medium text-white">Nenhum plano</h3></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">Nome</TableHead>
-                  <TableHead className="text-gray-400">Preço</TableHead>
-                  <TableHead className="text-gray-400">Usuários</TableHead>
-                  <TableHead className="text-gray-400">Clientes</TableHead>
-                  <TableHead className="text-gray-400">Studios</TableHead>
-                  <TableHead className="text-gray-400">Status</TableHead>
-                  <TableHead className="text-gray-400 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {plans.map((p) => (
-                  <TableRow key={p.id} className="border-gray-700">
-                    <TableCell className="font-medium text-white">{p.name}</TableCell>
-                    <TableCell className="text-amber-500 font-semibold">{formatCurrency(p.price)}</TableCell>
-                    <TableCell className="text-gray-400">{p.maxUsers}</TableCell>
-                    <TableCell className="text-gray-400">{p.maxClients}</TableCell>
-                    <TableCell className="text-gray-400">{p._count?.studios || 0}</TableCell>
-                    <TableCell><Badge className={p.isActive ? 'bg-green-500' : 'bg-gray-500'}>{p.isActive ? 'Ativo' : 'Inativo'}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(p)} className="hover:bg-gray-700"><Pencil className="h-4 w-4 text-gray-400" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="hover:bg-gray-700"><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-400">Página {page} de {totalPages}</p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="border-gray-700">Anterior</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-gray-700">Próxima</Button>
+                <ul className="space-y-2 text-sm">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start">
+                      <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <div className="p-6 pt-0">
+                <Button className="w-full" variant={plan.tier === 'PRO' ? 'default' : 'outline'} onClick={() => openEdit(plan)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Editar Plano
+                </Button>
+                <div className="mt-2 text-center text-xs text-muted-foreground">
+                  {plan._count?.studios || 0} studios neste plano
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700"><FormContent onSubmit={handleUpdate} isEdit /></DialogContent>
+        <DialogContent className="bg-card border-border"><FormContent onSubmit={handleUpdate} isEdit /></DialogContent>
       </Dialog>
+      
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton 
+        actions={[
+          {
+            label: 'Novo Plano',
+            onClick: resetForm,
+            icon: <Plus className="h-5 w-5" />
+          }
+        ]}
+      />
     </div>
   )
 }

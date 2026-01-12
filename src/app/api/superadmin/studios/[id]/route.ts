@@ -16,7 +16,7 @@ import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
 const updateStudioSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().regex(/^[a-z0-9-]+$/).optional(),
-  planId: z.string().nullable().optional(),
+  planId: z.string().min(1, 'Plano é obrigatório').optional(),
   status: z.enum(['ACTIVE', 'SUSPENDED']).optional(),
   resetPassword: z.boolean().optional(),
   adminUserId: z.string().optional(),
@@ -90,6 +90,7 @@ export async function GET(
       totalAssessments,
       assessmentsThisMonth,
       activeClients,
+      activeTrainers,
     ] = await Promise.all([
       // Total lessons ever
       prisma.lesson.count({ where: { studioId: studio.id } }),
@@ -123,6 +124,14 @@ export async function GET(
         where: {
           studioId: studio.id,
           status: 'ACTIVE',
+        },
+      }),
+      // Active trainers (filtering out STUDIO_ADMIN/OWNER if necessary, mostly TRAINER)
+      prisma.userStudio.count({
+        where: {
+          studioId: studio.id,
+          isActive: true,
+          role: 'TRAINER',
         },
       }),
     ])
@@ -160,6 +169,10 @@ export async function GET(
       success: true,
       data: {
         ...studio,
+        plan: studio.plan ? {
+          ...studio.plan,
+          pricePerTrainer: Number(studio.plan.pricePerTrainer)
+        } : null,
         metrics: {
           totalLessons,
           lessonsThisMonth,
@@ -169,6 +182,7 @@ export async function GET(
           totalClients: studio._count.clients,
           activeClients,
           totalTrainers: studio._count.users,
+          activeTrainers,
           avgLessonsPerWeek: parseFloat(avgLessonsPerWeek as string),
           lastActivity: lastLesson?.startedAt || null,
         },

@@ -151,7 +151,7 @@ function NewAssessmentForm() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Nova Avaliação</h1>
+          <h1 className="text-2xl font-bold text-foreground">Nova Avaliação</h1>
           <p className="text-sm text-gray-500">
             Inicie uma avaliação funcional para um cliente
           </p>
@@ -162,8 +162,8 @@ function NewAssessmentForm() {
       <Card className="max-w-lg">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <ClipboardCheck className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+              <ClipboardCheck className="h-5 w-5 text-amber-500" />
             </div>
             <div>
               <CardTitle>Selecione o Aluno</CardTitle>
@@ -198,13 +198,13 @@ function NewAssessmentForm() {
 
             {/* Sugestões */}
             {showSuggestions && clients.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-auto">
                 {clients.map((client) => (
                   <button
                     key={client.id}
                     type="button"
                     onClick={() => handleSelectClient(client)}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors border-b last:border-b-0"
+                    className="w-full px-4 py-2 text-left hover:bg-accent transition-colors border-b border-border last:border-b-0"
                   >
                     <div className="font-medium">{client.name}</div>
                     {client.email && (

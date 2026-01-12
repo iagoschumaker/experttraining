@@ -310,7 +310,7 @@ export default function AlunoDetailsPage() {
           <Button
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
-            className={activeTab === tab.id ? 'bg-amber-500 text-black' : 'text-gray-400'}
+            className={activeTab === tab.id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
           >
             {tab.label}

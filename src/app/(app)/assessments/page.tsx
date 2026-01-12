@@ -8,19 +8,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { ResponsiveTable, FloatingActionButton, ResponsiveHeader, ResponsiveBody, ResponsiveRow, ResponsiveCell, ResponsiveHeaderCell } from '@/components/ui'
 import {
   ClipboardCheck,
   Plus,
@@ -79,6 +73,7 @@ const statusConfig = {
 }
 
 export default function AssessmentsPage() {
+  const router = useRouter()
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -130,13 +125,13 @@ export default function AssessmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Avaliações</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Avaliações</h1>
+          <p className="text-sm text-muted-foreground">
             Gerencie as avaliações funcionais dos alunos
           </p>
         </div>
         <Link href="/assessments/new">
-          <Button className="gap-2">
+          <Button className="gap-2 bg-amber-500 text-accent-foreground hover:bg-amber-600 hidden md:flex">
             <Plus className="h-4 w-4" />
             Nova Avaliação
           </Button>
@@ -181,7 +176,7 @@ export default function AssessmentsPage() {
             <CardTitle className="text-sm font-medium">
               Confiança Média
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-blue-500" />
+            <AlertCircle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -226,15 +221,15 @@ export default function AssessmentsPage() {
             </div>
           ) : assessments.length === 0 ? (
             <div className="py-12 text-center">
-              <ClipboardCheck className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <ClipboardCheck className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-medium text-foreground">
                 Nenhuma avaliação encontrada
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Comece criando uma nova avaliação
               </p>
               <Link href="/assessments/new">
-                <Button className="mt-4">
+                <Button className="mt-4 bg-amber-500 hover:bg-amber-600 text-black">
                   <Plus className="mr-2 h-4 w-4" />
                   Nova Avaliação
                 </Button>
@@ -242,39 +237,39 @@ export default function AssessmentsPage() {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Aluno</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Confiança</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <ResponsiveTable>
+                <ResponsiveHeader>
+                  <tr>
+                    <ResponsiveHeaderCell>Aluno</ResponsiveHeaderCell>
+                    <ResponsiveHeaderCell>Data</ResponsiveHeaderCell>
+                    <ResponsiveHeaderCell>Status</ResponsiveHeaderCell>
+                    <ResponsiveHeaderCell>Confiança</ResponsiveHeaderCell>
+                    <ResponsiveHeaderCell className="text-right">Ações</ResponsiveHeaderCell>
+                  </tr>
+                </ResponsiveHeader>
+                <ResponsiveBody>
                   {assessments.map((assessment) => {
                     const config = statusConfig[assessment.status]
                     const StatusIcon = config.icon
 
                     return (
-                      <TableRow key={assessment.id}>
-                        <TableCell className="font-medium">
+                      <ResponsiveRow key={assessment.id}>
+                        <ResponsiveCell label="Aluno" priority="high" className="font-medium">
                           <Link
                             href={`/clients/${assessment.client.id}`}
                             className="hover:underline"
                           >
                             {assessment.client.name}
                           </Link>
-                        </TableCell>
-                        <TableCell>{formatDate(assessment.createdAt)}</TableCell>
-                        <TableCell>
+                        </ResponsiveCell>
+                        <ResponsiveCell label="Data" priority="medium">{formatDate(assessment.createdAt)}</ResponsiveCell>
+                        <ResponsiveCell label="Status" priority="high">
                           <Badge variant={config.variant} className="gap-1">
                             <StatusIcon className="h-3 w-3" />
                             {config.label}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
+                        </ResponsiveCell>
+                        <ResponsiveCell label="Confiança" priority="medium">
                           {assessment.confidence ? (
                             <span
                               className={`font-medium ${
@@ -290,8 +285,8 @@ export default function AssessmentsPage() {
                           ) : (
                             '-'
                           )}
-                        </TableCell>
-                        <TableCell className="text-right">
+                        </ResponsiveCell>
+                        <ResponsiveCell label="Ações" priority="high" className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Link
                               href={`/assessments/${assessment.id}`}
@@ -310,12 +305,12 @@ export default function AssessmentsPage() {
                               </Link>
                             )}
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </ResponsiveCell>
+                      </ResponsiveRow>
                     )
                   })}
-                </TableBody>
-              </Table>
+                </ResponsiveBody>
+              </ResponsiveTable>
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -349,6 +344,17 @@ export default function AssessmentsPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* FAB para mobile */}
+      <FloatingActionButton
+        actions={[
+          {
+            icon: <Plus className="h-5 w-5" />,
+            label: "Nova Avaliação",
+            onClick: () => router.push('/assessments/new')
+          }
+        ]}
+      />
     </div>
   )
 }

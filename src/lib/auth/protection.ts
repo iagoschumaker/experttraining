@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAccessToken, getAccessTokenCookie } from './index'
 import type { JWTPayloadWithStudio } from '@/types'
 import prisma from '@/lib/prisma'
+import { checkStudioPayment } from '@/lib/billing/payment-check'
 
 /**
  * Verifica autenticação do usuário (usando cookies)
@@ -82,6 +83,31 @@ export async function verifyAuth(
       isSuperAdmin: payload.isSuperAdmin,
       allowedRoles,
     })
+
+    // 🔒 VERIFICAR PAGAMENTO DO STUDIO (novo)
+    // SuperAdmin sempre tem acesso, mesmo se studio não pagou
+    if (!payload.isSuperAdmin) {
+      const paymentCheck = await checkStudioPayment(studioPayload.studioId)
+      
+      if (!paymentCheck.allowed) {
+        console.error('❌ Acesso bloqueado - Pagamento pendente:', {
+          studioId: studioPayload.studioId,
+          reason: paymentCheck.blockReason,
+        })
+        
+        return {
+          error: 'Acesso bloqueado',
+          status: 402, // 402 Payment Required
+          message: paymentCheck.message,
+          blockReason: paymentCheck.blockReason,
+        } as any
+      }
+
+      // Se está em período de carência, adiciona aviso no log
+      if (paymentCheck.message) {
+        console.warn('⚠️ Período de carência:', paymentCheck.message)
+      }
+    }
 
     // Verificar se o role é permitido
     if (allowedRoles && allowedRoles.length > 0) {

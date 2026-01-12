@@ -3,7 +3,8 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button, Input, Label, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Dumbbell } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 function LoginForm() {
   const router = useRouter()
@@ -55,34 +56,26 @@ function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8 animate-fade-in">
+    <div className="w-full max-w-md space-y-8">
       {/* Logo */}
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-8 h-8"
-          >
-            <path d="M18 8a6 6 0 0 0-6-6 6 6 0 0 0-6 6c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-6 shadow-lg shadow-primary/50">
+          <Dumbbell className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Expert Training</h1>
-        <p className="text-muted-foreground mt-1">Método de treino funcional híbrido</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Expert Training
+        </h1>
+        <p className="text-muted-foreground">
+          Método de treino funcional híbrido
+        </p>
       </div>
 
       {/* Login Card */}
-      <Card className="border-0 shadow-xl">
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-xl">Entrar</CardTitle>
-          <CardDescription>
-            Digite suas credenciais para acessar o sistema
+      <Card className="border-border shadow-2xl">
+        <CardHeader className="space-y-1 pb-6">
+          <CardTitle className="text-2xl text-center">Bem-vindo</CardTitle>
+          <CardDescription className="text-center">
+            Acesse sua conta para continuar
           </CardDescription>
         </CardHeader>
 
@@ -90,15 +83,17 @@ function LoginForm() {
           <CardContent className="space-y-4">
             {/* Error Alert */}
             {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -108,12 +103,15 @@ function LoginForm() {
                 required
                 autoComplete="email"
                 disabled={isLoading}
+                className="h-11"
               />
             </div>
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-foreground">
+                Senha
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -123,14 +121,15 @@ function LoginForm() {
                 required
                 autoComplete="current-password"
                 disabled={isLoading}
+                className="h-11"
               />
             </div>
           </CardContent>
 
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full bg-primary hover:bg-primary/90 text-white font-medium shadow-lg shadow-primary/30" 
               size="lg"
               disabled={isLoading}
             >
@@ -143,6 +142,10 @@ function LoginForm() {
                 'Entrar'
               )}
             </Button>
+            
+            <p className="text-xs text-center text-muted-foreground">
+              Ao entrar, você concorda com nossos termos de uso
+            </p>
           </CardFooter>
         </form>
       </Card>
@@ -159,15 +162,15 @@ function LoginSkeleton() {
   return (
     <div className="w-full max-w-md space-y-8 animate-pulse">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-700 mb-4" />
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mx-auto mb-2" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 mx-auto" />
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-muted mb-6 mx-auto" />
+        <div className="h-8 bg-muted rounded w-48 mx-auto mb-2" />
+        <div className="h-4 bg-muted rounded w-64 mx-auto" />
       </div>
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+      <div className="bg-card rounded-lg p-6 shadow-2xl border border-border">
         <div className="space-y-4">
-          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-12 bg-muted rounded" />
         </div>
       </div>
     </div>
@@ -176,10 +179,23 @@ function LoginSkeleton() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
-      <Suspense fallback={<LoginSkeleton />}>
-        <LoginForm />
-      </Suspense>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background subtle pattern */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-br from-muted/50 via-transparent to-muted/30" />
+      </div>
+      
+      {/* Theme Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10">
+        <Suspense fallback={<LoginSkeleton />}>
+          <LoginForm />
+        </Suspense>
+      </div>
     </div>
   )
 }

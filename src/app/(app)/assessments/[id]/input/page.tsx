@@ -374,10 +374,10 @@ export default function AssessmentInputPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               Avaliação: {assessment.client.name}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Preencha os dados da avaliação funcional
             </p>
           </div>
@@ -418,10 +418,10 @@ export default function AssessmentInputPage() {
             onClick={() => setStep(s)}
             className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors ${
               step === s
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-amber-500 text-white'
                 : step > s
                 ? 'bg-green-500 text-white'
-                : 'bg-gray-200 text-gray-600'
+                : 'bg-muted text-muted-foreground'
             }`}
           >
             {step > s ? <CheckCircle className="h-5 w-5" /> : s}
@@ -545,7 +545,7 @@ export default function AssessmentInputPage() {
                     onChange={(e) =>
                       updatePainLevel(region.id, parseInt(e.target.value))
                     }
-                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-border"
                   />
                 </div>
               ))}
@@ -582,7 +582,7 @@ export default function AssessmentInputPage() {
                             test.id as keyof AssessmentInput['movementTests']
                           ].score === score.value
                             ? `${score.color} border-transparent text-white`
-                            : 'border-gray-200 hover:border-gray-300'
+                            : 'border-border hover:border-amber-500'
                         }`}
                       >
                         <div className="text-xl font-bold">{score.value}</div>
@@ -797,10 +797,10 @@ export default function AssessmentInputPage() {
 
             {/* BMI Calculation (if height and weight provided) */}
             {bodyMetrics.weight && bodyMetrics.height && (
-              <div className="rounded-lg bg-blue-50 p-4">
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-blue-800">IMC Calculado:</span>
-                  <span className="text-lg font-bold text-blue-900">
+                  <span className="font-medium text-foreground">IMC Calculado:</span>
+                  <span className="text-lg font-bold text-foreground">
                     {(bodyMetrics.weight / Math.pow(bodyMetrics.height / 100, 2)).toFixed(1)} kg/m²
                   </span>
                 </div>
@@ -848,8 +848,8 @@ export default function AssessmentInputPage() {
                   }
                   className={`rounded-lg border-2 p-4 text-left transition-colors ${
                     formData.level === level.value
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-border hover:border-amber-500'
                   }`}
                 >
                   <div className="font-medium">{level.label}</div>
@@ -861,7 +861,7 @@ export default function AssessmentInputPage() {
             </div>
 
             {/* Summary */}
-            <div className="rounded-lg bg-gray-50 p-4">
+            <div className="rounded-lg bg-card border border-border p-4">
               <h4 className="mb-2 font-medium">Resumo da Avaliação</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">

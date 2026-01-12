@@ -220,6 +220,60 @@ export async function PUT(
   }
 }
 
+// PATCH - Partial update (for toggling status, etc.)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const auth = await verifySuperAdmin()
+  if ('error' in auth) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+  }
+
+  try {
+    const body = await request.json()
+    
+    const rule = await prisma.rule.findUnique({
+      where: { id: params.id },
+    })
+
+    if (!rule) {
+      return NextResponse.json(
+        { success: false, error: 'Regra não encontrada' },
+        { status: 404 }
+      )
+    }
+
+    // Update only the fields provided
+    const updatedRule = await prisma.rule.update({
+      where: { id: params.id },
+      data: body,
+    })
+
+    // Log audit
+    await prisma.auditLog.create({
+      data: {
+        userId: auth.payload.userId,
+        action: 'UPDATE',
+        entity: 'Rule',
+        entityId: params.id,
+        newData: body,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: updatedRule,
+    })
+  } catch (error) {
+    console.error('Patch rule error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Erro interno do servidor' },
+      { status: 500 }
+    )
+  }
+}
+
 // DELETE - Delete rule
 export async function DELETE(
   request: NextRequest,
@@ -239,6 +293,14 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: 'Regra não encontrada' },
         { status: 404 }
+      )
+    }
+
+    // Check if rule is locked (protected)
+    if (rule.isLocked) {
+      return NextResponse.json(
+        { success: false, error: 'Regras protegidas não podem ser excluídas' },
+        { status: 403 }
       )
     }
 

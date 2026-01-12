@@ -183,7 +183,7 @@ export default function AssessmentResultPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               Resultado da Avaliação
             </h1>
             <p className="text-sm text-gray-500">
@@ -323,7 +323,7 @@ export default function AssessmentResultPage() {
                   </div>
                 </div>
                 <div>
-                  <h4 className="mb-2 font-medium text-blue-600">
+                  <h4 className="mb-2 font-medium text-amber-500">
                     Foco Secundário
                   </h4>
                   <div className="flex flex-wrap gap-2">
@@ -422,7 +422,7 @@ export default function AssessmentResultPage() {
                         const m = evolution.body.measurements[key as keyof typeof evolution.body.measurements]
                         if (m.current === null) return null
                         return (
-                          <div key={key} className="rounded-lg bg-gray-50 p-2 text-center">
+                          <div key={key} className="rounded-lg bg-card border border-border p-2 text-center">
                             <div className="text-xs text-muted-foreground">{label}</div>
                             <div className="flex items-center justify-center gap-1 mt-1">
                               <span className="font-semibold">{m.current}cm</span>
@@ -442,12 +442,12 @@ export default function AssessmentResultPage() {
 
                 {/* Insights */}
                 {evolution.insights && evolution.insights.length > 0 && (
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <h4 className="font-medium text-blue-800 mb-2">Observações</h4>
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4">
+                    <h4 className="font-medium text-foreground mb-2">Observações</h4>
                     <ul className="space-y-1">
                       {evolution.insights.map((insight, i) => (
-                        <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                        <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-500" />
                           {insight}
                         </li>
                       ))}
@@ -488,9 +488,9 @@ export default function AssessmentResultPage() {
                     </div>
                   )}
                   {assessment.bodyMetricsJson.weight && assessment.bodyMetricsJson.height && (
-                    <div className="rounded-lg border p-3 bg-blue-50">
+                    <div className="rounded-lg border border-border p-3 bg-amber-500/10">
                       <div className="text-sm text-muted-foreground">IMC</div>
-                      <div className="text-xl font-bold text-blue-700">
+                      <div className="text-xl font-bold text-foreground">
                         {(assessment.bodyMetricsJson.weight / Math.pow(assessment.bodyMetricsJson.height / 100, 2)).toFixed(1)}
                       </div>
                     </div>
@@ -516,7 +516,7 @@ export default function AssessmentResultPage() {
                 {/* Queixas */}
                 {assessment.inputJson.complaints && assessment.inputJson.complaints.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">🩹 Queixas Relatadas</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">🩹 Queixas Relatadas</h4>
                     <div className="flex flex-wrap gap-2">
                       {assessment.inputJson.complaints.map((complaint: string, idx: number) => (
                         <Badge key={idx} variant="secondary" className="bg-orange-100 text-orange-800">
@@ -530,13 +530,13 @@ export default function AssessmentResultPage() {
                 {/* Mapa de Dor */}
                 {assessment.inputJson.painMap && Object.keys(assessment.inputJson.painMap).length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">📍 Mapa de Dor (0-10)</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">📍 Mapa de Dor (0-10)</h4>
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {Object.entries(assessment.inputJson.painMap).map(([location, intensity]: [string, any]) => (
                         <div key={location} className="flex items-center justify-between rounded-lg border p-2">
                           <span className="text-sm capitalize">{location.replace(/_/g, ' ')}</span>
                           <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div className="w-16 bg-border rounded-full h-2">
                               <div 
                                 className={`h-2 rounded-full ${
                                   intensity >= 7 ? 'bg-red-500' : 
@@ -561,7 +561,7 @@ export default function AssessmentResultPage() {
                 {/* Testes de Movimento */}
                 {assessment.inputJson.movementTests && Object.keys(assessment.inputJson.movementTests).length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">🏃 Testes de Movimento</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">🏃 Testes de Movimento</h4>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {Object.entries(assessment.inputJson.movementTests).map(([test, data]: [string, any]) => (
                         <div key={test} className="rounded-lg border p-3">
@@ -588,8 +588,8 @@ export default function AssessmentResultPage() {
                 {/* Nível Avaliado */}
                 {assessment.inputJson.level && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">🎯 Nível Avaliado</h4>
-                    <Badge className="bg-indigo-500">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">🎯 Nível Avaliado</h4>
+                    <Badge className="bg-amber-500">
                       {assessment.inputJson.level}
                     </Badge>
                   </div>
@@ -698,7 +698,7 @@ export default function AssessmentResultPage() {
                       key={index}
                       className="flex items-start gap-2 text-sm"
                     >
-                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-500" />
                       {rec}
                     </li>
                   ))}

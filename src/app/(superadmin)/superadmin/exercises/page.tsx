@@ -21,9 +21,6 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
 import {
@@ -34,6 +31,7 @@ import {
   Clock, RotateCcw, Hash, FileText, Target, Activity,
   ChevronLeft, ChevronRight, Eye, Layers, AlertCircle
 } from 'lucide-react'
+import { FloatingActionButton } from '@/components/ui'
 
 // ============================================================================
 // TYPES
@@ -347,15 +345,15 @@ export default function SuperAdminExercisesPage() {
     return config ? (
       <Badge className={config.color}>{config.label}</Badge>
     ) : (
-      <span className="text-gray-500">-</span>
+      <span className="text-muted-foreground">-</span>
     )
   }
 
   const getBlockBadge = (block: Block | null) => {
-    if (!block) return <Badge variant="outline" className="border-gray-600 text-gray-500">Sem bloco</Badge>
+    if (!block) return <Badge variant="outline" className="border-border text-muted-foreground">Sem bloco</Badge>
     const levelConfig = LEVEL_CONFIG[block.level]
     return (
-      <Badge className={levelConfig?.color || 'bg-gray-500/20 text-gray-400'}>
+      <Badge className={levelConfig?.color || 'bg-muted text-muted-foreground'}>
         {block.code}
       </Badge>
     )
@@ -368,7 +366,7 @@ export default function SuperAdminExercisesPage() {
   const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
     <form id="exercise-form" onSubmit={onSubmit} className="space-y-4">
       <Tabs defaultValue="basic">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+        <TabsList className="grid w-full grid-cols-3 bg-card">
           <TabsTrigger value="basic">Básico</TabsTrigger>
           <TabsTrigger value="prescription">Prescrição</TabsTrigger>
           <TabsTrigger value="notes">Notas</TabsTrigger>
@@ -378,20 +376,20 @@ export default function SuperAdminExercisesPage() {
         <TabsContent value="basic" className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
-              <Label className="text-gray-300">Nome *</Label>
+              <Label className="text-muted-foreground">Nome *</Label>
               <Input 
                 value={formData.name} 
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white" 
+                className="bg-card border-border text-foreground" 
                 placeholder="Ex: Agachamento Goblet"
                 required 
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Tipo</Label>
+              <Label className="text-muted-foreground">Tipo</Label>
               <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-card border-border text-foreground">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -401,9 +399,9 @@ export default function SuperAdminExercisesPage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Bloco</Label>
+              <Label className="text-muted-foreground">Bloco</Label>
               <Select value={formData.blockId} onValueChange={(v) => setFormData({ ...formData, blockId: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-card border-border text-foreground">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -418,9 +416,9 @@ export default function SuperAdminExercisesPage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Grupo Muscular</Label>
+              <Label className="text-muted-foreground">Grupo Muscular</Label>
               <Select value={formData.muscleGroup} onValueChange={(v) => setFormData({ ...formData, muscleGroup: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-card border-border text-foreground">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -430,9 +428,9 @@ export default function SuperAdminExercisesPage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Equipamento</Label>
+              <Label className="text-muted-foreground">Equipamento</Label>
               <Select value={formData.equipment} onValueChange={(v) => setFormData({ ...formData, equipment: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-card border-border text-foreground">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -442,9 +440,9 @@ export default function SuperAdminExercisesPage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Dificuldade</Label>
+              <Label className="text-muted-foreground">Dificuldade</Label>
               <Select value={formData.difficulty} onValueChange={(v) => setFormData({ ...formData, difficulty: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-card border-border text-foreground">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -454,23 +452,23 @@ export default function SuperAdminExercisesPage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Ordem no Bloco</Label>
+              <Label className="text-muted-foreground">Ordem no Bloco</Label>
               <Input 
                 type="number"
                 min="1"
                 value={formData.orderInBlock} 
                 onChange={(e) => setFormData({ ...formData, orderInBlock: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-card border-border text-foreground"
                 placeholder="1"
               />
             </div>
             
             <div className="col-span-2 space-y-2">
-              <Label className="text-gray-300">Descrição</Label>
+              <Label className="text-muted-foreground">Descrição</Label>
               <Textarea 
                 value={formData.description} 
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white" 
+                className="bg-card border-border text-foreground" 
                 rows={2}
                 placeholder="Descrição breve do exercício..."
               />
@@ -489,7 +487,7 @@ export default function SuperAdminExercisesPage() {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-gray-300 flex items-center gap-2">
+              <Label className="text-muted-foreground flex items-center gap-2">
                 <Hash className="h-4 w-4" /> Séries
               </Label>
               <Input 
@@ -498,57 +496,57 @@ export default function SuperAdminExercisesPage() {
                 max="10"
                 value={formData.defaultSets} 
                 onChange={(e) => setFormData({ ...formData, defaultSets: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-card border-border text-foreground"
                 placeholder="3"
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300 flex items-center gap-2">
+              <Label className="text-muted-foreground flex items-center gap-2">
                 <RotateCcw className="h-4 w-4" /> Repetições
               </Label>
               <Input 
                 value={formData.defaultReps} 
                 onChange={(e) => setFormData({ ...formData, defaultReps: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-card border-border text-foreground"
                 placeholder="10-12 ou AMRAP"
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300 flex items-center gap-2">
+              <Label className="text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Tempo
               </Label>
               <Input 
                 value={formData.defaultTime} 
                 onChange={(e) => setFormData({ ...formData, defaultTime: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-card border-border text-foreground"
                 placeholder="30s ou 1min"
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300 flex items-center gap-2">
+              <Label className="text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Descanso
               </Label>
               <Input 
                 value={formData.defaultRest} 
                 onChange={(e) => setFormData({ ...formData, defaultRest: e.target.value })} 
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-card border-border text-foreground"
                 placeholder="60s"
               />
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label className="text-gray-300 flex items-center gap-2">
+            <Label className="text-muted-foreground flex items-center gap-2">
               <Video className="h-4 w-4" /> URL do Vídeo
             </Label>
             <Input 
               value={formData.videoUrl} 
               onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} 
               placeholder="https://youtube.com/..." 
-              className="bg-gray-800 border-gray-700 text-white" 
+              className="bg-card border-border text-foreground" 
             />
           </div>
         </TabsContent>
@@ -556,27 +554,27 @@ export default function SuperAdminExercisesPage() {
         {/* Tab Notas */}
         <TabsContent value="notes" className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label className="text-gray-300 flex items-center gap-2">
+            <Label className="text-muted-foreground flex items-center gap-2">
               <Lock className="h-4 w-4 text-amber-500" /> Notas Técnicas do Método
             </Label>
             <Textarea 
               value={formData.technicalNotes} 
               onChange={(e) => setFormData({ ...formData, technicalNotes: e.target.value })} 
-              className="bg-gray-800 border-gray-700 text-white" 
+              className="bg-card border-border text-foreground" 
               rows={4}
               placeholder="Pontos-chave de execução, cuidados, variações..."
             />
-            <p className="text-xs text-gray-500">Visível apenas para trainers, não para alunos</p>
+            <p className="text-xs text-muted-foreground">Visível apenas para trainers, não para alunos</p>
           </div>
           
           <div className="space-y-2">
-            <Label className="text-gray-300 flex items-center gap-2">
+            <Label className="text-muted-foreground flex items-center gap-2">
               <FileText className="h-4 w-4" /> Instruções para Aluno
             </Label>
             <Textarea 
               value={formData.instructions} 
               onChange={(e) => setFormData({ ...formData, instructions: e.target.value })} 
-              className="bg-gray-800 border-gray-700 text-white" 
+              className="bg-card border-border text-foreground" 
               rows={4}
               placeholder="Instruções simplificadas para o aluno executar..."
             />
@@ -595,27 +593,27 @@ export default function SuperAdminExercisesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Dumbbell className="h-6 w-6 text-amber-500" />
             Biblioteca de Exercícios
           </h1>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Exercícios do Método Expert Training
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-amber-500 hover:bg-amber-600 text-black" onClick={resetForm}>
+            <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}>
               <Plus className="h-4 w-4" /> Novo Exercício
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+          <DialogContent className="bg-card border-border max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
+              <DialogTitle className="text-foreground flex items-center gap-2">
                 <Dumbbell className="h-5 w-5 text-amber-500" />
                 Novo Exercício
               </DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-muted-foreground">
                 Cadastre um novo exercício do método
               </DialogDescription>
             </DialogHeader>
@@ -626,7 +624,7 @@ export default function SuperAdminExercisesPage() {
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" form="exercise-form" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">
+              <Button type="submit" form="exercise-form" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
                 {saving ? 'Salvando...' : 'Criar Exercício'}
               </Button>
             </DialogFooter>
@@ -636,39 +634,39 @@ export default function SuperAdminExercisesPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-5">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Total</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
             <Dumbbell className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{stats?.total || 0}</div>
+            <div className="text-2xl font-bold text-foreground">{stats?.total || 0}</div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Com Vídeo</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Com Vídeo</CardTitle>
             <Video className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{stats?.withVideo || 0}</div>
+            <div className="text-2xl font-bold text-foreground">{stats?.withVideo || 0}</div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Em Blocos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Em Blocos</CardTitle>
             <Layers className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{stats?.withBlock || 0}</div>
+            <div className="text-2xl font-bold text-foreground">{stats?.withBlock || 0}</div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Órfãos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Órfãos</CardTitle>
             <AlertCircle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
@@ -676,9 +674,9 @@ export default function SuperAdminExercisesPage() {
           </CardContent>
         </Card>
         
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Por Nível</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Por Nível</CardTitle>
             <Activity className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
@@ -692,22 +690,22 @@ export default function SuperAdminExercisesPage() {
       </div>
 
       {/* Filters and Table */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input 
                 placeholder="Buscar exercícios..." 
                 value={search} 
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }} 
-                className="pl-10 bg-gray-900 border-gray-700 text-white" 
+                className="pl-10 bg-background border-border text-foreground" 
               />
             </div>
             
             <div className="flex flex-wrap gap-2">
               <Select value={filterBlock} onValueChange={(v) => { setFilterBlock(v); setPage(1) }}>
-                <SelectTrigger className="w-[160px] bg-gray-900 border-gray-700 text-white">
+                <SelectTrigger className="w-[160px] bg-background border-border text-foreground">
                   <SelectValue placeholder="Bloco" />
                 </SelectTrigger>
                 <SelectContent>
@@ -719,7 +717,7 @@ export default function SuperAdminExercisesPage() {
               </Select>
               
               <Select value={filterMuscle} onValueChange={(v) => { setFilterMuscle(v); setPage(1) }}>
-                <SelectTrigger className="w-[150px] bg-gray-900 border-gray-700 text-white">
+                <SelectTrigger className="w-[150px] bg-background border-border text-foreground">
                   <SelectValue placeholder="Grupo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -729,7 +727,7 @@ export default function SuperAdminExercisesPage() {
               </Select>
               
               <Select value={filterDifficulty} onValueChange={(v) => { setFilterDifficulty(v); setPage(1) }}>
-                <SelectTrigger className="w-[140px] bg-gray-900 border-gray-700 text-white">
+                <SelectTrigger className="w-[140px] bg-background border-border text-foreground">
                   <SelectValue placeholder="Nível" />
                 </SelectTrigger>
                 <SelectContent>
@@ -742,7 +740,7 @@ export default function SuperAdminExercisesPage() {
                 variant={showOrphans ? "default" : "outline"} 
                 size="sm"
                 onClick={() => { setShowOrphans(!showOrphans); setPage(1) }}
-                className={showOrphans ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "border-gray-700"}
+                className={showOrphans ? "bg-yellow-500 hover:bg-yellow-600 text-accent-foreground" : "border-border"}
               >
                 <AlertCircle className="h-4 w-4 mr-1" />
                 Órfãos
@@ -755,86 +753,90 @@ export default function SuperAdminExercisesPage() {
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full bg-gray-700" />
+                <Skeleton key={i} className="h-12 w-full bg-muted" />
               ))}
             </div>
           ) : exercises.length === 0 ? (
             <div className="py-12 text-center">
-              <Dumbbell className="mx-auto h-12 w-12 text-gray-600" />
-              <h3 className="mt-4 text-lg font-medium text-white">Nenhum exercício encontrado</h3>
-              <p className="text-gray-400">Ajuste os filtros ou crie um novo exercício</p>
+              <Dumbbell className="mx-auto h-12 w-12 text-muted" />
+              <h3 className="mt-4 text-lg font-medium text-foreground">Nenhum exercício encontrado</h3>
+              <p className="text-muted-foreground">Ajuste os filtros ou crie um novo exercício</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">Nome</TableHead>
-                  <TableHead className="text-gray-400">Bloco</TableHead>
-                  <TableHead className="text-gray-400">Tipo</TableHead>
-                  <TableHead className="text-gray-400">Grupo</TableHead>
-                  <TableHead className="text-gray-400">Prescrição</TableHead>
-                  <TableHead className="text-gray-400">Nível</TableHead>
-                  <TableHead className="text-gray-400 text-center">Vídeo</TableHead>
-                  <TableHead className="text-gray-400 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {exercises.map((e) => (
-                  <TableRow key={e.id} className="border-gray-700">
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {e.isLocked && <Lock className="h-3 w-3 text-amber-500" />}
-                        <span className="font-medium text-white">{e.name}</span>
-                      </div>
-                      {e.orderInBlock && (
-                        <span className="text-xs text-gray-500">#{e.orderInBlock}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{getBlockBadge(e.block)}</TableCell>
-                    <TableCell className="text-gray-400">{e.type || '-'}</TableCell>
-                    <TableCell className="text-gray-400">{e.muscleGroup || '-'}</TableCell>
-                    <TableCell>
-                      {e.defaultSets || e.defaultReps ? (
-                        <span className="text-xs text-gray-400 font-mono">
-                          {e.defaultSets && `${e.defaultSets}x`}
-                          {e.defaultReps}
-                          {e.defaultRest && ` (${e.defaultRest})`}
-                        </span>
-                      ) : (
-                        <span className="text-gray-600">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{getDifficultyBadge(e.difficulty)}</TableCell>
-                    <TableCell className="text-center">
-                      {e.videoUrl ? (
-                        <a href={e.videoUrl} target="_blank" rel="noopener noreferrer">
-                          <Video className="h-4 w-4 text-green-500 mx-auto hover:text-green-400" />
-                        </a>
-                      ) : (
-                        <span className="text-gray-600">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openView(e)} className="hover:bg-gray-700">
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="hover:bg-gray-700">
-                        <Pencil className="h-4 w-4 text-gray-400" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)} className="hover:bg-gray-700">
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="responsive-table-wrapper">
+              <table className="responsive-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Bloco</th>
+                    <th>Tipo</th>
+                    <th>Grupo</th>
+                    <th>Prescrição</th>
+                    <th>Nível</th>
+                    <th>Vídeo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exercises.map((e) => (
+                    <tr key={e.id}>
+                      <td data-label="Nome">
+                        <div className="flex items-center gap-2">
+                          {e.isLocked && <Lock className="h-3 w-3 text-amber-500" />}
+                          <span className="font-medium text-foreground">{e.name}</span>
+                        </div>
+                        {e.orderInBlock && (
+                          <span className="text-xs text-muted-foreground">#{e.orderInBlock}</span>
+                        )}
+                      </td>
+                      <td data-label="Bloco">{getBlockBadge(e.block)}</td>
+                      <td data-label="Tipo" className="text-muted-foreground">{e.type || '-'}</td>
+                      <td data-label="Grupo" className="text-muted-foreground">{e.muscleGroup || '-'}</td>
+                      <td data-label="Prescrição">
+                        {e.defaultSets || e.defaultReps ? (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {e.defaultSets && `${e.defaultSets}x`}
+                            {e.defaultReps}
+                            {e.defaultRest && ` (${e.defaultRest})`}
+                          </span>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td data-label="Nível">{getDifficultyBadge(e.difficulty)}</td>
+                      <td data-label="Vídeo">
+                        {e.videoUrl ? (
+                          <a href={e.videoUrl} target="_blank" rel="noopener noreferrer">
+                            <Video className="h-4 w-4 text-green-500 mx-auto hover:text-green-400" />
+                          </a>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td data-label="Ações">
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="icon" onClick={() => openView(e)} className="hover:bg-muted">
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="hover:bg-muted">
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)} className="hover:bg-muted">
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Página {page} de {totalPages} ({total} exercícios)
               </p>
               <div className="flex gap-2">
@@ -843,7 +845,7 @@ export default function SuperAdminExercisesPage() {
                   size="sm" 
                   onClick={() => setPage((p) => Math.max(1, p - 1))} 
                   disabled={page === 1} 
-                  className="border-gray-700"
+                  className="border-border"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -852,7 +854,7 @@ export default function SuperAdminExercisesPage() {
                   size="sm" 
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
                   disabled={page === totalPages} 
-                  className="border-gray-700"
+                  className="border-border"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -864,13 +866,13 @@ export default function SuperAdminExercisesPage() {
 
       {/* View Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+        <DialogContent className="bg-card border-border max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               {selectedExercise?.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
               {selectedExercise?.name}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               {selectedExercise?.block ? `Bloco: ${selectedExercise.block.code}` : 'Sem bloco vinculado'}
             </DialogDescription>
           </DialogHeader>
@@ -879,42 +881,42 @@ export default function SuperAdminExercisesPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-500 text-xs">Tipo</Label>
-                  <p className="text-white">{selectedExercise.type || '-'}</p>
+                  <Label className="text-muted-foreground text-xs">Tipo</Label>
+                  <p className="text-foreground">{selectedExercise.type || '-'}</p>
                 </div>
                 <div>
-                  <Label className="text-gray-500 text-xs">Grupo Muscular</Label>
-                  <p className="text-white">{selectedExercise.muscleGroup || '-'}</p>
+                  <Label className="text-muted-foreground text-xs">Grupo Muscular</Label>
+                  <p className="text-foreground">{selectedExercise.muscleGroup || '-'}</p>
                 </div>
                 <div>
-                  <Label className="text-gray-500 text-xs">Equipamento</Label>
-                  <p className="text-white">{selectedExercise.equipment || '-'}</p>
+                  <Label className="text-muted-foreground text-xs">Equipamento</Label>
+                  <p className="text-foreground">{selectedExercise.equipment || '-'}</p>
                 </div>
                 <div>
-                  <Label className="text-gray-500 text-xs">Dificuldade</Label>
+                  <Label className="text-muted-foreground text-xs">Dificuldade</Label>
                   {getDifficultyBadge(selectedExercise.difficulty)}
                 </div>
               </div>
               
               {/* Prescrição */}
-              <div className="p-3 rounded-lg bg-gray-800/50">
+              <div className="p-3 rounded-lg bg-muted/50">
                 <Label className="text-amber-500 text-xs mb-2 block">Prescrição Padrão</Label>
                 <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-white">{selectedExercise.defaultSets || '-'}</p>
-                    <p className="text-xs text-gray-500">Séries</p>
+                    <p className="text-2xl font-bold text-foreground">{selectedExercise.defaultSets || '-'}</p>
+                    <p className="text-xs text-muted-foreground">Séries</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{selectedExercise.defaultReps || '-'}</p>
-                    <p className="text-xs text-gray-500">Reps</p>
+                    <p className="text-2xl font-bold text-foreground">{selectedExercise.defaultReps || '-'}</p>
+                    <p className="text-xs text-muted-foreground">Reps</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{selectedExercise.defaultTime || '-'}</p>
-                    <p className="text-xs text-gray-500">Tempo</p>
+                    <p className="text-2xl font-bold text-foreground">{selectedExercise.defaultTime || '-'}</p>
+                    <p className="text-xs text-muted-foreground">Tempo</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{selectedExercise.defaultRest || '-'}</p>
-                    <p className="text-xs text-gray-500">Descanso</p>
+                    <p className="text-2xl font-bold text-foreground">{selectedExercise.defaultRest || '-'}</p>
+                    <p className="text-xs text-muted-foreground">Descanso</p>
                   </div>
                 </div>
               </div>
@@ -922,8 +924,8 @@ export default function SuperAdminExercisesPage() {
               {/* Descrição */}
               {selectedExercise.description && (
                 <div>
-                  <Label className="text-gray-500 text-xs">Descrição</Label>
-                  <p className="text-gray-300 text-sm">{selectedExercise.description}</p>
+                  <Label className="text-muted-foreground text-xs">Descrição</Label>
+                  <p className="text-foreground text-sm">{selectedExercise.description}</p>
                 </div>
               )}
               
@@ -933,7 +935,7 @@ export default function SuperAdminExercisesPage() {
                   <Label className="text-amber-400 text-xs flex items-center gap-1">
                     <Lock className="h-3 w-3" /> Notas Técnicas do Método
                   </Label>
-                  <p className="text-gray-300 text-sm mt-1 whitespace-pre-wrap">
+                  <p className="text-foreground text-sm mt-1 whitespace-pre-wrap">
                     {selectedExercise.technicalNotes}
                   </p>
                 </div>
@@ -942,8 +944,8 @@ export default function SuperAdminExercisesPage() {
               {/* Instruções */}
               {selectedExercise.instructions && (
                 <div>
-                  <Label className="text-gray-500 text-xs">Instruções para o Aluno</Label>
-                  <p className="text-gray-300 text-sm whitespace-pre-wrap">{selectedExercise.instructions}</p>
+                  <Label className="text-muted-foreground text-xs">Instruções para o Aluno</Label>
+                  <p className="text-foreground text-sm whitespace-pre-wrap">{selectedExercise.instructions}</p>
                 </div>
               )}
               
@@ -968,13 +970,13 @@ export default function SuperAdminExercisesPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+        <DialogContent className="bg-card border-border max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <Dumbbell className="h-5 w-5 text-amber-500" />
               Editar Exercício
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Atualize os dados do exercício
             </DialogDescription>
           </DialogHeader>
@@ -985,12 +987,23 @@ export default function SuperAdminExercisesPage() {
             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" form="exercise-form" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">
+            <Button type="submit" form="exercise-form" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
               {saving ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton 
+        actions={[
+          {
+            label: 'Novo Exercício',
+            onClick: resetForm,
+            icon: <Plus className="h-5 w-5" />
+          }
+        ]}
+      />
     </div>
   )
 }

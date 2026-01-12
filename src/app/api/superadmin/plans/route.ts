@@ -1,27 +1,36 @@
 // ============================================================================
 // EXPERT TRAINING - SUPERADMIN PLANS API
 // ============================================================================
-// GET /api/superadmin/plans - Lista planos
-// POST /api/superadmin/plans - Cria plano
+// GET /api/superadmin/plans - Lista todos os planos
+// POST /api/superadmin/plans - Cria novo plano
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
+import { PlanTier } from '@prisma/client'
 
-// Validation schema
+// ============================================================================
+// SCHEMAS
+// ============================================================================
 const createPlanSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
+  slug: z.string().min(1, 'Slug é obrigatório'),
+  tier: z.enum(['START', 'PRO', 'PREMIUM']),
   description: z.string().optional(),
-  price: z.number().min(0, 'Preço deve ser positivo'),
-  maxTrainers: z.number().int().min(1, 'Mínimo 1 treinador'),
-  maxClients: z.number().int().min(1, 'Mínimo 1 cliente'),
+  pricePerTrainer: z.number().positive('Preço deve ser positivo'),
+  minTrainers: z.number().int().min(1).default(1),
+  recommendedMax: z.number().int().positive().optional().nullable(),
+  billingRules: z.record(z.any()).default({}),
   features: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
+  isVisible: z.boolean().default(true),
 })
 
-// Middleware to check superadmin
+// ============================================================================
+// MIDDLEWARE
+// ============================================================================
 async function verifySuperAdmin() {
   const accessToken = await getAccessTokenCookie()
   
@@ -38,7 +47,9 @@ async function verifySuperAdmin() {
   return { payload }
 }
 
-// GET - List plans
+// ============================================================================
+// GET - List all plans
+// ============================================================================
 export async function GET(request: NextRequest) {
   const auth = await verifySuperAdmin()
   if ('error' in auth) {
@@ -47,31 +58,53 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const pageSize = parseInt(searchParams.get('pageSize') || '20')
+    const includeInactive = searchParams.get('includeInactive') === 'true'
 
-    const total = await prisma.plan.count()
+    const where: any = {}
+    if (!includeInactive) {
+      where.isActive = true
+    }
 
     const plans = await prisma.plan.findMany({
-      orderBy: { priceMonthly: 'asc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      where,
       include: {
         _count: {
-          select: { studios: true },
-        },
+          select: {
+            studios: true,
+            subscriptions: true,
+          }
+        }
       },
+      orderBy: [
+        { pricePerTrainer: 'asc' },
+        { name: 'asc' }
+      ]
     })
+
+    // Calcular estatísticas
+    const stats = {
+      total: plans.length,
+      active: plans.filter(p => p.isActive).length,
+      byTier: {
+        START: plans.filter(p => p.tier === 'START').length,
+        PRO: plans.filter(p => p.tier === 'PRO').length,
+        PREMIUM: plans.filter(p => p.tier === 'PREMIUM').length,
+      },
+      totalStudios: plans.reduce((sum, p) => sum + p._count.studios, 0),
+      totalSubscriptions: plans.reduce((sum, p) => sum + p._count.subscriptions, 0),
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        items: plans,
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      },
+        items: plans.map(p => ({
+          ...p,
+          pricePerTrainer: parseFloat(p.pricePerTrainer.toString()),
+          studiosCount: p._count.studios,
+          subscriptionsCount: p._count.subscriptions,
+        })),
+        stats
+      }
     })
   } catch (error) {
     console.error('List plans error:', error)
@@ -82,7 +115,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// ============================================================================
 // POST - Create plan
+// ============================================================================
 export async function POST(request: NextRequest) {
   const auth = await verifySuperAdmin()
   if ('error' in auth) {
@@ -100,18 +135,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, description, price, maxTrainers, maxClients, features, isActive } = validation.data
+    const data = validation.data
+
+    // Check for duplicate slug
+    const existing = await prisma.plan.findUnique({
+      where: { slug: data.slug }
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: 'Já existe um plano com este slug' },
+        { status: 400 }
+      )
+    }
 
     const plan = await prisma.plan.create({
       data: {
-        name,
-        description,
-        priceMonthly: price,
-        maxTrainers,
-        maxClients,
-        features,
-        isActive,
-      },
+        name: data.name,
+        slug: data.slug,
+        tier: data.tier as PlanTier,
+        description: data.description,
+        pricePerTrainer: data.pricePerTrainer,
+        minTrainers: data.minTrainers,
+        recommendedMax: data.recommendedMax,
+        billingRules: data.billingRules,
+        features: data.features,
+        isActive: data.isActive,
+        isVisible: data.isVisible,
+      }
     })
 
     // Log audit
@@ -121,12 +172,16 @@ export async function POST(request: NextRequest) {
         action: 'CREATE',
         entity: 'Plan',
         entityId: plan.id,
+        newData: data,
       },
     })
 
     return NextResponse.json({
       success: true,
-      data: plan,
+      data: {
+        ...plan,
+        pricePerTrainer: parseFloat(plan.pricePerTrainer.toString())
+      }
     })
   } catch (error) {
     console.error('Create plan error:', error)

@@ -14,6 +14,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, UserCheck, Trash2, Edit2, Search, X, AlertCircle } from 'lucide-react'
+import { FloatingActionButton } from '@/components/ui'
 
 interface Trainer {
   id: string
@@ -338,8 +339,8 @@ export default function TeamPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Verificando permissões...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Verificando permissões...</p>
             </div>
           </div>
         </div>
@@ -355,9 +356,9 @@ export default function TeamPage() {
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Acesso Negado</h2>
-              <p className="text-gray-600 mb-4">Você não tem permissão para acessar esta página.</p>
-              <p className="text-sm text-gray-500">Redirecionando...</p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Negado</h2>
+              <p className="text-muted-foreground mb-4">Você não tem permissão para acessar esta página.</p>
+              <p className="text-sm text-muted-foreground">Redirecionando...</p>
             </div>
           </div>
         </div>
@@ -370,18 +371,18 @@ export default function TeamPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Equipe</h1>
-          <p className="text-gray-600">Gerencie os membros do seu studio</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Equipe</h1>
+          <p className="text-muted-foreground">Gerencie os membros do seu studio</p>
         </div>
 
         {/* Messages */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
             {error}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+          <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400">
             {success}
           </div>
         )}
@@ -389,13 +390,13 @@ export default function TeamPage() {
         {/* Actions Bar */}
         <div className="mb-6 flex items-center gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
             <input
               type="text"
               placeholder="Buscar por nome ou email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
           <button
@@ -404,7 +405,7 @@ export default function TeamPage() {
               setError(null)
               setSuccess(null)
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="hidden md:flex items-center gap-2 px-4 py-2 bg-amber-500 text-accent-foreground rounded-lg hover:bg-amber-600 transition-colors"
           >
             <Plus size={20} />
             Adicionar Membro
@@ -414,50 +415,50 @@ export default function TeamPage() {
         {/* Trainers Table */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <p className="mt-4 text-gray-600">Carregando equipe...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+            <p className="mt-4 text-muted-foreground">Carregando equipe...</p>
           </div>
         ) : filteredTrainers.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <p className="text-gray-600">Nenhum membro encontrado</p>
+          <div className="text-center py-12 bg-card rounded-lg border-2 border-dashed border-border">
+            <p className="text-muted-foreground">Nenhum membro encontrado</p>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Nome
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Cargo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Ações
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {filteredTrainers.map((trainer) => (
-                  <tr key={trainer.id} className="hover:bg-gray-50">
+                  <tr key={trainer.id} className="hover:bg-muted">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{trainer.name}</div>
+                      <div className="text-sm font-medium text-foreground">{trainer.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">{trainer.email}</div>
+                      <div className="text-sm text-muted-foreground">{trainer.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                           trainer.role === 'STUDIO_ADMIN'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-blue-100 text-blue-800'
+                            ? 'bg-purple-500/20 text-purple-400'
+                            : 'bg-amber-500/20 text-amber-400'
                         }`}
                       >
                         {trainer.role === 'STUDIO_ADMIN' ? 'Admin' : 'Personal'}
@@ -467,8 +468,8 @@ export default function TeamPage() {
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                           trainer.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {trainer.isActive ? 'Ativo' : 'Inativo'}
@@ -477,14 +478,14 @@ export default function TeamPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <button
                         onClick={() => openEditDialog(trainer)}
-                        className="text-blue-600 hover:text-blue-800 mr-3"
+                        className="text-amber-400 hover:text-amber-300 mr-3"
                         title="Editar"
                       >
                         <Edit2 size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(trainer)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-400 hover:text-red-300"
                         title="Remover"
                       >
                         <Trash2 size={18} />
@@ -500,9 +501,9 @@ export default function TeamPage() {
         {/* Create Dialog */}
         {showCreateDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="bg-card border border-border rounded-lg shadow-xl max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Adicionar Membro</h2>
+                <h2 className="text-xl font-bold text-foreground">Adicionar Membro</h2>
                 <button
                   onClick={() => {
                     setShowCreateDialog(false)
@@ -511,7 +512,7 @@ export default function TeamPage() {
                     setExistingUser(null)
                     setError(null)
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X size={24} />
                 </button>
@@ -520,40 +521,40 @@ export default function TeamPage() {
               <form onSubmit={handleCreate} className="space-y-4">
                 {/* Name - always show first */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Nome Completo *
                   </label>
                   <input
                     type="text"
                     value={createForm.name}
                     onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder={emailExists && existingUser ? `Usar: ${existingUser.name}` : 'Digite o nome completo'}
                     disabled={emailExists && !!existingUser}
                     required={!emailExists}
                   />
                   {emailExists && existingUser && (
-                    <p className="text-xs text-gray-500 mt-1">Nome será usado do usuário existente</p>
+                    <p className="text-xs text-muted-foreground mt-1">Nome será usado do usuário existente</p>
                   )}
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Email *
                   </label>
                   <input
                     type="email"
                     value={createForm.email}
                     onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     required
                   />
                   {checkingEmail && (
-                    <p className="text-xs text-gray-500 mt-1">Verificando email...</p>
+                    <p className="text-xs text-muted-foreground mt-1">Verificando email...</p>
                   )}
                   {emailExists && existingUser && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded flex items-center gap-2 text-sm text-blue-700">
+                    <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded flex items-center gap-2 text-sm text-amber-400">
                       <UserCheck size={16} />
                       <span>
                         Usuário já cadastrado - será vinculado ao studio
@@ -565,14 +566,14 @@ export default function TeamPage() {
                 {/* Password - only if new user */}
                 {!emailExists && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Senha * (mínimo 6 caracteres)
                     </label>
                     <input
                       type="password"
                       value={createForm.password}
                       onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       minLength={6}
                       required
                     />
@@ -581,7 +582,7 @@ export default function TeamPage() {
 
                 {/* Role */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Cargo *
                   </label>
                   <select
@@ -589,15 +590,15 @@ export default function TeamPage() {
                     onChange={(e) =>
                       setCreateForm({ ...createForm, role: e.target.value as 'TRAINER' | 'STUDIO_ADMIN' })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   >
-                    <option value="TRAINER">Personal Trainer</option>
-                    <option value="STUDIO_ADMIN">Administrador</option>
+                    <option value="TRAINER" className="bg-background text-foreground">Personal Trainer</option>
+                    <option value="STUDIO_ADMIN" className="bg-background text-foreground">Administrador</option>
                   </select>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
                     {error}
                   </div>
                 )}
@@ -612,14 +613,14 @@ export default function TeamPage() {
                       setExistingUser(null)
                       setError(null)
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted text-foreground"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="flex-1 px-4 py-2 bg-amber-500 text-accent-foreground rounded-lg hover:bg-amber-600 disabled:opacity-50"
                   >
                     {submitting ? 'Adicionando...' : 'Adicionar'}
                   </button>
@@ -632,9 +633,9 @@ export default function TeamPage() {
         {/* Edit Dialog */}
         {showEditDialog && selectedTrainer && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="bg-card border border-border rounded-lg shadow-xl max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Editar Membro</h2>
+                <h2 className="text-xl font-bold text-foreground">Editar Membro</h2>
                 <button
                   onClick={() => {
                     setShowEditDialog(false)
@@ -642,23 +643,23 @@ export default function TeamPage() {
                     setEditForm({ role: 'TRAINER', isActive: true, resetPassword: false, newPassword: '' })
                     setError(null)
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X size={24} />
                 </button>
               </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">
+              <div className="mb-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm text-foreground">
                   <strong>{selectedTrainer.name}</strong>
                 </p>
-                <p className="text-xs text-gray-500">{selectedTrainer.email}</p>
+                <p className="text-xs text-muted-foreground">{selectedTrainer.email}</p>
               </div>
 
               <form onSubmit={handleEdit} className="space-y-4">
                 {/* Role */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Cargo *
                   </label>
                   <select
@@ -666,10 +667,10 @@ export default function TeamPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, role: e.target.value as 'TRAINER' | 'STUDIO_ADMIN' })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   >
-                    <option value="TRAINER">Personal Trainer</option>
-                    <option value="STUDIO_ADMIN">Administrador</option>
+                    <option value="TRAINER" className="bg-background text-foreground">Personal Trainer</option>
+                    <option value="STUDIO_ADMIN" className="bg-background text-foreground">Administrador</option>
                   </select>
                 </div>
 
@@ -680,14 +681,14 @@ export default function TeamPage() {
                       type="checkbox"
                       checked={editForm.isActive}
                       onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-amber-500 border-border rounded focus:ring-amber-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Usuário ativo</span>
+                    <span className="text-sm font-medium text-foreground">Usuário ativo</span>
                   </label>
                 </div>
 
                 {/* Reset Password */}
-                <div className="border-t pt-4">
+                <div className="border-t border-border pt-4">
                   <label className="flex items-center gap-2 cursor-pointer mb-3">
                     <input
                       type="checkbox"
@@ -695,21 +696,21 @@ export default function TeamPage() {
                       onChange={(e) =>
                         setEditForm({ ...editForm, resetPassword: e.target.checked, newPassword: '' })
                       }
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-amber-500 border-border rounded focus:ring-amber-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Resetar senha</span>
+                    <span className="text-sm font-medium text-foreground">Resetar senha</span>
                   </label>
 
                   {editForm.resetPassword && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">
                         Nova Senha * (mínimo 6 caracteres)
                       </label>
                       <input
                         type="password"
                         value={editForm.newPassword}
                         onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         minLength={6}
                         required
                       />
@@ -718,7 +719,7 @@ export default function TeamPage() {
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
                     {error}
                   </div>
                 )}
@@ -732,14 +733,14 @@ export default function TeamPage() {
                       setEditForm({ role: 'TRAINER', isActive: true, resetPassword: false, newPassword: '' })
                       setError(null)
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted text-foreground"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="flex-1 px-4 py-2 bg-amber-500 text-accent-foreground rounded-lg hover:bg-amber-600 disabled:opacity-50"
                   >
                     {submitting ? 'Salvando...' : 'Salvar'}
                   </button>
@@ -749,6 +750,21 @@ export default function TeamPage() {
           </div>
         )}
       </div>
+      
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton 
+        actions={[
+          {
+            label: 'Adicionar Membro',
+            onClick: () => {
+              setShowCreateDialog(true)
+              setError(null)
+              setSuccess(null)
+            },
+            icon: <Plus className="h-5 w-5" />
+          }
+        ]}
+      />
     </div>
   )
 }

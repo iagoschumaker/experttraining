@@ -19,8 +19,10 @@ datasource db {
 // ============================================================================
 
 enum StudioStatus {
-  ACTIVE
-  SUSPENDED
+  ACTIVE          // Ativo e funcionando
+  SUSPENDED       // Suspenso por falta de pagamento
+  GRACE_PERIOD    // Em período de carência
+  CANCELED        // Cancelado pelo cliente
 }
 
 enum UserStudioRole {
@@ -84,17 +86,30 @@ model Studio {
   planId      String?      @map("plan_id")
   logoUrl     String?      @map("logo_url")
   settings    Json?        @default("{}") // Configurações específicas do studio
+  
+  // 💰 CONTROLE DE PAGAMENTO MANUAL
+  isPaid            Boolean   @default(true) @map("is_paid")              // Studio pagou?
+  lastPaymentDate   DateTime? @map("last_payment_date")                    // Último pagamento
+  paymentDueDate    DateTime? @map("payment_due_date")                     // Vencimento
+  paymentNotes      String?   @map("payment_notes") @db.Text              // Notas do SuperAdmin
+  gracePeriodEnds   DateTime? @map("grace_period_ends")                    // Prazo de carência
+  blockedReason     String?   @map("blocked_reason") @db.Text             // Motivo do bloqueio
+  blockedAt         DateTime? @map("blocked_at")                           // Quando foi bloqueado
+  
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
   // Relacionamentos
-  plan        Plan?        @relation(fields: [planId], references: [id])
-  users       UserStudio[]
-  clients     Client[]
-  workouts    Workout[]
-  auditLogs   AuditLog[]
-  lessons     Lesson[]     // Aulas realizadas no studio
+  plan          Plan?          @relation(fields: [planId], references: [id])
+  users         UserStudio[]
+  clients       Client[]
+  workouts      Workout[]
+  auditLogs     AuditLog[]
+  lessons       Lesson[]       // Aulas realizadas no studio
+  subscriptions Subscription[] // Histórico de assinaturas
 
+  @@index([isPaid])
+  @@index([paymentDueDate])
   @@map("studios")
 }
 
@@ -126,26 +141,252 @@ model UserStudio {
 }
 
 // ============================================================================
-// BILLING: PLANS
+// BILLING: PLANS (SISTEMA DE COBRANÇA POR PERSONAL ATIVO)
 // ============================================================================
+
+enum PlanTier {
+  START       // Studio Start - Personal único ou pequeno
+  PRO         // Studio Pro - 5+ personals
+  PREMIUM     // Studio Premium - 10+ personals
+}
 
 model Plan {
   id              String   @id @default(cuid())
-  name            String
-  description     String?
-  priceMonthly    Decimal  @map("price_monthly") @db.Decimal(10, 2)
-  priceYearly     Decimal? @map("price_yearly") @db.Decimal(10, 2)
-  maxTrainers     Int      @default(5) @map("max_trainers")
-  maxClients      Int      @default(100) @map("max_clients")
-  features        Json     @default("[]") // Array de features habilitadas
+  
+  // Identificação
+  name            String   // "EXPERT TRAINING - STUDIO START"
+  slug            String   @unique // "studio-start"
+  tier            PlanTier @default(START)
+  description     String?  @db.Text
+  
+  // Preço por Personal Ativo
+  pricePerTrainer Decimal  @map("price_per_trainer") @db.Decimal(10, 2) // R$ 150, 140, 130
+  
+  // Limites (soft limits - não bloqueiam, mas geram alertas)
+  minTrainers     Int      @default(1) @map("min_trainers")    // Mínimo para cobrança
+  recommendedMax  Int?     @map("recommended_max")              // Sugestão de máximo
+  
+  // Regras de cobrança
+  billingRules    Json     @default("{}") @map("billing_rules")
+  // Estrutura:
+  // {
+  //   "activeDefinition": "at_least_one_action", // aula OU avaliação OU treino
+  //   "gracePeriodDays": 7,                       // dias sem cobrança inicial
+  //   "billingCycle": "monthly"                   // mensal
+  // }
+  
+  // Features (benefícios do plano)
+  features        Json     @default("[]")
+  // ["Avaliações ilimitadas", "Alunos ilimitados", "Suporte prioritário"]
+  
+  // Status
   isActive        Boolean  @default(true) @map("is_active")
+  isVisible       Boolean  @default(true) @map("is_visible") // Visível na página de planos
+  
+  // Datas
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relacionamentos
   studios         Studio[]
+  subscriptions   Subscription[]
 
   @@map("plans")
+}
+
+// ============================================================================
+// BILLING: SUBSCRIPTIONS (ASSINATURAS ATIVAS)
+// ============================================================================
+
+model Subscription {
+  id              String             @id @default(cuid())
+  studioId        String             @map("studio_id")
+  planId          String             @map("plan_id")
+  
+  // Status da assinatura
+  status          SubscriptionStatus @default(ACTIVE)
+  
+  // Período atual
+  currentPeriodStart DateTime        @map("current_period_start")
+  currentPeriodEnd   DateTime        @map("current_period_end")
+  
+  // Próximo ciclo
+  nextBillingDate    DateTime        @map("next_billing_date")
+  
+  // Cobrança automática
+  autoRenew       Boolean            @default(true) @map("auto_renew")
+  
+  // Datas importantes
+  trialEndsAt     DateTime?          @map("trial_ends_at")     // Período de teste
+  canceledAt      DateTime?          @map("canceled_at")
+  cancelReason    String?            @map("cancel_reason") @db.Text
+  
+  // Metadata
+  metadata        Json?              @default("{}")
+  
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  studio          Studio             @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  plan            Plan               @relation(fields: [planId], references: [id])
+  usageRecords    UsageRecord[]
+  invoices        Invoice[]
+
+  @@unique([studioId]) // Um studio só pode ter uma assinatura ativa
+  @@index([status])
+  @@index([nextBillingDate])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  TRIALING        // Em período de teste
+  ACTIVE          // Ativa e pagando
+  PAST_DUE        // Pagamento atrasado
+  CANCELED        // Cancelada
+  SUSPENDED       // Suspensa por falta de pagamento
+}
+
+// ============================================================================
+// BILLING: USAGE RECORDS (REGISTRO DE USO - BASE DA COBRANÇA)
+// ============================================================================
+
+model UsageRecord {
+  id              String   @id @default(cuid())
+  subscriptionId  String   @map("subscription_id")
+  studioId        String   @map("studio_id")
+  
+  // Período de medição
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  
+  // Métricas de uso (CORE DO MODELO)
+  activeTrainers  Int      @map("active_trainers") // Personals que fizeram ação no período
+  totalTrainers   Int      @map("total_trainers")  // Total de trainers cadastrados
+  
+  // Detalhamento por trainer (JSON com atividades)
+  trainerActivity Json     @map("trainer_activity")
+  // Estrutura:
+  // {
+  //   "trainer_id_1": {
+  //     "name": "João Silva",
+  //     "lessonsStarted": 15,
+  //     "assessmentsCreated": 3,
+  //     "workoutsCreated": 8,
+  //     "isActive": true,
+  //     "firstActivityAt": "2026-01-05T10:00:00Z"
+  //   }
+  // }
+  
+  // Outras métricas (informativas)
+  totalLessons    Int      @default(0) @map("total_lessons")
+  totalAssessments Int     @default(0) @map("total_assessments")
+  totalWorkouts   Int      @default(0) @map("total_workouts")
+  totalClients    Int      @default(0) @map("total_clients")
+  
+  // Cálculo de cobrança
+  pricePerTrainer Decimal  @map("price_per_trainer") @db.Decimal(10, 2)
+  totalAmount     Decimal  @map("total_amount") @db.Decimal(10, 2)
+  // totalAmount = activeTrainers × pricePerTrainer
+  
+  // Status
+  isBilled        Boolean  @default(false) @map("is_billed") // Já foi faturado?
+  invoiceId       String?  @map("invoice_id")
+  
+  // Datas
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoice         Invoice?     @relation(fields: [invoiceId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([studioId])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("usage_records")
+}
+
+// ============================================================================
+// BILLING: INVOICES (FATURAS GERADAS)
+// ============================================================================
+
+model Invoice {
+  id              String        @id @default(cuid())
+  subscriptionId  String        @map("subscription_id")
+  studioId        String        @map("studio_id")
+  
+  // Identificação
+  invoiceNumber   String        @unique @map("invoice_number") // INV-2026-01-001
+  
+  // Período cobrado
+  periodStart     DateTime      @map("period_start")
+  periodEnd       DateTime      @map("period_end")
+  
+  // Valores
+  subtotal        Decimal       @db.Decimal(10, 2)
+  discount        Decimal       @default(0) @db.Decimal(10, 2)
+  tax             Decimal       @default(0) @db.Decimal(10, 2)
+  total           Decimal       @db.Decimal(10, 2)
+  
+  // Detalhamento (line items)
+  items           Json          // Array de itens da fatura
+  // [
+  //   {
+  //     "description": "3 personals ativos",
+  //     "quantity": 3,
+  //     "unitPrice": 150.00,
+  //     "total": 450.00
+  //   }
+  // ]
+  
+  // Pagamento
+  status          InvoiceStatus @default(PENDING)
+  dueDate         DateTime      @map("due_date")
+  paidAt          DateTime?     @map("paid_at")
+  paymentMethod   String?       @map("payment_method") // PIX, CARD, BOLETO
+  paymentId       String?       @map("payment_id")     // ID do gateway de pagamento
+  
+  // Notas e metadados
+  notes           String?       @db.Text
+  metadata        Json?         @default("{}")
+  
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  subscription    Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  usageRecords    UsageRecord[]
+
+  @@index([subscriptionId])
+  @@index([studioId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT           // Rascunho
+  PENDING         // Aguardando pagamento
+  PAID            // Paga
+  OVERDUE         // Vencida
+  CANCELED        // Cancelada
+  REFUNDED        // Reembolsada
+}
+
+// ============================================================================
+// BILLING: ADICIONAR RELACIONAMENTO NO STUDIO
+// ============================================================================
+
+model StudioSubscription {
+  id              String   @id @default(cuid())
+  studioId        String   @unique @map("studio_id")
+  subscriptionId  String   @map("subscription_id")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("studio_subscriptions")
 }
 
 // ============================================================================

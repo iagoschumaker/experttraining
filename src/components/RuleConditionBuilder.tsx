@@ -342,9 +342,9 @@ export default function RuleConditionBuilder({ conditions, onChange, className =
                         </Button>
                         <div className="text-sm">
                           {isValid ? (
-                            <span className="text-gray-700">{getConditionPreview(condition)}</span>
+                            <span className="text-foreground">{getConditionPreview(condition)}</span>
                           ) : (
-                            <span className="text-gray-400 italic">Configure a condição</span>
+                            <span className="text-muted-foreground italic">Configure a condição</span>
                           )}
                         </div>
                       </div>

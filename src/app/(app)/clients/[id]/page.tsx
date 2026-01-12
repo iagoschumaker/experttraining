@@ -187,7 +187,7 @@ export default function ClientDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{client.name}</h1>
             <p className="text-sm text-gray-500">
               Cliente desde {formatDate(client.createdAt)}
               {client.trainer && (
@@ -289,7 +289,7 @@ export default function ClientDetailPage() {
           </Dialog>
           )}
           <Link href={`/assessments/new?clientId=${client.id}`}>
-            <Button>
+            <Button className="bg-amber-500 hover:bg-amber-600 text-black">
               <Plus className="mr-2 h-4 w-4" />
               Nova Avaliação
             </Button>
@@ -343,13 +343,13 @@ export default function ClientDetailPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
+                <div className="text-3xl font-bold text-amber-500">
                   {client.assessments?.length || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Avaliações</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
+                <div className="text-3xl font-bold text-amber-500">
                   {client.workouts?.length || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Treinos</div>

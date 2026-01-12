@@ -190,7 +190,7 @@ export default function EditClientPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Editar Aluno</h1>
+          <h1 className="text-2xl font-bold text-foreground">Editar Aluno</h1>
           <p className="text-sm text-gray-500">Atualize as informações do aluno</p>
         </div>
       </div>
@@ -262,10 +262,10 @@ export default function EditClientPage() {
                       setFormData({ ...formData, gender: e.target.value })
                     }
                   >
-                    <option value="">Selecione</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Feminino</option>
-                    <option value="O">Outro</option>
+                    <option value="" className="bg-background text-foreground">Selecione</option>
+                    <option value="M" className="bg-background text-foreground">Masculino</option>
+                    <option value="F" className="bg-background text-foreground">Feminino</option>
+                    <option value="O" className="bg-background text-foreground">Outro</option>
                   </select>
                 </div>
               </div>
@@ -418,13 +418,13 @@ export default function EditClientPage() {
                       setFormData({ ...formData, goal: e.target.value })
                     }
                   >
-                    <option value="">Selecione uma meta</option>
-                    <option value="HYPERTROPHY">Hipertrofia</option>
-                    <option value="STRENGTH">Força</option>
-                    <option value="CONDITIONING">Condicionamento</option>
-                    <option value="WEIGHT_LOSS">Emagrecimento</option>
-                    <option value="REHABILITATION">Reabilitação</option>
-                    <option value="PERFORMANCE">Performance</option>
+                    <option value="" className="bg-background text-foreground">Selecione uma meta</option>
+                    <option value="HYPERTROPHY" className="bg-background text-foreground">Hipertrofia</option>
+                    <option value="STRENGTH" className="bg-background text-foreground">Força</option>
+                    <option value="CONDITIONING" className="bg-background text-foreground">Condicionamento</option>
+                    <option value="WEIGHT_LOSS" className="bg-background text-foreground">Emagrecimento</option>
+                    <option value="REHABILITATION" className="bg-background text-foreground">Reabilitação</option>
+                    <option value="PERFORMANCE" className="bg-background text-foreground">Performance</option>
                   </select>
                 </div>
                 <div className="space-y-2">

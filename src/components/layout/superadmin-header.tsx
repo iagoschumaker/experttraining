@@ -14,6 +14,7 @@ import {
   Shield
 } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 interface UserData {
   id: string
@@ -54,68 +55,74 @@ export function SuperAdminHeader() {
 
   if (isLoading) {
     return (
-      <header className="h-16 border-b border-slate-800 bg-slate-900 px-6 flex items-center justify-between">
-        <Skeleton className="h-6 w-32 bg-slate-800" />
-        <Skeleton className="h-10 w-10 rounded-full bg-slate-800" />
+      <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
+        <Skeleton className="h-6 w-32 bg-muted" />
+        <Skeleton className="h-10 w-10 rounded-full bg-muted" />
       </header>
     )
   }
 
   return (
-    <header className="h-16 border-b border-slate-800 bg-slate-900 px-6 flex items-center justify-between">
+    <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
       {/* Left: Title */}
       <div className="flex items-center gap-3">
-        <Badge className="bg-amber-500 text-slate-900 hover:bg-amber-500">
+        <Badge className="bg-accent text-accent-foreground hover:bg-accent/90">
           <Shield className="w-3 h-3 mr-1" />
           SuperAdmin
         </Badge>
-        <span className="text-slate-400 text-sm">Painel de Controle</span>
+        <span className="text-muted-foreground text-sm">Painel de Controle</span>
       </div>
 
       {/* Right: User Menu */}
-      <div className="relative">
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 hover:bg-slate-800 rounded-lg p-2 transition-colors"
-        >
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="bg-amber-500 text-slate-900 text-xs">
-              {user ? getInitials(user.name) : '??'}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium text-white hidden sm:inline">
-            {user?.name}
-          </span>
-          <ChevronDown className="w-4 h-4 text-slate-400" />
-        </button>
+      <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+        
+        {/* User Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="flex items-center gap-2 hover:bg-muted rounded-lg p-2 transition-colors"
+          >
+            <Avatar className="w-8 h-8">
+              <AvatarFallback className="bg-accent text-accent-foreground text-xs">
+                {user ? getInitials(user.name) : '??'}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium text-foreground hidden sm:inline">
+              {user?.name}
+            </span>
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </button>
 
-        {/* Dropdown */}
-        {showMenu && (
-          <>
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={() => setShowMenu(false)} 
-            />
-            <div className="absolute right-0 top-full mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 py-1">
-              {/* User Info */}
-              <div className="px-4 py-3 border-b border-slate-700">
-                <p className="font-medium text-white">{user?.name}</p>
-                <p className="text-sm text-slate-400">{user?.email}</p>
-              </div>
+          {/* Dropdown */}
+          {showMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowMenu(false)} 
+              />
+              <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-lg shadow-lg z-50 py-1">
+                {/* User Info */}
+                <div className="px-4 py-3 border-b border-border">
+                  <p className="font-medium text-foreground">{user?.name}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
 
-              {/* Actions */}
-              <div className="py-1">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-slate-700 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sair
-                </button>
+                {/* Actions */}
+                <div className="py-1">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </header>
   )

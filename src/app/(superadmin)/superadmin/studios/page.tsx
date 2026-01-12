@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { FloatingActionButton } from '@/components/ui'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -50,11 +51,16 @@ interface Studio {
   }
   lessonsThisMonth?: number
   lastActivity?: string | null
+  activeTrainers?: number
 }
 
 interface Plan {
   id: string
   name: string
+  tier: string
+  minTrainers: number
+  recommendedMax: number | null
+  pricePerTrainer: number
 }
 
 const statusConfig: Record<'ACTIVE' | 'SUSPENDED', { label: string; color: string }> = {
@@ -275,42 +281,67 @@ export default function SuperAdminStudiosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Studios</h1>
-          <p className="text-sm text-gray-400">Gerencie os studios parceiros</p>
+          <h1 className="text-2xl font-bold text-foreground">Studios</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os studios parceiros</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-amber-500 hover:bg-amber-600 text-black">
+            <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
               <Plus className="h-4 w-4" /> Novo Studio
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-700">
+          <DialogContent className="bg-card border-border">
             <form onSubmit={handleCreate}>
               <DialogHeader>
-                <DialogTitle className="text-white">Novo Studio</DialogTitle>
-                <DialogDescription className="text-gray-400">Cadastre um novo studio</DialogDescription>
+                <DialogTitle className="text-foreground">Novo Studio</DialogTitle>
+                <DialogDescription className="text-muted-foreground">Cadastre um novo studio</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label className="text-gray-300">Nome *</Label>
-                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: generateSlug(e.target.value) })} className="bg-gray-800 border-gray-700 text-white" required />
+                  <Label className="text-muted-foreground">Nome *</Label>
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: generateSlug(e.target.value) })} className="bg-background border-border text-foreground" required />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-300">Slug *</Label>
-                  <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required />
+                  <Label className="text-muted-foreground">Slug *</Label>
+                  <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-background border-border text-foreground" required />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-300">Plano</Label>
-                  <Select value={formData.planId} onValueChange={(v) => setFormData({ ...formData, planId: v })}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{plans.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                  <Label className="text-muted-foreground">Plano *</Label>
+                  <Select value={formData.planId} onValueChange={(v) => setFormData({ ...formData, planId: v })} required>
+                    <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione um plano" /></SelectTrigger>
+                    <SelectContent>
+                      {plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) || null}
+                    </SelectContent>
                   </Select>
+                  {formData.planId && (() => {
+                    const selectedPlan = plans.find(p => p.id === formData.planId)
+                    if (!selectedPlan) return null
+                    return (
+                      <div className="flex items-start gap-2 p-3 rounded bg-amber-500/10 border border-amber-500/20">
+                        <UserCheck className="h-4 w-4 text-amber-400 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs text-amber-400 font-medium mb-1">
+                            Plano: {selectedPlan.name}
+                          </p>
+                          <p className="text-xs text-amber-300">
+                            Mínimo: <strong>{selectedPlan.minTrainers}</strong> trainer{selectedPlan.minTrainers > 1 ? 's' : ''}
+                            {selectedPlan.recommendedMax && (
+                              <> • Máximo recomendado: <strong>{selectedPlan.recommendedMax}</strong></>
+                            )}
+                          </p>
+                          <p className="text-xs text-amber-300 mt-1">
+                            Valor: <strong>R$ {selectedPlan.pricePerTrainer.toFixed(2)}</strong> por trainer ativo/mês
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
-                <div className="border-t border-gray-700 pt-4 mt-4">
-                  <h4 className="text-sm font-medium text-white mb-3">Administrador do Studio</h4>
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3">Administrador do Studio</h4>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-gray-300">Email do Admin *</Label>
+                      <Label className="text-muted-foreground">Email do Admin *</Label>
                       <Input 
                         type="email" 
                         value={formData.adminEmail} 
@@ -318,7 +349,7 @@ export default function SuperAdminStudiosPage() {
                           setFormData({ ...formData, adminEmail: e.target.value })
                           checkEmailExists(e.target.value)
                         }}
-                        className="bg-gray-800 border-gray-700 text-white" 
+                        className="bg-background border-border text-foreground" 
                         required 
                         placeholder="admin@studio.com"
                       />
@@ -333,17 +364,17 @@ export default function SuperAdminStudiosPage() {
                     </div>
                     {!emailExists && (
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Senha Inicial *</Label>
+                        <Label className="text-muted-foreground">Senha Inicial *</Label>
                         <Input 
                           type="password" 
                           value={formData.adminPassword} 
                           onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                          className="bg-gray-800 border-gray-700 text-white" 
+                          className="bg-background border-border text-foreground" 
                           required={!emailExists}
                           placeholder="Mínimo 6 caracteres"
                           minLength={6}
                         />
-                        <p className="text-xs text-gray-500">O usuário receberá este email e senha para acessar o studio</p>
+                        <p className="text-xs text-muted-foreground">O usuário receberá este email e senha para acessar o studio</p>
                       </div>
                     )}
                   </div>
@@ -351,7 +382,7 @@ export default function SuperAdminStudiosPage() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">{saving ? 'Salvando...' : 'Criar'}</Button>
+                <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Criar'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -359,82 +390,82 @@ export default function SuperAdminStudiosPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Total</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
             <Building2 className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{total}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{total}</div></CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Usuários</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Usuários</CardTitle>
             <Users className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{studios.reduce((a, s) => a + s._count.users, 0)}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{studios.reduce((a, s) => a + s._count.users, 0)}</div></CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Alunos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Alunos</CardTitle>
             <UserCheck className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-white">{studios.reduce((a, s) => a + s._count.clients, 0)}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{studios.reduce((a, s) => a + s._count.clients, 0)}</div></CardContent>
         </Card>
       </div>
 
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input placeholder="Buscar studios..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="pl-10 bg-gray-900 border-gray-700 text-white" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar studios..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="pl-10 bg-background border-border text-foreground" />
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-gray-700" />)}</div>
+            <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full bg-muted" />)}</div>
           ) : studios.length === 0 ? (
-            <div className="py-12 text-center"><Building2 className="mx-auto h-12 w-12 text-gray-600" /><h3 className="mt-4 text-lg font-medium text-white">Nenhum studio</h3></div>
+            <div className="py-12 text-center"><Building2 className="mx-auto h-12 w-12 text-muted-foreground" /><h3 className="mt-4 text-lg font-medium text-foreground">Nenhum studio</h3></div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">Nome</TableHead>
-                  <TableHead className="text-gray-400">Plano</TableHead>
-                  <TableHead className="text-gray-400">Trainers</TableHead>
-                  <TableHead className="text-gray-400">Alunos</TableHead>
-                  <TableHead className="text-gray-400">Aulas (mês)</TableHead>
-                  <TableHead className="text-gray-400">Última Atividade</TableHead>
-                  <TableHead className="text-gray-400">Status</TableHead>
-                  <TableHead className="text-gray-400 text-right">Ações</TableHead>
+                <TableRow className="border-border">
+                  <TableHead className="text-muted-foreground">Nome</TableHead>
+                  <TableHead className="text-muted-foreground">Plano</TableHead>
+                  <TableHead className="text-muted-foreground">Trainers</TableHead>
+                  <TableHead className="text-muted-foreground">Alunos</TableHead>
+                  <TableHead className="text-muted-foreground">Aulas (mês)</TableHead>
+                  <TableHead className="text-muted-foreground">Última Atividade</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {studios.map((s) => (
-                  <TableRow key={s.id} className="border-gray-700 hover:bg-gray-750">
-                    <TableCell className="font-medium text-white">
+                  <TableRow key={s.id} className="border-border hover:bg-muted">
+                    <TableCell className="font-medium text-foreground">
                       <div>
                         <div>{s.name}</div>
-                        <div className="text-xs text-gray-500">{s.slug}</div>
+                        <div className="text-xs text-muted-foreground">{s.slug}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-400">{s.plan?.name || '-'}</TableCell>
-                    <TableCell className="text-gray-400">{s._count.users}</TableCell>
-                    <TableCell className="text-gray-400">{s._count.clients}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.plan?.name || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.activeTrainers !== undefined ? s.activeTrainers : s._count.users}</TableCell>
+                    <TableCell className="text-muted-foreground">{s._count.clients}</TableCell>
                     <TableCell>
                       <span className={`font-medium ${(s.lessonsThisMonth || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {s.lessonsThisMonth || 0}
                       </span>
                     </TableCell>
-                    <TableCell className="text-gray-400 text-sm">
+                    <TableCell className="text-muted-foreground text-sm">
                       {s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('pt-BR') : 'Nunca'}
                     </TableCell>
                     <TableCell><Badge className={statusConfig[s.status].color}>{statusConfig[s.status].label}</Badge></TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => window.location.href = `/superadmin/studios/${s.id}`} className="hover:bg-gray-700" title="Entrar no Studio">
+                      <Button variant="ghost" size="icon" onClick={() => window.location.href = `/superadmin/studios/${s.id}`} className="hover:bg-muted" title="Entrar no Studio">
                         <ExternalLink className="h-4 w-4 text-amber-500" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="hover:bg-gray-700"><Pencil className="h-4 w-4 text-gray-400" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="hover:bg-gray-700"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -443,10 +474,10 @@ export default function SuperAdminStudiosPage() {
           )}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-400">Página {page} de {totalPages}</p>
+              <p className="text-sm text-muted-foreground">Página {page} de {totalPages}</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="border-gray-700">Anterior</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-gray-700">Próxima</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="border-border">Anterior</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="border-border">Próxima</Button>
               </div>
             </div>
           )}
@@ -454,29 +485,54 @@ export default function SuperAdminStudiosPage() {
       </Card>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700">
+        <DialogContent className="bg-card border-border">
           <form onSubmit={handleUpdate}>
-            <DialogHeader><DialogTitle className="text-white">Editar Studio</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="text-foreground">Editar Studio</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Nome *</Label>
-                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required />
+                <Label className="text-muted-foreground">Nome *</Label>
+                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-background border-border text-foreground" required />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Slug *</Label>
-                <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-gray-800 border-gray-700 text-white" required />
+                <Label className="text-muted-foreground">Slug *</Label>
+                <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-background border-border text-foreground" required />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Plano</Label>
-                <Select value={formData.planId} onValueChange={(v) => setFormData({ ...formData, planId: v })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{plans.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                <Label className="text-muted-foreground">Plano *</Label>
+                <Select value={formData.planId} onValueChange={(v) => setFormData({ ...formData, planId: v })} required>
+                  <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione um plano" /></SelectTrigger>
+                  <SelectContent>
+                    {plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) || null}
+                  </SelectContent>
                 </Select>
+                {formData.planId && (() => {
+                  const selectedPlan = plans.find(p => p.id === formData.planId)
+                  if (!selectedPlan) return null
+                  return (
+                    <div className="flex items-start gap-2 p-3 rounded bg-amber-500/10 border border-amber-500/20">
+                      <UserCheck className="h-4 w-4 text-amber-400 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-xs text-amber-400 font-medium mb-1">
+                          Plano: {selectedPlan.name}
+                        </p>
+                        <p className="text-xs text-amber-300">
+                          Mínimo: <strong>{selectedPlan.minTrainers}</strong> trainer{selectedPlan.minTrainers > 1 ? 's' : ''}
+                          {selectedPlan.recommendedMax && (
+                            <> • Máximo recomendado: <strong>{selectedPlan.recommendedMax}</strong></>
+                          )}
+                        </p>
+                        <p className="text-xs text-amber-300 mt-1">
+                          Valor: <strong>R$ {selectedPlan.pricePerTrainer.toFixed(2)}</strong> por trainer ativo/mês
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Status</Label>
+                <Label className="text-muted-foreground">Status</Label>
                 <Select value={formData.status} onValueChange={(v: any) => setFormData({ ...formData, status: v })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE">Ativo</SelectItem>
                     <SelectItem value="SUSPENDED">Suspenso</SelectItem>
@@ -485,9 +541,9 @@ export default function SuperAdminStudiosPage() {
               </div>
               
               {studioAdmins.length > 0 && (
-                <div className="border-t border-gray-700 pt-4 mt-4">
+                <div className="border-t border-border pt-4 mt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-white">Resetar Senha de Administrador</h4>
+                    <h4 className="text-sm font-medium text-foreground">Resetar Senha de Administrador</h4>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -498,18 +554,18 @@ export default function SuperAdminStudiosPage() {
                             setFormData({ ...formData, adminPassword: '' })
                           }
                         }}
-                        className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-amber-500 focus:ring-amber-500"
+                        className="w-4 h-4 rounded border-border bg-background text-amber-500 focus:ring-amber-500"
                       />
-                      <span className="text-xs text-gray-400">Resetar senha</span>
+                      <span className="text-xs text-muted-foreground">Resetar senha</span>
                     </label>
                   </div>
                   
                   {resetPassword && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Selecionar Administrador</Label>
+                        <Label className="text-muted-foreground">Selecionar Administrador</Label>
                         <Select value={selectedAdminId} onValueChange={setSelectedAdminId}>
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-background border-border text-foreground">
                             <SelectValue placeholder="Selecione um admin" />
                           </SelectTrigger>
                           <SelectContent>
@@ -522,17 +578,17 @@ export default function SuperAdminStudiosPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-gray-300">Nova Senha *</Label>
+                        <Label className="text-muted-foreground">Nova Senha *</Label>
                         <Input
                           type="password"
                           value={formData.adminPassword}
                           onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-background border-border text-foreground"
                           placeholder="Mínimo 6 caracteres"
                           minLength={6}
                           required={resetPassword}
                         />
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           A senha será atualizada para o administrador selecionado
                         </p>
                       </div>
@@ -543,11 +599,22 @@ export default function SuperAdminStudiosPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-black">{saving ? 'Salvando...' : 'Salvar'}</Button>
+              <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Salvar'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton 
+        actions={[
+          {
+            label: 'Novo Studio',
+            onClick: () => setIsCreateOpen(true),
+            icon: <Plus className="h-5 w-5" />
+          }
+        ]}
+      />
     </div>
   )
 }

@@ -16,53 +16,72 @@ async function main() {
   // 1. CRIAR PLANOS
   // ============================================================================
   console.log('📦 Criando planos...')
-  
-  const planBasic = await prisma.plan.upsert({
-    where: { id: 'plan_basic' },
-    update: {},
-    create: {
-      id: 'plan_basic',
-      name: 'Básico',
-      description: 'Plano ideal para studios pequenos',
-      priceMonthly: 99.90,
-      priceYearly: 999.00,
-      maxTrainers: 2,
-      maxClients: 50,
-      features: ['Avaliações básicas', 'Montagem de treino', 'Relatórios simples'],
+
+  // Deleta planos antigos para garantir um seed limpo
+  await prisma.plan.deleteMany({})
+
+  const planStart = await prisma.plan.create({
+    data: {
+      name: 'Studio Start',
+      slug: 'studio-start',
+      tier: 'START',
+      description: 'Ideal para studios pequenos, a partir de 1 personal.',
+      pricePerTrainer: 150.0,
+      minTrainers: 1,
+      recommendedMax: 4,
+      features: [
+        'Acesso completo ao sistema',
+        'Avaliações funcionais ilimitadas',
+        'Uso do motor de decisão',
+        'Acesso às planilhas/blocos oficiais',
+        'Registro de aulas (check-in com foto)',
+        'Alunos ilimitados',
+        'Histórico completo',
+        'Auditoria ativa',
+      ],
+      isActive: true,
+      isVisible: true,
     },
   })
 
-  const planPro = await prisma.plan.upsert({
-    where: { id: 'plan_pro' },
-    update: {},
-    create: {
-      id: 'plan_pro',
-      name: 'Profissional',
-      description: 'Plano completo para studios em crescimento',
-      priceMonthly: 199.90,
-      priceYearly: 1999.00,
-      maxTrainers: 5,
-      maxClients: 150,
-      features: ['Todas as avaliações', 'Motor de decisão completo', 'Relatórios avançados', 'Suporte prioritário'],
+  const planPro = await prisma.plan.create({
+    data: {
+      name: 'Studio Pro',
+      slug: 'studio-pro',
+      tier: 'PRO',
+      description: 'Para studios médios/grandes, com desconto por volume.',
+      pricePerTrainer: 140.0,
+      minTrainers: 5,
+      recommendedMax: 9,
+      features: [
+        'Todos os benefícios do Studio Start',
+        'Desconto por volume',
+      ],
+      isActive: true,
+      isVisible: true,
     },
   })
 
-  const planEnterprise = await prisma.plan.upsert({
-    where: { id: 'plan_enterprise' },
-    update: {},
-    create: {
-      id: 'plan_enterprise',
-      name: 'Enterprise',
-      description: 'Plano sem limites para grandes operações',
-      priceMonthly: 499.90,
-      priceYearly: 4999.00,
-      maxTrainers: 999,
-      maxClients: 9999,
-      features: ['Tudo do Pro', 'API access', 'White-label', 'Suporte dedicado', 'Treinamento'],
+  const planPremium = await prisma.plan.create({
+    data: {
+      name: 'Studio Premium',
+      slug: 'studio-premium',
+      tier: 'PREMIUM',
+      description: 'Para studios referência, com benefícios exclusivos.',
+      pricePerTrainer: 130.0,
+      minTrainers: 10,
+      features: [
+        'Todos os benefícios do Studio Pro',
+        'Prioridade no suporte',
+        'Acesso antecipado a features',
+        'Possibilidade futura de co-branding',
+      ],
+      isActive: true,
+      isVisible: true,
     },
   })
 
-  console.log('✅ Planos criados:', { planBasic, planPro, planEnterprise })
+  console.log('✅ Planos criados:', { planStart, planPro, planPremium })
 
   // ============================================================================
   // 2. CRIAR SUPERADMIN (JUBA)
@@ -114,7 +133,7 @@ async function main() {
       name: 'Studio Beta',
       slug: 'studio-beta',
       status: 'ACTIVE',
-      planId: planBasic.id,
+      planId: planStart.id,
       settings: { theme: 'dark', timezone: 'America/Sao_Paulo' },
     },
   })
@@ -127,7 +146,7 @@ async function main() {
       name: 'Studio Suspenso',
       slug: 'studio-suspended',
       status: 'SUSPENDED',
-      planId: planBasic.id,
+      planId: planStart.id,
     },
   })
 

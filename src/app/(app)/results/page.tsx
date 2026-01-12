@@ -94,8 +94,8 @@ export default function ResultsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Resultados</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-foreground">Resultados</h1>
+        <p className="text-sm text-muted-foreground">
           Histórico de avaliações concluídas
         </p>
       </div>
@@ -170,7 +170,7 @@ export default function ResultsPage() {
           ) : filteredAssessments.length === 0 ? (
             <div className="py-12 text-center">
               <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <h3 className="mt-4 text-lg font-medium text-foreground">
                 Nenhum resultado encontrado
               </h3>
               <p className="mt-2 text-sm text-gray-500">

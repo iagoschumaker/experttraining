@@ -159,6 +159,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
+        rules: rules,  // Retorna como "rules" para consistência com a página
         items: rules,
         total,
         page,

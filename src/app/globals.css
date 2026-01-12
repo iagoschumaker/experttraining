@@ -4,48 +4,67 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Light Theme (Secondary - Reports & Readability) */
+    --background: 220 15% 92%; /* #E4E9EF - Noticeably gray background */
+    --foreground: 222 47% 11%; /* #090F1A - Almost black for maximum contrast */
+    --card: 0 0% 100%; /* #FFFFFF - Pure white cards for strong separation */
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 199 89% 48%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* Primary: Cyan Expert Training */
+    --primary: 187 100% 41%; /* #00C2D1 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Accent: Mustard Yellow */
+    --accent: 44 97% 48%; /* #F2B705 */
+    --accent-foreground: 0 0% 0%;
+    
+    /* UI Elements */
+    --secondary: 220 13% 94%; /* #F2F5F8 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 85%; /* #D2D9E1 - Much darker muted for strong visibility */
+    --muted-foreground: 215 25% 25%; /* #303D4F - Very dark secondary text */
+    --border: 220 13% 90%; /* #E3E8EF - Subtle borders */
+    --input: 0 0% 100%;
+    --ring: 187 100% 41%;
+    
+    /* Status */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 199 89% 48%;
+    /* Dark Theme (Primary - Main Interface) */
+    --background: 216 20% 7%; /* #0F1215 */
+    --foreground: 216 20% 91%; /* #E6EAF0 */
+    --card: 216 20% 13%; /* #1C232B */
+    --card-foreground: 216 20% 91%;
+    --popover: 216 20% 13%;
+    --popover-foreground: 216 20% 91%;
+    
+    /* Primary: Cyan Expert Training */
+    --primary: 187 100% 41%; /* #00C2D1 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Accent: Mustard Yellow */
+    --accent: 44 97% 48%; /* #F2B705 */
+    --accent-foreground: 0 0% 0%;
+    
+    /* UI Elements */
+    --secondary: 216 20% 20%; /* #2A333D */
+    --secondary-foreground: 216 20% 91%;
+    --muted: 216 17% 22%; /* #323C47 */
+    --muted-foreground: 214 14% 69%; /* #AEB6C2 */
+    --border: 216 20% 20%; /* #2A333D */
+    --input: 216 20% 20%;
+    --ring: 187 100% 41%;
+    
+    /* Status */
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
   }
 }
 
@@ -56,6 +75,35 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Touch-friendly elements */
+  button, 
+  input[type="button"], 
+  input[type="submit"], 
+  input[type="reset"] {
+    touch-action: manipulation;
+  }
+  
+  /* Prevent zoom on input focus on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  
+  @media (min-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+      font-size: 14px;
+    }
   }
 }
 
@@ -93,5 +141,142 @@
   
   .animate-slide-in {
     animation: slide-in-from-top 0.3s ease-out;
+  }
+}
+
+/* Mobile-first responsive table styles */
+@layer components {
+  .responsive-table-wrapper {
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .responsive-table {
+    width: 100%;
+  }
+  
+  /* Desktop: Normal table */
+  @media (min-width: 768px) {
+    .responsive-table {
+      display: table;
+      border-collapse: collapse;
+    }
+    
+    .responsive-table thead {
+      display: table-header-group;
+    }
+    
+    .responsive-table tbody {
+      display: table-row-group;
+    }
+    
+    .responsive-table tr {
+      display: table-row;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+    
+    .responsive-table tr:hover {
+      background: hsl(var(--muted) / 0.3);
+    }
+    
+    .responsive-table th {
+      display: table-cell;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      background: hsl(var(--muted) / 0.2);
+    }
+    
+    .responsive-table td {
+      display: table-cell;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      vertical-align: middle;
+    }
+    
+    .responsive-table td:before {
+      display: none !important;
+    }
+  }
+  
+  /* Mobile: Cards */
+  @media (max-width: 767px) {
+    .responsive-table,
+    .responsive-table thead,
+    .responsive-table tbody,
+    .responsive-table th,
+    .responsive-table td,
+    .responsive-table tr {
+      display: block;
+      width: 100%;
+    }
+    
+    .responsive-table thead {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+    }
+    
+    .responsive-table tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .responsive-table tbody tr {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.75rem;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .responsive-table td {
+      display: grid;
+      grid-template-columns: minmax(100px, 35%) 1fr;
+      align-items: start;
+      gap: 0.5rem;
+      padding: 0.625rem 0;
+      border-bottom: 1px solid hsl(var(--border) / 0.3);
+    }
+    
+    .responsive-table td:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 0.75rem;
+    }
+    
+    .responsive-table td:before {
+      content: attr(data-label);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: hsl(var(--muted-foreground));
+      padding-top: 0.125rem;
+    }
+    
+    .responsive-table td:last-child:before {
+      display: none;
+    }
+    
+    /* Conteúdo das células - alinhamento correto */
+    .responsive-table td > div,
+    .responsive-table td > span,
+    .responsive-table td > a {
+      text-align: left;
+    }
+    
+    /* Botões de ação */
+    .responsive-table td:last-child > div {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
   }
 }

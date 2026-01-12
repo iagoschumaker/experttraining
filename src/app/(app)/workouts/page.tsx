@@ -1,25 +1,13 @@
 ﻿'use client'
 
-// ============================================================================
-// EXPERT TRAINING - WORKOUTS PAGE
-// ============================================================================
-// Lista de treinos criados
-// ============================================================================
-
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { FloatingActionButton } from '@/components/ui'
 import { Dumbbell, Plus, Search, Eye, FileText } from 'lucide-react'
 
 interface Workout {
@@ -49,6 +37,7 @@ interface WorkoutsResponse {
 }
 
 export default function WorkoutsPage() {
+  const router = useRouter()
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -56,7 +45,6 @@ export default function WorkoutsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
 
-  // Fetch workouts
   const fetchWorkouts = async () => {
     setLoading(true)
     try {
@@ -84,7 +72,6 @@ export default function WorkoutsPage() {
     fetchWorkouts()
   }, [page])
 
-  // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -95,160 +82,177 @@ export default function WorkoutsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Treinos</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Treinos</h1>
+          <p className="text-sm text-muted-foreground">
             Gerencie os treinos criados para os alunos
           </p>
         </div>
-        <Link href="/workouts/generate">
-          <Button className="gap-2">
+        <Link href="/workouts/generate" className="hidden md:block">
+          <Button className="gap-2 bg-amber-500 text-accent-foreground hover:bg-amber-600">
             <Plus className="h-4 w-4" />
             Novo Treino
           </Button>
         </Link>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <Dumbbell className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total de Treinos
+            </CardTitle>
+            <Dumbbell className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
+            <div className="text-2xl font-bold text-foreground">{total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Com Avaliação
+            </CardTitle>
+            <FileText className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {workouts.filter(w => w.assessment?.completedAt).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pendentes
+            </CardTitle>
+            <FileText className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {workouts.filter(w => !w.assessment?.completedAt).length}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <CardTitle className="text-foreground">Lista de Treinos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar treinos..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value)
-                  setPage(1)
-                }}
-                className="pl-10"
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 bg-background border-border"
               />
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+
           {loading ? (
             <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full bg-muted" />
               ))}
             </div>
           ) : workouts.length === 0 ? (
             <div className="py-12 text-center">
-              <Dumbbell className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <Dumbbell className="mx-auto h-12 w-12 text-muted" />
+              <h3 className="mt-4 text-lg font-medium text-foreground">
                 Nenhum treino encontrado
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
-                Comece criando um treino para um aluno
+              <p className="mt-2 text-sm text-muted-foreground">
+                Crie seu primeiro treino para começar
               </p>
-              <Link href="/workouts/generate">
-                <Button className="mt-4">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Treino
-                </Button>
-              </Link>
             </div>
           ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Aluno</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Avaliação</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {workouts.map((workout) => (
-                    <TableRow key={workout.id}>
-                      <TableCell className="font-medium">
-                        {workout.name}
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/clients/${workout.client.id}`}
-                          className="hover:underline"
-                        >
-                          {workout.client.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{formatDate(workout.createdAt)}</TableCell>
-                      <TableCell>
-                        {workout.assessment ? (
-                          <Link
-                            href={`/assessments/${workout.assessment.id}`}
-                            className="flex items-center gap-1 text-primary hover:underline"
-                          >
-                            <FileText className="h-4 w-4" />
-                            Ver
-                          </Link>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/workouts/${workout.id}`}>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-gray-500">
-                    Página {page} de {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      disabled={page === totalPages}
-                    >
-                      Próxima
-                    </Button>
+            <div className="space-y-4">
+              {workouts.map((workout) => (
+                <div
+                  key={workout.id}
+                  className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h3 className="font-medium text-foreground">{workout.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Cliente: {workout.client.name}
+                      </p>
+                      {workout.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {workout.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Criado em {formatDate(workout.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {workout.assessment?.completedAt ? (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                          Com Avaliação
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                          Pendente
+                        </span>
+                      )}
+                      <Link href={`/workouts/${workout.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              )}
-            </>
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Página {page} de {totalPages}
+              </p>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="border-border"
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="border-border"
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      <FloatingActionButton 
+        actions={[
+          {
+            label: 'Novo Treino',
+            onClick: () => router.push('/workouts/generate'),
+            icon: <Plus className="h-5 w-5" />
+          }
+        ]}
+      />
     </div>
   )
 }

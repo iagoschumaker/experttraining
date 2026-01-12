@@ -53,15 +53,9 @@ export async function GET() {
       }),
     ])
 
-    // Calculate monthly revenue from plans
-    const studiosWithPlans = await prisma.studio.findMany({
-      where: { status: 'ACTIVE', planId: { not: null } },
-      include: { plan: { select: { priceMonthly: true } } },
-    })
-
-    const monthlyRevenue = studiosWithPlans.reduce((sum: number, studio: any) => {
-      return sum + (studio.plan?.priceMonthly || 0)
-    }, 0)
+    // Calculate monthly revenue - simplified for now
+    // TODO: Implement proper usage-based revenue calculation
+    const monthlyRevenue = 0 // Will be calculated from actual usage records
 
     // Get suspended studios list
     const suspendedStudiosList = await prisma.studio.findMany({

@@ -162,7 +162,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     )
   }
@@ -173,7 +173,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         <AlertCircle className="w-12 h-12 mx-auto text-destructive mb-4" />
         <h2 className="text-xl font-semibold">{error || 'Treino não encontrado'}</h2>
         <Link href="/workouts">
-          <Button className="mt-4">Voltar</Button>
+          <Button className="mt-4 bg-amber-500 hover:bg-amber-600 text-black">Voltar</Button>
         </Link>
       </div>
     )
