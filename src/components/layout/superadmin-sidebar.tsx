@@ -14,7 +14,8 @@ import {
   Menu,
   Shield,
   Dumbbell,
-  DollarSign
+  DollarSign,
+  Database
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -65,6 +66,11 @@ const sidebarLinks: SidebarLink[] = [
     href: '/superadmin/rules',
     label: 'Regras',
     icon: <GitBranch className="w-5 h-5" />,
+  },
+  {
+    href: '/superadmin/backup',
+    label: 'Backup',
+    icon: <Database className="w-5 h-5" />,
   },
 ]
 

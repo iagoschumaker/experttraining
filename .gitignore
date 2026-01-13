@@ -55,3 +55,5 @@ prisma/dev.db
 
 # TypeScript
 *.tsbuildinfo
+# Backups (contains sensitive data)
+backups/
