@@ -25,6 +25,8 @@ import {
   Play,
   Pause,
   CheckCircle,
+  Trash2,
+  Printer,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -118,8 +120,8 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
     }
   }
 
-  async function handleArchive() {
-    if (!confirm('Tem certeza que deseja arquivar este treino?')) return
+  async function handleDelete() {
+    if (!confirm('Tem certeza que deseja excluir este treino?')) return
     setUpdating(true)
 
     try {
@@ -132,10 +134,10 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       if (data.success) {
         router.push('/workouts')
       } else {
-        alert(data.error || 'Erro ao arquivar')
+        alert(data.error || 'Erro ao excluir treino')
       }
     } catch (err) {
-      console.error('Archive error:', err)
+      console.error('Delete error:', err)
       alert('Erro de conexão')
     } finally {
       setUpdating(false)
@@ -184,19 +186,65 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/workouts">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Treino</h1>
-            <p className="text-muted-foreground">Cliente: {workout.client.name}</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/workouts" className="no-print">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Treino</h1>
+            </div>
           </div>
         </div>
-        {getStatusBadge(workout.status)}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-muted-foreground font-medium">Cliente: {workout.client.name}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => window.print()}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir PDF
+            </Button>
+            {getStatusBadge(workout.status)}
+          </div>
+        </div>
+      </div>
+
+      {/* Print Header - Only visible when printing */}
+      <div className="print-only print-header">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold">Expert Training</h1>
+          <p className="text-sm text-gray-600">Sistema de Treino Funcional</p>
+        </div>
+        <div className="border-t border-b py-4 mb-6">
+          <h2 className="text-xl font-bold mb-2">Plano de Treino</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p><strong>Cliente:</strong> {workout.client.name}</p>
+              <p><strong>Email:</strong> {workout.client.email}</p>
+            </div>
+            <div>
+              <p><strong>Data:</strong> {new Date(workout.createdAt).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}</p>
+              <p><strong>Status:</strong> {workout.status === 'ACTIVE' ? 'Ativo' : workout.status === 'PAUSED' ? 'Pausado' : workout.status === 'COMPLETED' ? 'Concluído' : 'Arquivado'}</p>
+              <p><strong>Frequência:</strong> {workout.weeklyFrequency}x por semana</p>
+              <p><strong>Duração:</strong> {workout.phaseDuration} semanas</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Info Cards */}
@@ -262,7 +310,6 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
               <div>
                 <h3 className="font-semibold">Baseado em Avaliação</h3>
                 <p className="text-sm text-muted-foreground">
-                  Confiança: {Math.round(workout.assessment.confidence)}% •{' '}
                   {workout.assessment.resultJson?.functionalPattern}
                 </p>
               </div>
@@ -369,7 +416,13 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
               <h3 className="font-semibold">Ações do Treino</h3>
               <p className="text-sm text-muted-foreground">
                 Criado por {workout.creator.name} em{' '}
-                {new Date(workout.createdAt).toLocaleDateString('pt-BR')}
+                {new Date(workout.createdAt).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -406,17 +459,23 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
               {workout.status !== 'ARCHIVED' && (
                 <Button
                   variant="destructive"
-                  onClick={handleArchive}
+                  onClick={handleDelete}
                   disabled={updating}
                 >
-                  <Archive className="w-4 h-4 mr-2" />
-                  Arquivar
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir
                 </Button>
               )}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Print Footer - Only visible when printing */}
+      <div className="print-only print-footer">
+        <p>Expert Training - Sistema de Treino Funcional | www.experttraining.com.br</p>
+        <p>Documento gerado em {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+      </div>
     </div>
   )
 }

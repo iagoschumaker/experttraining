@@ -58,12 +58,14 @@ export default function ResultsPage() {
     fetchAssessments()
   }, [])
 
-  // Format date
+  // Format date with time
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -124,17 +126,6 @@ export default function ResultsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Confiança Média
-            </CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgConfidence}%</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tendência</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -188,17 +179,6 @@ export default function ResultsPage() {
                       <CardTitle className="text-base">
                         {assessment.client.name}
                       </CardTitle>
-                      <Badge
-                        className={
-                          (assessment.confidence || 0) >= 80
-                            ? 'bg-green-500'
-                            : (assessment.confidence || 0) >= 60
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500'
-                        }
-                      >
-                        {assessment.confidence}%
-                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>

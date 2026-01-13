@@ -28,6 +28,7 @@ import Link from 'next/link'
 
 interface Assessment {
   id: string
+  createdAt: string
   client: {
     id: string
     name: string
@@ -51,6 +52,8 @@ function GenerateWorkoutPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [assessment, setAssessment] = useState<Assessment | null>(null)
+  const [availableAssessments, setAvailableAssessments] = useState<Assessment[]>([])
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(assessmentId)
 
   const [formData, setFormData] = useState({
     weeklyFrequency: 3,
@@ -60,16 +63,36 @@ function GenerateWorkoutPage() {
 
   useEffect(() => {
     if (assessmentId) {
-      loadAssessment()
+      setSelectedAssessmentId(assessmentId)
+      loadAssessment(assessmentId)
     } else {
-      setError('ID da avaliação não fornecido')
-      setLoading(false)
+      loadAvailableAssessments()
     }
   }, [assessmentId])
 
-  async function loadAssessment() {
+  async function loadAvailableAssessments() {
     try {
-      const res = await fetch(`/api/studio/assessments/${assessmentId}`)
+      const res = await fetch('/api/studio/assessments?status=COMPLETED&pageSize=50')
+      const data = await res.json()
+
+      if (data.success) {
+        // Filtrar apenas avaliações que têm resultJson válido
+        const validAssessments = (data.data.items || []).filter(
+          (assess: Assessment) => assess.resultJson && assess.resultJson.functionalPattern
+        )
+        setAvailableAssessments(validAssessments)
+      }
+    } catch (err) {
+      console.error('Error loading assessments:', err)
+      setError('Erro ao carregar avaliações')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadAssessment(id: string) {
+    try {
+      const res = await fetch(`/api/studio/assessments/${id}`)
       const data = await res.json()
 
       if (data.success) {
@@ -90,12 +113,17 @@ function GenerateWorkoutPage() {
   }
 
   async function handleGenerate() {
+    if (!selectedAssessmentId) {
+      setError('Selecione uma avaliação primeiro')
+      return
+    }
+
     setError(null)
     setGenerating(true)
 
     try {
       const payload = {
-        assessmentId,
+        assessmentId: selectedAssessmentId,
         weeklyFrequency: formData.weeklyFrequency,
         phaseDuration: formData.phaseDuration,
         notes: formData.notes,
@@ -135,6 +163,104 @@ function GenerateWorkoutPage() {
     )
   }
 
+  // Se não há avaliação selecionada, mostrar lista de avaliações disponíveis
+  if (!assessment && !loading) {
+    return (
+      <div className="container mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Link href="/workouts">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+              <Zap className="w-8 h-8" />
+              Selecionar Avaliação
+            </h1>
+            <p className="text-muted-foreground">Escolha uma avaliação para gerar o treino</p>
+          </div>
+        </div>
+
+        {error && (
+          <Card className="border-destructive">
+            <CardContent className="p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <p className="text-destructive text-sm">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Avaliações Concluídas</CardTitle>
+            <CardDescription>Selecione uma avaliação para criar o treino</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {availableAssessments.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Nenhuma avaliação concluída encontrada</p>
+                <Link href="/assessments">
+                  <Button className="mt-4">Ir para Avaliações</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {availableAssessments.map((assess, index) => {
+                  // Calculate assessment code
+                  const clientAssessments = availableAssessments
+                    .filter(a => a.client?.id === assess.client?.id)
+                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                  const assessmentIndex = clientAssessments.findIndex(a => a.id === assess.id)
+                  const assessmentCode = `${String(assessmentIndex + 1).padStart(2, '0')}/${String(clientAssessments.length).padStart(2, '0')}`
+                  
+                  // Format date with time
+                  const formattedDate = new Date(assess.createdAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                  
+                  return (
+                    <div
+                      key={assess.id}
+                      onClick={() => {
+                        setSelectedAssessmentId(assess.id)
+                        loadAssessment(assess.id)
+                      }}
+                      className="p-4 border rounded-lg cursor-pointer hover:border-amber-500 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono font-semibold text-amber-600">{assessmentCode}</span>
+                            <span className="text-xs text-muted-foreground">{formattedDate}</span>
+                          </div>
+                          <h3 className="font-semibold">{assess.client?.name || 'Cliente'}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Padrão: {assess.resultJson?.functionalPattern || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge className="bg-amber-500">
+                            Concluída
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (error || !assessment) {
     return (
       <div className="text-center py-12">
@@ -148,7 +274,7 @@ function GenerateWorkoutPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/results/${assessmentId}`}>
@@ -189,10 +315,6 @@ function GenerateWorkoutPage() {
             <Label className="text-sm text-muted-foreground">Foco Primário</Label>
             <p>{assessment.resultJson.primaryFocus}</p>
           </div>
-          <div>
-            <Label className="text-sm text-muted-foreground">Confiança</Label>
-            <p className="text-2xl font-bold">{Math.round(assessment.confidence * 100)}%</p>
-          </div>
         </CardContent>
       </Card>
 
@@ -208,7 +330,7 @@ function GenerateWorkoutPage() {
           <CardContent>
             <div className="space-y-2">
               {assessment.resultJson.allowedBlocks.map((block, index) => (
-                <Badge key={index} variant="outline" className="mr-2">
+                <Badge key={index} variant="outline" className="mr-2 bg-green-500/10 border-green-500/20 text-foreground">
                   {block}
                 </Badge>
               ))}
@@ -226,7 +348,7 @@ function GenerateWorkoutPage() {
           <CardContent>
             <div className="space-y-2">
               {assessment.resultJson.blockedBlocks.map((block, index) => (
-                <Badge key={index} variant="destructive" className="mr-2">
+                <Badge key={index} className="mr-2 bg-red-500/10 border border-red-500/20 text-foreground">
                   {block}
                 </Badge>
               ))}

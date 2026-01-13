@@ -15,7 +15,9 @@ import {
   Shield,
   Dumbbell,
   DollarSign,
-  Database
+  Database,
+  Pyramid,
+  Brain
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -53,19 +55,9 @@ const sidebarLinks: SidebarLink[] = [
     icon: <Users className="w-5 h-5" />,
   },
   {
-    href: '/superadmin/blocks',
-    label: 'Blocos',
+    href: '/superadmin/metodo',
+    label: 'Método',
     icon: <Boxes className="w-5 h-5" />,
-  },
-  {
-    href: '/superadmin/exercises',
-    label: 'Exercícios',
-    icon: <Dumbbell className="w-5 h-5" />,
-  },
-  {
-    href: '/superadmin/rules',
-    label: 'Regras',
-    icon: <GitBranch className="w-5 h-5" />,
   },
   {
     href: '/superadmin/backup',

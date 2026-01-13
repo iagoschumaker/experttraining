@@ -1,0 +1,180 @@
+/* ============================================================================
+   PRINT STYLES - A4 Format
+   ============================================================================ */
+
+/* Hide print-only elements on screen */
+.print-only {
+  display: none !important;
+}
+
+/* Ensure print buttons are always visible on screen */
+.bg-amber-500,
+.bg-amber-600 {
+  display: inline-flex !important;
+}
+
+@media print {
+  /* Page setup for A4 */
+  @page {
+    size: A4;
+    margin: 15mm 15mm 20mm 15mm;
+  }
+
+  /* Hide elements not needed in print */
+  .no-print,
+  nav,
+  aside,
+  header,
+  footer,
+  button:not(.print-only),
+  .sidebar,
+  [role="navigation"],
+  [role="banner"],
+  [role="contentinfo"] {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset body for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
+  /* Container adjustments */
+  .max-w-6xl,
+  .container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Cards and sections */
+  .space-y-6 > * {
+    margin-bottom: 1rem !important;
+  }
+
+  /* Card styling for print */
+  [class*="card"],
+  [class*="Card"] {
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+    background: white !important;
+    page-break-inside: avoid;
+  }
+
+  /* Headers */
+  h1, h2, h3, h4, h5, h6 {
+    color: black !important;
+    page-break-after: avoid;
+  }
+
+  h1 { font-size: 18pt; }
+  h2 { font-size: 14pt; }
+  h3 { font-size: 12pt; }
+
+  /* Print header styling */
+  .print-header {
+    margin-bottom: 20px !important;
+    padding-bottom: 15px !important;
+    border-bottom: 2px solid #333 !important;
+  }
+
+  /* Badges and labels */
+  [class*="badge"],
+  [class*="Badge"] {
+    border: 1px solid #333 !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    background: white !important;
+    color: black !important;
+    font-size: 8pt !important;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    text-align: left;
+  }
+
+  /* Grid layouts */
+  .grid {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Avoid page breaks */
+  .page-break-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Footer for print */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 7pt;
+    color: #666;
+    padding: 8px 0;
+    border-top: 1px solid #ddd;
+  }
+
+  /* Icons - hide or simplify */
+  svg {
+    display: none !important;
+  }
+
+  /* Progress bars */
+  [class*="progress"] {
+    border: 1px solid #333 !important;
+    height: 8px !important;
+  }
+
+  /* Remove shadows and effects */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Links */
+  a {
+    color: black !important;
+    text-decoration: none !important;
+  }
+
+  /* Ensure black text */
+  p, span, div, li {
+    color: black !important;
+  }
+
+  /* Background colors to white */
+  [class*="bg-"] {
+    background: white !important;
+  }
+
+  /* Border colors to grayscale */
+  [class*="border-"] {
+    border-color: #ddd !important;
+  }
+}

@@ -55,9 +55,12 @@ export async function GET(
     monthStart.setDate(1)
     monthStart.setHours(0, 0, 0, 0)
 
-    // Get all trainers of this studio
+    // Get all trainers of this studio (apenas TRAINER, não STUDIO_ADMIN)
     const userStudios = await prisma.userStudio.findMany({
-      where: { studioId },
+      where: { 
+        studioId,
+        role: 'TRAINER',
+      },
       include: {
         user: {
           select: {

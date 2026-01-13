@@ -127,11 +127,20 @@ export async function GET(request: NextRequest) {
           },
         })
 
+        // Count total trainers (excluding admins)
+        const totalTrainers = await prisma.userStudio.count({
+          where: {
+            studioId: studio.id,
+            role: 'TRAINER',
+          },
+        })
+
         return {
           ...studio,
           lessonsThisMonth,
           lastActivity,
           activeTrainers,
+          totalTrainers,
         }
       })
     )

@@ -364,7 +364,7 @@ export default function AssessmentInputPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -566,7 +566,7 @@ export default function AssessmentInputPage() {
               <CardContent className="space-y-4">
                 <div>
                   <Label className="mb-2 block">Pontuação</Label>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {SCORE_LABELS.map((score) => (
                       <button
                         key={score.value}
@@ -577,7 +577,7 @@ export default function AssessmentInputPage() {
                             score.value
                           )
                         }
-                        className={`flex-1 rounded-lg border-2 p-3 text-center transition-colors ${
+                        className={`rounded-lg border-2 p-2 sm:p-3 text-center transition-colors ${
                           formData.movementTests[
                             test.id as keyof AssessmentInput['movementTests']
                           ].score === score.value
@@ -585,8 +585,8 @@ export default function AssessmentInputPage() {
                             : 'border-border hover:border-amber-500'
                         }`}
                       >
-                        <div className="text-xl font-bold">{score.value}</div>
-                        <div className="text-xs">{score.label}</div>
+                        <div className="text-lg sm:text-xl font-bold">{score.value}</div>
+                        <div className="text-[10px] sm:text-xs">{score.label}</div>
                       </button>
                     ))}
                   </div>

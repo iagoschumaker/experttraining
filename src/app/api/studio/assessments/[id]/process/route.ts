@@ -389,7 +389,7 @@ export async function POST(
       data: {
         status: 'COMPLETED',
         resultJson,
-        confidence,
+        confidence: confidence / 100, // Converter para decimal (0.70 ao invés de 70)
         completedAt: new Date(),
       },
     })

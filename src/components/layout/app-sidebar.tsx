@@ -12,7 +12,8 @@ import {
   UserCog,
   ChevronLeft,
   Menu,
-  Calendar
+  Calendar,
+  Settings
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -155,31 +156,52 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="p-2 space-y-1">
-        {sidebarLinks
-          .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
-          .map((link) => {
-          const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
-          
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                isActive
-                  ? 'bg-amber-500 text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
-              )}
-              title={isCollapsed ? link.label : undefined}
-              onClick={() => setIsMobileOpen(false)}
-            >
-              {link.icon}
-              {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
-            </Link>
-          )
-        })}
+      <nav className="flex flex-col h-[calc(100vh-4rem)]">
+        <div className="p-2 space-y-1 flex-1">
+          {sidebarLinks
+            .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
+            .map((link) => {
+            const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+            
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                  isActive
+                    ? 'bg-amber-500 text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
+                )}
+                title={isCollapsed ? link.label : undefined}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                {link.icon}
+                {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
+              </Link>
+            )
+          })}
+        </div>
+
+        {/* Settings at bottom */}
+        <div className="p-2 border-t border-border">
+          <Link
+            href="/settings/studio"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+              pathname === '/settings/studio' || pathname.startsWith('/settings/studio/')
+                ? 'bg-amber-500 text-accent-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
+            )}
+            title={isCollapsed ? 'Configurações' : undefined}
+            onClick={() => setIsMobileOpen(false)}
+          >
+            <Settings className="w-5 h-5" />
+            {(!isCollapsed || isMobileOpen) && <span className="font-medium">Configurações</span>}
+          </Link>
+        </div>
       </nav>
     </aside>
     </>

@@ -14,6 +14,11 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import {
+  translateMovementPattern,
+  translatePainRegion,
+  translateDifficulty,
+} from '@/lib/translations'
+import {
   ArrowLeft,
   CheckCircle,
   XCircle,
@@ -22,6 +27,9 @@ import {
   FileText,
   TrendingUp,
   Activity,
+  AlertCircle,
+  Target,
+  Printer,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -34,6 +42,7 @@ interface AssessmentResult {
   client: {
     id: string
     name: string
+    email: string
   }
   assessor: {
     name: string
@@ -131,44 +140,76 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/assessments">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Resultados da Avaliação</h1>
-            <p className="text-muted-foreground">Cliente: {assessment.client.name}</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/assessments" className="no-print">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Resultados da Avaliação</h1>
+            </div>
           </div>
         </div>
-        <Badge variant={assessment.status === 'COMPLETED' ? 'default' : 'secondary'}>
-          {assessment.status === 'COMPLETED' ? 'Completa' : assessment.status}
-        </Badge>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-muted-foreground font-medium">Cliente: {assessment.client.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {new Date(assessment.createdAt).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => window.print()}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir PDF
+            </Button>
+            <Badge variant={assessment.status === 'COMPLETED' ? 'default' : 'secondary'}>
+              {assessment.status === 'COMPLETED' ? 'Completa' : assessment.status}
+            </Badge>
+          </div>
+        </div>
       </div>
 
-      {/* Confidence Score */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Confiança da Análise
-          </CardTitle>
-          <CardDescription>
-            Nível de confiança do decision engine baseado nos dados da avaliação
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Confiança</span>
-              <span className="text-2xl font-bold">{Math.round(assessment.confidence * 100)}%</span>
+      {/* Print Header - Only visible when printing */}
+      <div className="print-only print-header">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold">Expert Training</h1>
+          <p className="text-sm text-gray-600">Sistema de Avaliação Funcional</p>
+        </div>
+        <div className="border-t border-b py-4 mb-6">
+          <h2 className="text-xl font-bold mb-2">Resultados da Avaliação</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p><strong>Cliente:</strong> {assessment.client.name}</p>
+              <p><strong>Email:</strong> {assessment.client.email}</p>
             </div>
-            <Progress value={assessment.confidence * 100} className={getConfidenceColor(assessment.confidence)} />
+            <div>
+              <p><strong>Data:</strong> {new Date(assessment.createdAt).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}</p>
+              <p><strong>Status:</strong> {assessment.status === 'COMPLETED' ? 'Concluída' : assessment.status}</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
 
       {/* Functional Pattern */}
       <Card>
@@ -212,9 +253,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             {resultJson.allowedBlocks.length > 0 ? (
               <div className="space-y-2">
                 {resultJson.allowedBlocks.map((block: string, index: number) => (
-                  <div key={index} className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                    <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                    <span className="text-sm">{block}</span>
+                  <div key={index} className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                    <span className="text-sm text-foreground">{block}</span>
                   </div>
                 ))}
               </div>
@@ -237,9 +278,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             {resultJson.blockedBlocks.length > 0 ? (
               <div className="space-y-2">
                 {resultJson.blockedBlocks.map((block: string, index: number) => (
-                  <div key={index} className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
-                    <XCircle className="w-4 h-4 text-red-600 shrink-0" />
-                    <span className="text-sm">{block}</span>
+                  <div key={index} className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <span className="text-sm text-foreground">{block}</span>
                   </div>
                 ))}
               </div>
@@ -286,7 +327,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <div className="space-y-3">
               {Object.entries(inputJson.painMap || {}).map(([region, value]) => (
                 <div key={region} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{region.replace('_', ' ')}</span>
+                  <span className="text-sm">{translatePainRegion(region)}</span>
                   <span className={`text-sm font-semibold ${getPainColor(value as number)}`}>
                     {value}/10
                   </span>
@@ -305,7 +346,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <div className="space-y-3">
               {Object.entries(inputJson.movementTests || {}).map(([test, data]: [string, any]) => (
                 <div key={test} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{test}</span>
+                  <span className="text-sm">{translateMovementPattern(test)}</span>
                   <span className={`text-sm font-semibold ${getScoreColor(data.score)}`}>
                     {data.score}/3
                   </span>
@@ -342,6 +383,12 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Print Footer - Only visible when printing */}
+      <div className="print-only print-footer">
+        <p>Expert Training - Sistema de Avaliação Funcional | www.experttraining.com.br</p>
+        <p>Documento gerado em {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+      </div>
     </div>
   )
 }

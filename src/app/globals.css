@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fix para bug visual das abas - desabilitar todas as transições */
+[role="tab"] {
+  transition: none !important;
+}
+
+[role="tab"][data-state="active"] {
+  transition: none !important;
+}
+
 @layer base {
   :root {
     /* Light Theme (Secondary - Reports & Readability) */

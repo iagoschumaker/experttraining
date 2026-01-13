@@ -77,6 +77,8 @@ export default function WorkoutsPage() {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -194,11 +196,11 @@ export default function WorkoutsPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       {workout.assessment?.completedAt ? (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-1 rounded-full">
                           Com Avaliação
                         </span>
                       ) : (
-                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2 py-1 rounded-full">
                           Pendente
                         </span>
                       )}

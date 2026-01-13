@@ -14,6 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
+  translateMovementPattern,
+  translatePainRegion,
+  translateDifficulty,
+} from '@/lib/translations'
+import {
   ArrowLeft,
   CheckCircle,
   XCircle,
@@ -223,32 +228,8 @@ export default function AssessmentResultPage() {
         </Card>
       ) : result ? (
         <>
-          {/* Confidence and Summary */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Confiança
-                </CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={`text-3xl font-bold ${
-                    result.confidence >= 80
-                      ? 'text-green-600'
-                      : result.confidence >= 60
-                      ? 'text-yellow-600'
-                      : 'text-red-600'
-                  }`}
-                >
-                  {result.confidence}%
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Nível de confiança do sistema
-                </p>
-              </CardContent>
-            </Card>
+          {/* Summary */}
+          <div className="grid gap-4 md:grid-cols-2">
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -534,7 +515,7 @@ export default function AssessmentResultPage() {
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {Object.entries(assessment.inputJson.painMap).map(([location, intensity]: [string, any]) => (
                         <div key={location} className="flex items-center justify-between rounded-lg border p-2">
-                          <span className="text-sm capitalize">{location.replace(/_/g, ' ')}</span>
+                          <span className="text-sm">{translatePainRegion(location)}</span>
                           <div className="flex items-center gap-2">
                             <div className="w-16 bg-border rounded-full h-2">
                               <div 
@@ -566,7 +547,7 @@ export default function AssessmentResultPage() {
                       {Object.entries(assessment.inputJson.movementTests).map(([test, data]: [string, any]) => (
                         <div key={test} className="rounded-lg border p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium capitalize">{test.replace(/_/g, ' ')}</span>
+                            <span className="font-medium">{translateMovementPattern(test)}</span>
                             <Badge className={
                               data.score >= 3 ? 'bg-green-500' : 
                               data.score === 2 ? 'bg-yellow-500' : 
@@ -590,7 +571,7 @@ export default function AssessmentResultPage() {
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-2">🎯 Nível Avaliado</h4>
                     <Badge className="bg-amber-500">
-                      {assessment.inputJson.level}
+                      {translateDifficulty(assessment.inputJson.level)}
                     </Badge>
                   </div>
                 )}
@@ -619,7 +600,7 @@ export default function AssessmentResultPage() {
                     return (
                       <div
                         key={typeof block !== 'string' && 'id' in block ? block.id : `block-${index}`}
-                        className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3"
+                        className="flex items-start gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-3"
                       >
                         <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" />
                         <div>
@@ -661,7 +642,7 @@ export default function AssessmentResultPage() {
                       return (
                         <div
                           key={`blocked-${index}`}
-                          className="rounded-lg border border-red-200 bg-red-50 p-3"
+                          className="rounded-lg border border-red-500/20 bg-red-500/10 p-3"
                         >
                           <div className="flex items-start gap-3">
                             <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />

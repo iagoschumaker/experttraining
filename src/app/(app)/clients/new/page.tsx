@@ -196,7 +196,7 @@ export default function NewClientPage() {
   // Loading state enquanto carrega role
   if (loadingRole) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="container mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/clients">
             <Button variant="ghost" size="icon">
@@ -218,7 +218,7 @@ export default function NewClientPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/clients">

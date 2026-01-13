@@ -174,3 +174,66 @@ export async function PUT(
     )
   }
 }
+
+// ============================================================================
+// DELETE - Delete Assessment
+// ============================================================================
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
+  if ('error' in auth) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+  }
+
+  const { userId, studioId, role } = auth
+  const assessmentId = params.id
+
+  try {
+    // Verificar permissão
+    const where: any = { id: assessmentId }
+    where.client = { studioId }
+
+    if (role === 'TRAINER') {
+      where.assessorId = userId
+    }
+
+    const existing = await prisma.assessment.findFirst({ where })
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: 'Avaliação não encontrada' },
+        { status: 404 }
+      )
+    }
+
+    // Excluir avaliação
+    await prisma.assessment.delete({
+      where: { id: assessmentId },
+    })
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        studioId,
+        action: 'DELETE',
+        entity: 'Assessment',
+        entityId: assessmentId,
+        oldData: { clientId: existing.clientId, status: existing.status },
+      },
+    })
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Avaliação excluída com sucesso' 
+    })
+  } catch (error) {
+    console.error('Delete assessment error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Erro ao excluir avaliação' },
+      { status: 500 }
+    )
+  }
+}

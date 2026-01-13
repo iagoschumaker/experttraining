@@ -407,11 +407,6 @@ export default function ClientDetailPage() {
                           : 'Pendente'}
                       </Badge>
                     </div>
-                    {assessment.confidence && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Confiança: {assessment.confidence}%
-                      </p>
-                    )}
                   </div>
                   <Link href={`/assessments/${assessment.id}`}>
                     <Button variant="ghost" size="sm">

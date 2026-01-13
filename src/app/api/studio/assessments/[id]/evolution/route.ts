@@ -228,8 +228,8 @@ export async function GET(
         : false,
     }
 
-    const currentConfidence = assessment.confidence ? Number(assessment.confidence) : null
-    const previousConfidence = previousAssessment?.confidence ? Number(previousAssessment.confidence) : null
+    const currentConfidence = assessment.confidence ? Number(assessment.confidence) / 100 : null
+    const previousConfidence = previousAssessment?.confidence ? Number(previousAssessment.confidence) / 100 : null
 
     const confidenceEvolution = {
       previousConfidence,

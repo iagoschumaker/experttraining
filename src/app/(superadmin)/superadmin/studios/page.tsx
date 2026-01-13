@@ -52,6 +52,7 @@ interface Studio {
   lessonsThisMonth?: number
   lastActivity?: string | null
   activeTrainers?: number
+  totalTrainers?: number
 }
 
 interface Plan {
@@ -399,10 +400,10 @@ export default function SuperAdminStudiosPage() {
         </Card>
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Usuários</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Personal</CardTitle>
             <Users className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{studios.reduce((a, s) => a + s._count.users, 0)}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{studios.reduce((a, s) => a + (s.totalTrainers ?? 0), 0)}</div></CardContent>
         </Card>
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -449,7 +450,7 @@ export default function SuperAdminStudiosPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{s.plan?.name || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.activeTrainers !== undefined ? s.activeTrainers : s._count.users}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.activeTrainers ?? 0} / {s.totalTrainers ?? 0}</TableCell>
                     <TableCell className="text-muted-foreground">{s._count.clients}</TableCell>
                     <TableCell>
                       <span className={`font-medium ${(s.lessonsThisMonth || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>

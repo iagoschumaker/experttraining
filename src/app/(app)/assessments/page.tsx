@@ -24,6 +24,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 
 interface Assessment {
@@ -80,6 +82,7 @@ export default function AssessmentsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   // Fetch assessments
   const fetchAssessments = async () => {
@@ -109,6 +112,30 @@ export default function AssessmentsPage() {
     fetchAssessments()
   }, [page])
 
+  // Delete assessment
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta avaliação?')) return
+
+    setDeleting(id)
+    try {
+      const res = await fetch(`/api/studio/assessments/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (res.ok) {
+        fetchAssessments()
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao excluir avaliação')
+      }
+    } catch (error) {
+      console.error('Error deleting assessment:', error)
+      alert('Erro ao excluir avaliação')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
   // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -118,6 +145,18 @@ export default function AssessmentsPage() {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  // Get assessment code (sequential number / total for client)
+  const getAssessmentCode = (assessment: Assessment) => {
+    const clientAssessments = assessments
+      .filter(a => a.client.id === assessment.client.id)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    
+    const index = clientAssessments.findIndex(a => a.id === assessment.id)
+    const total = clientAssessments.length
+    
+    return `${String(index + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`
   }
 
   return (
@@ -139,7 +178,7 @@ export default function AssessmentsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -168,27 +207,6 @@ export default function AssessmentsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {assessments.filter((a) => a.status === 'COMPLETED').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Confiança Média
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {assessments.filter((a) => a.confidence).length > 0
-                ? Math.round(
-                    assessments
-                      .filter((a) => a.confidence)
-                      .reduce((acc, a) => acc + (a.confidence || 0), 0) /
-                      assessments.filter((a) => a.confidence).length
-                  )
-                : 0}
-              %
             </div>
           </CardContent>
         </Card>
@@ -240,10 +258,10 @@ export default function AssessmentsPage() {
               <ResponsiveTable>
                 <ResponsiveHeader>
                   <tr>
+                    <ResponsiveHeaderCell>Código</ResponsiveHeaderCell>
                     <ResponsiveHeaderCell>Aluno</ResponsiveHeaderCell>
                     <ResponsiveHeaderCell>Data</ResponsiveHeaderCell>
                     <ResponsiveHeaderCell>Status</ResponsiveHeaderCell>
-                    <ResponsiveHeaderCell>Confiança</ResponsiveHeaderCell>
                     <ResponsiveHeaderCell className="text-right">Ações</ResponsiveHeaderCell>
                   </tr>
                 </ResponsiveHeader>
@@ -254,6 +272,9 @@ export default function AssessmentsPage() {
 
                     return (
                       <ResponsiveRow key={assessment.id}>
+                        <ResponsiveCell label="Código" priority="high" className="font-mono font-semibold text-amber-600">
+                          {getAssessmentCode(assessment)}
+                        </ResponsiveCell>
                         <ResponsiveCell label="Aluno" priority="high" className="font-medium">
                           <Link
                             href={`/clients/${assessment.client.id}`}
@@ -269,29 +290,12 @@ export default function AssessmentsPage() {
                             {config.label}
                           </Badge>
                         </ResponsiveCell>
-                        <ResponsiveCell label="Confiança" priority="medium">
-                          {assessment.confidence ? (
-                            <span
-                              className={`font-medium ${
-                                assessment.confidence >= 80
-                                  ? 'text-green-600'
-                                  : assessment.confidence >= 60
-                                  ? 'text-yellow-600'
-                                  : 'text-red-600'
-                              }`}
-                            >
-                              {assessment.confidence}%
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </ResponsiveCell>
                         <ResponsiveCell label="Ações" priority="high" className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Link
                               href={`/assessments/${assessment.id}`}
                             >
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" title="Visualizar">
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
@@ -299,11 +303,27 @@ export default function AssessmentsPage() {
                               <Link
                                 href={`/assessments/${assessment.id}/input`}
                               >
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" title="Preencher">
                                   <Play className="h-4 w-4 text-green-500" />
                                 </Button>
                               </Link>
                             )}
+                            <Link
+                              href={`/assessments/${assessment.id}/input`}
+                            >
+                              <Button variant="ghost" size="icon" title="Editar">
+                                <Pencil className="h-4 w-4 text-blue-500" />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              title="Excluir"
+                              onClick={() => handleDelete(assessment.id)}
+                              disabled={deleting === assessment.id}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
                           </div>
                         </ResponsiveCell>
                       </ResponsiveRow>

@@ -91,6 +91,7 @@ export async function GET(
       assessmentsThisMonth,
       activeClients,
       activeTrainers,
+      totalTrainersOnly,
     ] = await Promise.all([
       // Total lessons ever
       prisma.lesson.count({ where: { studioId: studio.id } }),
@@ -126,11 +127,18 @@ export async function GET(
           status: 'ACTIVE',
         },
       }),
-      // Active trainers (filtering out STUDIO_ADMIN/OWNER if necessary, mostly TRAINER)
+      // Active trainers (apenas TRAINER, não STUDIO_ADMIN)
       prisma.userStudio.count({
         where: {
           studioId: studio.id,
           isActive: true,
+          role: 'TRAINER',
+        },
+      }),
+      // Total trainers cadastrados (apenas TRAINER, não STUDIO_ADMIN)
+      prisma.userStudio.count({
+        where: {
+          studioId: studio.id,
           role: 'TRAINER',
         },
       }),
@@ -181,7 +189,7 @@ export async function GET(
           assessmentsThisMonth,
           totalClients: studio._count.clients,
           activeClients,
-          totalTrainers: studio._count.users,
+          totalTrainers: totalTrainersOnly,
           activeTrainers,
           avgLessonsPerWeek: parseFloat(avgLessonsPerWeek as string),
           lastActivity: lastLesson?.startedAt || null,

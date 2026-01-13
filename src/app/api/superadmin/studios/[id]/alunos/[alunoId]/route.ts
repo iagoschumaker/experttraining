@@ -192,7 +192,7 @@ export async function GET(
           createdAt: a.createdAt,
           completedAt: a.completedAt,
           level: extractLevel(a.resultJson),
-          confidence: a.confidence ? Number(a.confidence) : null,
+          confidence: a.confidence ? Number(a.confidence) / 100 : null,
           assessor: assessorsMap.get(a.assessorId) || { id: a.assessorId, name: 'Unknown' },
           inputJson: a.inputJson, // Input data (complaints, pain, tests) for SuperAdmin audit
           resultJson: a.resultJson, // Full results for SuperAdmin audit
