@@ -14,7 +14,8 @@ import {
   ChevronDown, 
   LogOut, 
   RefreshCw,
-  User
+  User,
+  Menu
 } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -32,7 +33,11 @@ interface StudioContext {
   role: string
 }
 
-export function AppHeader() {
+interface AppHeaderProps {
+  onMenuClick?: () => void
+}
+
+export function AppHeader({ onMenuClick }: AppHeaderProps = {}) {
   const router = useRouter()
   const [user, setUser] = useState<UserData | null>(null)
   const [studio, setStudio] = useState<StudioContext | null>(null)
@@ -70,7 +75,7 @@ export function AppHeader() {
 
   if (isLoading) {
     return (
-      <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
+      <header className="sticky top-0 z-50 h-16 border-b border-border bg-card px-6 flex items-center justify-between">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-10 w-10 rounded-full" />
       </header>
@@ -78,9 +83,21 @@ export function AppHeader() {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-card px-3 sm:px-4 md:px-6 flex items-center justify-between">
-      {/* Left: Studio Info */}
+    <header className="sticky top-0 z-50 h-16 border-b border-border bg-card px-3 sm:px-4 md:px-6 flex items-center justify-between">
+      {/* Left: Menu Button (Mobile) + Studio Info */}
       <div className="flex items-center gap-2 md:gap-3">
+        {/* Mobile Menu Button */}
+        {onMenuClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={onMenuClick}
+            aria-label="Abrir menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
         {studio && (
           <>
             <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">

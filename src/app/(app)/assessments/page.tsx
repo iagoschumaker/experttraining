@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ResponsiveTable, FloatingActionButton, ResponsiveHeader, ResponsiveBody, ResponsiveRow, ResponsiveCell, ResponsiveHeaderCell } from '@/components/ui'
+import { ResponsiveTable, FloatingActionButton, ResponsiveHeader, ResponsiveBody, ResponsiveRow, ResponsiveCell, ResponsiveHeaderCell, StatsCard, StatsGrid } from '@/components/ui'
 import {
   ClipboardCheck,
   Plus,
@@ -178,39 +178,29 @@ export default function AssessmentsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {assessments.filter((a) => a.status === 'PENDING').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {assessments.filter((a) => a.status === 'COMPLETED').length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={3}>
+        <StatsCard
+          title="Total"
+          value={total}
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Pendentes"
+          value={assessments.filter((a) => a.status === 'PENDING').length}
+          icon={<Clock className="h-4 w-4" />}
+          iconColor="text-yellow-500"
+          iconBgColor="bg-yellow-500/10"
+        />
+        <StatsCard
+          title="Concluídas"
+          value={assessments.filter((a) => a.status === 'COMPLETED').length}
+          icon={<CheckCircle className="h-4 w-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+      </StatsGrid>
 
       {/* List */}
       <Card>

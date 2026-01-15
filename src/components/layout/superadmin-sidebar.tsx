@@ -66,10 +66,18 @@ const sidebarLinks: SidebarLink[] = [
   },
 ]
 
-export function SuperAdminSidebar() {
+interface SuperAdminSidebarProps {
+  isMobileOpen?: boolean
+  onMobileOpenChange?: (open: boolean) => void
+}
+
+export function SuperAdminSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChange }: SuperAdminSidebarProps = {}) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false)
+  
+  const isMobileOpen = externalMobileOpen ?? internalMobileOpen
+  const setIsMobileOpen = onMobileOpenChange ?? setInternalMobileOpen
 
   return (
     <>
@@ -79,19 +87,6 @@ export function SuperAdminSidebar() {
           className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden" 
           onClick={() => setIsMobileOpen(false)}
         />
-      )}
-      
-      {/* Mobile menu button */}
-      {!isMobileOpen && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed top-4 left-4 z-50 md:hidden bg-card border border-border shadow-lg hover:bg-muted rounded-lg transition-all duration-200"
-          onClick={() => setIsMobileOpen(true)}
-          aria-label="Abrir menu"
-        >
-          <Menu className="w-5 h-5 text-foreground" />
-        </Button>
       )}
 
       <aside
@@ -107,14 +102,6 @@ export function SuperAdminSidebar() {
       >
       {/* Header */}
       <div className="flex items-center justify-between h-16 px-4 relative z-50">
-        {!isCollapsed && (
-          <Link href="/superadmin/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <Shield className="w-5 h-5 text-accent-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">SuperAdmin</span>
-          </Link>
-        )}
         <Button
           variant="ghost"
           size="icon"
@@ -132,7 +119,7 @@ export function SuperAdminSidebar() {
           variant="ghost"
           size="icon"
           onClick={() => setIsMobileOpen(false)}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted md:hidden"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted md:hidden ml-auto"
         >
           <ChevronLeft className="w-5 h-5" />
         </Button>
@@ -148,12 +135,13 @@ export function SuperAdminSidebar() {
               key={link.href}
               href={link.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
                 isActive
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
               )}
+              style={{ transition: 'none' }}
               title={isCollapsed ? link.label : undefined}
               onClick={() => setIsMobileOpen(false)}
             >

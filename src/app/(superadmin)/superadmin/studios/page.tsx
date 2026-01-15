@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -390,29 +390,29 @@ export default function SuperAdminStudiosPage() {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-            <Building2 className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{total}</div></CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Personal</CardTitle>
-            <Users className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{studios.reduce((a, s) => a + (s.totalTrainers ?? 0), 0)}</div></CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Alunos</CardTitle>
-            <UserCheck className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{studios.reduce((a, s) => a + s._count.clients, 0)}</div></CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={3}>
+        <StatsCard
+          title="Total Studios"
+          value={total}
+          icon={<Building2 className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Personal"
+          value={studios.reduce((a, s) => a + (s.totalTrainers ?? 0), 0)}
+          icon={<Users className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Alunos"
+          value={studios.reduce((a, s) => a + s._count.clients, 0)}
+          icon={<UserCheck className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+      </StatsGrid>
 
       <Card className="bg-card border-border">
         <CardHeader>
@@ -427,51 +427,83 @@ export default function SuperAdminStudiosPage() {
           ) : studios.length === 0 ? (
             <div className="py-12 text-center"><Building2 className="mx-auto h-12 w-12 text-muted-foreground" /><h3 className="mt-4 text-lg font-medium text-foreground">Nenhum studio</h3></div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border">
-                  <TableHead className="text-muted-foreground">Nome</TableHead>
-                  <TableHead className="text-muted-foreground">Plano</TableHead>
-                  <TableHead className="text-muted-foreground">Trainers</TableHead>
-                  <TableHead className="text-muted-foreground">Alunos</TableHead>
-                  <TableHead className="text-muted-foreground">Aulas (mês)</TableHead>
-                  <TableHead className="text-muted-foreground">Última Atividade</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: Cards */}
+              <div className="md:hidden space-y-3">
                 {studios.map((s) => (
-                  <TableRow key={s.id} className="border-border hover:bg-muted">
-                    <TableCell className="font-medium text-foreground">
+                  <div key={s.id} className="p-4 border rounded-lg bg-card">
+                    <div className="flex items-start justify-between mb-2">
                       <div>
-                        <div>{s.name}</div>
+                        <div className="font-medium">{s.name}</div>
                         <div className="text-xs text-muted-foreground">{s.slug}</div>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{s.plan?.name || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.activeTrainers ?? 0} / {s.totalTrainers ?? 0}</TableCell>
-                    <TableCell className="text-muted-foreground">{s._count.clients}</TableCell>
-                    <TableCell>
-                      <span className={`font-medium ${(s.lessonsThisMonth || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {s.lessonsThisMonth || 0}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('pt-BR') : 'Nunca'}
-                    </TableCell>
-                    <TableCell><Badge className={statusConfig[s.status].color}>{statusConfig[s.status].label}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => window.location.href = `/superadmin/studios/${s.id}`} className="hover:bg-muted" title="Entrar no Studio">
-                        <ExternalLink className="h-4 w-4 text-amber-500" />
+                      <Badge className={statusConfig[s.status].color}>{statusConfig[s.status].label}</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div><span className="text-muted-foreground">Plano:</span> {s.plan?.name || '-'}</div>
+                      <div><span className="text-muted-foreground">Trainers:</span> {s.activeTrainers ?? 0}/{s.totalTrainers ?? 0}</div>
+                      <div><span className="text-muted-foreground">Alunos:</span> {s._count.clients}</div>
+                      <div><span className="text-muted-foreground">Aulas:</span> {s.lessonsThisMonth || 0}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = `/superadmin/studios/${s.id}`} className="flex-1">
+                        <ExternalLink className="h-4 w-4 mr-1" /> Entrar
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                    </TableCell>
-                  </TableRow>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">Nome</TableHead>
+                      <TableHead className="text-muted-foreground">Plano</TableHead>
+                      <TableHead className="text-muted-foreground">Trainers</TableHead>
+                      <TableHead className="text-muted-foreground">Alunos</TableHead>
+                      <TableHead className="text-muted-foreground">Aulas (mês)</TableHead>
+                      <TableHead className="text-muted-foreground">Última Atividade</TableHead>
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studios.map((s) => (
+                      <TableRow key={s.id} className="border-border hover:bg-muted">
+                        <TableCell className="font-medium text-foreground">
+                          <div>
+                            <div>{s.name}</div>
+                            <div className="text-xs text-muted-foreground">{s.slug}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{s.plan?.name || '-'}</TableCell>
+                        <TableCell className="text-muted-foreground">{s.activeTrainers ?? 0} / {s.totalTrainers ?? 0}</TableCell>
+                        <TableCell className="text-muted-foreground">{s._count.clients}</TableCell>
+                        <TableCell>
+                          <span className={`font-medium ${(s.lessonsThisMonth || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {s.lessonsThisMonth || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('pt-BR') : 'Nunca'}
+                        </TableCell>
+                        <TableCell><Badge className={statusConfig[s.status].color}>{statusConfig[s.status].label}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => window.location.href = `/superadmin/studios/${s.id}`} className="hover:bg-muted" title="Entrar no Studio">
+                            <ExternalLink className="h-4 w-4 text-amber-500" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">

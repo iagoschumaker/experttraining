@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatsCard, StatsGrid } from '@/components/ui'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -107,19 +108,11 @@ export default function SuperAdminPaymentsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <StatsGrid columns={4}>
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="bg-card border-border">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-20 bg-muted" />
-                <Skeleton className="h-4 w-4 bg-muted" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-12 bg-muted" />
-              </CardContent>
-            </Card>
+            <Skeleton key={i} className="h-24" />
           ))}
-        </div>
+        </StatsGrid>
 
         <Card className="bg-card border-border">
           <CardContent className="pt-6">
@@ -150,55 +143,40 @@ export default function SuperAdminPaymentsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Faturamento Total Estimado</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {formatCurrency(data?.studios.reduce((acc, s) => acc + s.estimatedBilling, 0) || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">Soma de todos os studios ativos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Trainers Ativos</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {data?.studios.reduce((acc, s) => acc + s.activeTrainers, 0) || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Base de cálculo para cobrança</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Studios Ativos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{data?.stats.ACTIVE || 0}</div>
-            <p className="text-xs text-muted-foreground">Studios com status "ATIVO"</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Studios Bloqueados</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-400">{data?.stats.SUSPENDED || 0}</div>
-            <p className="text-xs text-muted-foreground">Não entram no cálculo</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Faturamento Estimado"
+          value={formatCurrency(data?.studios.reduce((acc, s) => acc + s.estimatedBilling, 0) || 0)}
+          subtitle="Soma studios ativos"
+          icon={<DollarSign className="h-4 w-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+        <StatsCard
+          title="Trainers Ativos"
+          value={data?.studios.reduce((acc, s) => acc + s.activeTrainers, 0) || 0}
+          subtitle="Base de cobrança"
+          icon={<Users className="h-4 w-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Studios Ativos"
+          value={data?.stats.ACTIVE || 0}
+          subtitle="Status ATIVO"
+          icon={<CheckCircle className="h-4 w-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+        <StatsCard
+          title="Bloqueados"
+          value={data?.stats.SUSPENDED || 0}
+          subtitle="Fora do cálculo"
+          icon={<AlertCircle className="h-4 w-4" />}
+          iconColor="text-red-500"
+          iconBgColor="bg-red-500/10"
+        />
+      </StatsGrid>
 
       {/* Studios Table */}
       <Card className="bg-card border-border">
@@ -217,38 +195,21 @@ export default function SuperAdminPaymentsPage() {
           ) : (
             <div className="space-y-3">
               {data.studios.map((studio) => (
-                <div
-                  key={studio.id}
-                  className="p-4 rounded-lg bg-background border border-border hover:border-muted-foreground transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                      
-                      <div className="md:col-span-1">
-                        <div className="font-medium text-foreground">{studio.name}</div>
-                        {getStatusBadge(studio.status)}
-                      </div>
-
-                      <div className="md:col-span-1">
-                        <div className="text-sm text-muted-foreground">Plano</div>
-                        <div className="text-sm text-foreground">{studio.plan?.name || 'N/A'}</div>
-                      </div>
-
-                      <div className="md:col-span-1">
-                        <div className="text-sm text-muted-foreground">Cálculo</div>
-                        <div className="text-sm text-foreground">
-                          {studio.activeTrainers} trainers x {formatCurrency(studio.plan?.pricePerTrainer || 0)}
-                        </div>
-                      </div>
-                      
-                      <div className="md:col-span-1 text-right">
-                        <div className="text-sm text-muted-foreground">Fatura Estimada</div>
-                        <div className="text-lg font-bold text-amber-500">
-                          {formatCurrency(studio.estimatedBilling)}
-                        </div>
-                      </div>
-
+                <div key={studio.id} className="p-4 border rounded-lg bg-card">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="font-medium">{studio.name}</div>
+                      <div className="text-xs text-muted-foreground">{studio.plan?.name || 'Sem plano'}</div>
                     </div>
+                    {getStatusBadge(studio.status)}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                    <div><span className="text-muted-foreground">Trainers:</span> {studio.activeTrainers}</div>
+                    <div><span className="text-muted-foreground">Preço:</span> {formatCurrency(studio.plan?.pricePerTrainer || 0)}</div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-sm text-muted-foreground">Fatura Estimada</span>
+                    <span className="text-lg font-bold text-amber-500">{formatCurrency(studio.estimatedBilling)}</span>
                   </div>
                 </div>
               ))}

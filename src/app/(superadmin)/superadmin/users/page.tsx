@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  ResponsiveTable, ResponsiveHeader, ResponsiveBody, ResponsiveRow, ResponsiveCell, ResponsiveHeaderCell
+  ResponsiveTable, ResponsiveHeader, ResponsiveBody, ResponsiveRow, ResponsiveCell, ResponsiveHeaderCell, StatsCard, StatsGrid
 } from '@/components/ui'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -226,36 +226,36 @@ export default function SuperAdminUsersPage() {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total (Staff)</CardTitle>
-            <Users className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{total}</div></CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Alunos</CardTitle>
-            <GraduationCap className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{clientTotal}</div></CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Super Admins</CardTitle>
-            <Shield className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{users.filter((u) => u.isSuperAdmin).length}</div></CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Usuários (Staff)</CardTitle>
-            <User className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{users.filter((u) => !u.isSuperAdmin).length}</div></CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total (Staff)"
+          value={total}
+          icon={<Users className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Alunos"
+          value={clientTotal}
+          icon={<GraduationCap className="h-4 w-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Super Admins"
+          value={users.filter((u) => u.isSuperAdmin).length}
+          icon={<Shield className="h-4 w-4" />}
+          iconColor="text-red-500"
+          iconBgColor="bg-red-500/10"
+        />
+        <StatsCard
+          title="Usuários (Staff)"
+          value={users.filter((u) => !u.isSuperAdmin).length}
+          icon={<User className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+      </StatsGrid>
 
       <Tabs defaultValue="staff" className="space-y-4">
         <TabsList className="bg-muted">
@@ -277,48 +277,79 @@ export default function SuperAdminUsersPage() {
               ) : users.length === 0 ? (
                 <div className="py-12 text-center"><Users className="mx-auto h-12 w-12 text-muted" /><h3 className="mt-4 text-lg font-medium text-foreground">Nenhum usuário</h3></div>
               ) : (
-                <div className="responsive-table-wrapper">
-                  <table className="responsive-table">
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>Email</th>
-                        <th>Studios</th>
-                        <th>Tipo</th>
-                        <th>Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((u) => (
-                        <tr key={u.id}>
-                          <td data-label="Nome" className="font-medium text-foreground">{u.name}</td>
-                          <td data-label="Email" className="text-muted-foreground">{u.email}</td>
-                          <td data-label="Studios">
-                            <div className="flex flex-wrap gap-1">
-                              {u.userStudios && u.userStudios.length > 0 ? (
-                                <>
-                                  {u.userStudios.slice(0, 2).map((us) => (
-                                    <Badge key={us.studio.id} variant="outline" className="border-border text-muted-foreground text-xs">{us.studio.name} ({us.role})</Badge>
-                                  ))}
-                                  {u.userStudios.length > 2 && <Badge variant="outline" className="border-border text-muted-foreground text-xs">+{u.userStudios.length - 2}</Badge>}
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">Nenhum estúdio</span>
-                              )}
-                            </div>
-                          </td>
-                          <td data-label="Tipo">{u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-muted">Usuário</Badge>}</td>
-                          <td data-label="Ações">
-                            <div className="flex gap-1 justify-end">
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                            </div>
-                          </td>
+                <>
+                  {/* Mobile: Cards */}
+                  <div className="md:hidden space-y-3">
+                    {users.map((u) => (
+                      <div key={u.id} className="p-4 border rounded-lg bg-card">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="font-medium">{u.name}</div>
+                            <div className="text-xs text-muted-foreground">{u.email}</div>
+                          </div>
+                          {u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-muted">Usuário</Badge>}
+                        </div>
+                        <div className="text-sm mb-3">
+                          <span className="text-muted-foreground">Studios:</span>{' '}
+                          {u.userStudios && u.userStudios.length > 0 ? (
+                            <span>{u.userStudios.map(us => us.studio.name).join(', ')}</span>
+                          ) : (
+                            <span className="text-muted-foreground">Nenhum</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => openEdit(u)} className="flex-1">
+                            <Pencil className="h-4 w-4 mr-1" /> Editar
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Desktop: Table */}
+                  <div className="hidden md:block">
+                    <table className="responsive-table">
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>Email</th>
+                          <th>Studios</th>
+                          <th>Tipo</th>
+                          <th>Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => (
+                          <tr key={u.id}>
+                            <td data-label="Nome" className="font-medium text-foreground">{u.name}</td>
+                            <td data-label="Email" className="text-muted-foreground">{u.email}</td>
+                            <td data-label="Studios">
+                              <div className="flex flex-wrap gap-1">
+                                {u.userStudios && u.userStudios.length > 0 ? (
+                                  <>
+                                    {u.userStudios.slice(0, 2).map((us) => (
+                                      <Badge key={us.studio.id} variant="outline" className="border-border text-muted-foreground text-xs">{us.studio.name} ({us.role})</Badge>
+                                    ))}
+                                    {u.userStudios.length > 2 && <Badge variant="outline" className="border-border text-muted-foreground text-xs">+{u.userStudios.length - 2}</Badge>}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">Nenhum estúdio</span>
+                                )}
+                              </div>
+                            </td>
+                            <td data-label="Tipo">{u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-muted">Usuário</Badge>}</td>
+                            <td data-label="Ações">
+                              <div className="flex gap-1 justify-end">
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
               {totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
@@ -347,36 +378,57 @@ export default function SuperAdminUsersPage() {
               ) : clients.length === 0 ? (
                 <div className="py-12 text-center"><GraduationCap className="mx-auto h-12 w-12 text-muted" /><h3 className="mt-4 text-lg font-medium text-foreground">Nenhum aluno encontrado</h3></div>
               ) : (
-                <div className="responsive-table-wrapper">
-                  <table className="responsive-table">
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>Email</th>
-                        <th>Studio</th>
-                        <th>Responsável</th>
-                        <th>Data Cadastro</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {clients.map((c) => (
-                        <tr key={c.id}>
-                          <td data-label="Nome" className="font-medium text-foreground">{c.name}</td>
-                          <td data-label="Email" className="text-muted-foreground">{c.email || '-'}</td>
-                          <td data-label="Studio">
-                            {c.studio ? (
-                              <Badge variant="outline" className="border-border text-muted-foreground text-xs">{c.studio.name}</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                          <td data-label="Responsável" className="text-muted-foreground">{c.trainer?.name || '-'}</td>
-                          <td data-label="Data Cadastro" className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('pt-BR')}</td>
+                <>
+                  {/* Mobile: Cards */}
+                  <div className="md:hidden space-y-3">
+                    {clients.map((c) => (
+                      <div key={c.id} className="p-4 border rounded-lg bg-card">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="font-medium">{c.name}</div>
+                            <div className="text-xs text-muted-foreground">{c.email || '-'}</div>
+                          </div>
+                          {c.studio && <Badge variant="outline" className="text-xs">{c.studio.name}</Badge>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><span className="text-muted-foreground">Responsável:</span> {c.trainer?.name || '-'}</div>
+                          <div><span className="text-muted-foreground">Cadastro:</span> {new Date(c.createdAt).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Desktop: Table */}
+                  <div className="hidden md:block">
+                    <table className="responsive-table">
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>Email</th>
+                          <th>Studio</th>
+                          <th>Responsável</th>
+                          <th>Data Cadastro</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {clients.map((c) => (
+                          <tr key={c.id}>
+                            <td data-label="Nome" className="font-medium text-foreground">{c.name}</td>
+                            <td data-label="Email" className="text-muted-foreground">{c.email || '-'}</td>
+                            <td data-label="Studio">
+                              {c.studio ? (
+                                <Badge variant="outline" className="border-border text-muted-foreground text-xs">{c.studio.name}</Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td data-label="Responsável" className="text-muted-foreground">{c.trainer?.name || '-'}</td>
+                            <td data-label="Data Cadastro" className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('pt-BR')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
               {clientTotalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">

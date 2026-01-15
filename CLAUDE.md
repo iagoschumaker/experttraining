@@ -1585,6 +1585,98 @@ src/app/(superadmin)/superadmin/rules/page.tsx - Interface completamente nova
 src/components/RuleConditionBuilder.tsx - Componente standalone
 ```
 
+### 8. Sistema de Evolução de Clientes (Jan 2026)
+
+#### Funcionalidades Implementadas
+- **API de Evolução**: `/api/studio/clients/[id]/evolution`
+- **Cálculo de Deltas**: Comparação baseline vs atual para todas as métricas
+- **Nível de Condicionamento**: Tradução e exibição de níveis (Iniciante, Intermediário, Avançado)
+- **Indicadores Visuais**: Cores neutras (ciano) para métricas ambíguas
+- **Período de Acompanhamento**: Exibição em dias ou semanas
+- **Insights Automáticos**: Análise de tendências e recomendações
+
+#### Estrutura de Dados
+```typescript
+interface EvolutionData {
+  hasEvolution: boolean
+  baseline: { date: string, assessmentId: string }
+  current: { date: string, assessmentId: string }
+  period: {
+    daysBetween: number
+    weeksBetween: number
+    totalAssessments: number
+  }
+  body: {
+    weight: MetricEvolution
+    height: MetricEvolution
+    bodyFat: MetricEvolution
+    measurements: {
+      chest: MetricEvolution
+      waist: MetricEvolution
+      hip: MetricEvolution
+      arm: MetricEvolution
+      thigh: MetricEvolution
+      calf: MetricEvolution
+    }
+  }
+  level: {
+    baseline: string
+    current: string
+    improved: boolean
+    regressed: boolean
+  }
+  insights: string[]
+}
+```
+
+#### Lógica de Cores
+- **Verde/Vermelho**: Apenas para cintura (redução = positivo)
+- **Ciano (Neutro)**: Todas as outras circunferências (pode ser gordura ou massa)
+- **Peso/Gordura**: Cores interpretativas baseadas no objetivo
+
+### 9. Gestão de Treinos Aprimorada (Jan 2026)
+
+#### Melhorias Implementadas
+- **Botões de Ação na Listagem**: Download PDF e Excluir diretamente da lista
+- **Hard Delete**: Exclusão permanente do banco de dados (não soft delete)
+- **Refresh Automático**: Atualização da lista após exclusão
+- **Confirmação de Segurança**: Aviso de ação irreversível
+- **Download PDF**: Abertura em nova aba para impressão
+
+#### Endpoints Modificados
+```typescript
+// DELETE /api/studio/workouts/[id]
+// Antes: UPDATE isActive = false (soft delete)
+// Agora: DELETE FROM workouts (hard delete)
+
+// GET /api/workouts
+// Antes: Filtrava por isActive = true
+// Agora: Sem filtro (hard delete elimina registros)
+```
+
+#### Componentes Atualizados
+```
+src/app/(app)/workouts/page.tsx - Botões de ação na listagem
+src/app/api/studio/workouts/[id]/route.ts - Hard delete
+src/app/api/workouts/route.ts - Remoção de filtro isActive
+```
+
+### 10. Edição de Clientes Melhorada (Jan 2026)
+
+#### Funcionalidades
+- **Página de Edição Full-Screen**: Substituição de modal por página dedicada
+- **Seleção de Personal Responsável**: Dropdown para atribuir/alterar trainer
+- **Exibição de Meta**: Meta principal visível nos detalhes do aluno
+- **Botão WhatsApp**: Link direto para contato via WhatsApp
+- **Sincronização de Dados**: Atualização automática de medidas corporais
+
+#### Arquivos Modificados
+```
+src/app/(app)/clients/[id]/page.tsx - Exibição de meta e WhatsApp
+src/app/(app)/clients/[id]/edit/page.tsx - Seleção de trainer
+src/app/api/studio/users/route.ts - Lista de trainers
+```
+
 ### Backlog
 - [ ] App mobile para alunos
 - [ ] Integração com wearables

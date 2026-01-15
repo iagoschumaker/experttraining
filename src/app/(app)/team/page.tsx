@@ -423,79 +423,77 @@ export default function TeamPage() {
             <p className="text-muted-foreground">Nenhum membro encontrado</p>
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted border-b border-border">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Nome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Cargo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredTrainers.map((trainer) => (
-                  <tr key={trainer.id} className="hover:bg-muted">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-foreground">{trainer.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-muted-foreground">{trainer.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          trainer.role === 'STUDIO_ADMIN'
-                            ? 'bg-purple-500/20 text-purple-400'
-                            : 'bg-amber-500/20 text-amber-400'
-                        }`}
-                      >
-                        {trainer.role === 'STUDIO_ADMIN' ? 'Admin' : 'Personal'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          trainer.isActive
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {trainer.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <button
-                        onClick={() => openEditDialog(trainer)}
-                        className="text-amber-400 hover:text-amber-300 mr-3"
-                        title="Editar"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(trainer)}
-                        className="text-red-400 hover:text-red-300"
-                        title="Remover"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
+          <>
+            {/* Mobile: Cards */}
+            <div className="md:hidden space-y-3">
+              {filteredTrainers.map((trainer) => (
+                <div key={trainer.id} className="p-4 border border-border rounded-lg bg-card">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="font-medium text-foreground">{trainer.name}</div>
+                      <div className="text-xs text-muted-foreground">{trainer.email}</div>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      trainer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {trainer.isActive ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      trainer.role === 'STUDIO_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400'
+                    }`}>
+                      {trainer.role === 'STUDIO_ADMIN' ? 'Admin' : 'Personal'}
+                    </span>
+                    <div className="flex gap-2">
+                      <button onClick={() => openEditDialog(trainer)} className="text-amber-400 hover:text-amber-300" title="Editar"><Edit2 size={18} /></button>
+                      <button onClick={() => handleDelete(trainer)} className="text-red-400 hover:text-red-300" title="Remover"><Trash2 size={18} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: Table */}
+            <div className="hidden md:block bg-card border border-border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted border-b border-border">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Cargo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredTrainers.map((trainer) => (
+                    <tr key={trainer.id} className="hover:bg-muted">
+                      <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-foreground">{trainer.name}</div></td>
+                      <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-muted-foreground">{trainer.email}</div></td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          trainer.role === 'STUDIO_ADMIN' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400'
+                        }`}>
+                          {trainer.role === 'STUDIO_ADMIN' ? 'Admin' : 'Personal'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          trainer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {trainer.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <button onClick={() => openEditDialog(trainer)} className="text-amber-400 hover:text-amber-300 mr-3" title="Editar"><Edit2 size={18} /></button>
+                        <button onClick={() => handleDelete(trainer)} className="text-red-400 hover:text-red-300" title="Remover"><Trash2 size={18} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Create Dialog */}

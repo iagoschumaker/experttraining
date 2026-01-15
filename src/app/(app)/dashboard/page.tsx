@@ -8,9 +8,18 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatsCard, StatsGrid } from '@/components/ui'
 import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
+
+interface ReassessmentAlert {
+  clientId: string
+  clientName: string
+  lastWorkoutDate: string
+  lastWorkoutName: string
+  lastAssessmentDate: string | null
+}
 
 interface DashboardData {
   overview: {
@@ -20,6 +29,7 @@ interface DashboardData {
     totalAssessments: number
     totalWorkouts: number
     activeWorkouts: number
+    pendingReassessments: number
   }
   recentClients: Array<{
     id: string
@@ -36,6 +46,7 @@ interface DashboardData {
     goal: string
     count: number
   }>
+  reassessmentAlerts: ReassessmentAlert[]
 }
 
 export default function DashboardPage() {
@@ -72,11 +83,11 @@ export default function DashboardPage() {
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsGrid columns={4}>
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-24" />
           ))}
-        </div>
+        </StatsGrid>
       </div>
     )
   }
@@ -100,72 +111,77 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Visão geral do seu studio</p>
       </div>
 
+      {/* Alerta de Reavaliações Pendentes */}
+      {data.reassessmentAlerts && data.reassessmentAlerts.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-500 mb-1">
+                Reavaliações Pendentes ({data.reassessmentAlerts.length})
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Os seguintes alunos finalizaram seu ciclo de treino e precisam de reavaliação para continuar:
+              </p>
+              <div className="space-y-2">
+                {data.reassessmentAlerts.slice(0, 5).map((alert) => (
+                  <Link
+                    key={alert.clientId}
+                    href={`/clients/${alert.clientId}`}
+                    className="flex items-center justify-between p-2 bg-card/50 rounded border border-border hover:border-amber-500/50 transition-colors"
+                  >
+                    <span className="font-medium text-sm">{alert.clientName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Ciclo finalizado em {new Date(alert.lastWorkoutDate).toLocaleDateString('pt-BR')}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              {data.reassessmentAlerts.length > 5 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  E mais {data.reassessmentAlerts.length - 5} aluno(s)...
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Clients */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Alunos
-            </CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.overview.totalClients}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {data.overview.activeClients} ativos
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Assessments */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avaliações
-            </CardTitle>
-            <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.overview.totalAssessments}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total realizadas
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Active Workouts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Treinos Ativos
-            </CardTitle>
-            <Dumbbell className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.overview.activeWorkouts}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Em andamento
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Workouts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Treinos
-            </CardTitle>
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.overview.totalWorkouts}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Criados
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total de Alunos"
+          value={data.overview.totalClients}
+          subtitle={`${data.overview.activeClients} ativos`}
+          icon={<Users className="w-4 h-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Avaliações"
+          value={data.overview.totalAssessments}
+          subtitle="Total realizadas"
+          icon={<ClipboardCheck className="w-4 h-4" />}
+          iconColor="text-emerald-500"
+          iconBgColor="bg-emerald-500/10"
+        />
+        <StatsCard
+          title="Treinos Ativos"
+          value={data.overview.activeWorkouts}
+          subtitle="Em andamento"
+          icon={<Dumbbell className="w-4 h-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Total de Treinos"
+          value={data.overview.totalWorkouts}
+          subtitle="Criados"
+          icon={<TrendingUp className="w-4 h-4" />}
+          iconColor="text-purple-500"
+          iconBgColor="bg-purple-500/10"
+        />
+      </StatsGrid>
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -152,7 +152,21 @@ export async function PUT(
       )
     }
 
-    // Atualizar
+    // ========================================================================
+    // REGRA DE IMUTABILIDADE: Avaliações COMPLETADAS são imutáveis
+    // ========================================================================
+    if (existing.status === 'COMPLETED') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Avaliações finalizadas são imutáveis e não podem ser editadas. Isso garante a integridade do histórico de evolução do aluno.',
+          immutable: true,
+        },
+        { status: 403 }
+      )
+    }
+
+    // Atualizar (apenas PENDING)
     const updated = await prisma.assessment.update({
       where: { id: assessmentId },
       data: {
@@ -208,7 +222,21 @@ export async function DELETE(
       )
     }
 
-    // Excluir avaliação
+    // ========================================================================
+    // REGRA DE IMUTABILIDADE: Avaliações COMPLETADAS não podem ser excluídas
+    // ========================================================================
+    if (existing.status === 'COMPLETED') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Avaliações finalizadas não podem ser excluídas. O histórico de evolução do aluno deve ser preservado para auditoria.',
+          immutable: true,
+        },
+        { status: 403 }
+      )
+    }
+
+    // Excluir avaliação (apenas PENDING)
     await prisma.assessment.delete({
       where: { id: assessmentId },
     })

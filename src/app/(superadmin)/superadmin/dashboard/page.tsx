@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@/components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge, StatsCard, StatsGrid } from '@/components/ui'
 import { Building2, Users, CreditCard, Boxes, TrendingUp, AlertTriangle, Settings2, UserCheck } from 'lucide-react'
 import Link from 'next/link'
 
@@ -102,38 +102,21 @@ export default function SuperAdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <StatsGrid columns={4}>
         {statCards.map((stat, index) => (
-          <Link key={index} href={stat.href || '#'}>
-            <Card className="bg-card border-border hover:border-amber-500/50 transition-colors cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <span className={stat.color}>{stat.icon}</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16 bg-muted" />
-                ) : (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-foreground">
-                      {stat.isString ? stat.value : stat.value}
-                    </span>
-                    {stat.total !== undefined && !stat.isString && (
-                      <span className="text-muted-foreground text-sm">
-                        / {stat.total}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
+          <StatsCard
+            key={index}
+            title={stat.title}
+            value={stat.isString ? String(stat.value) : stat.value}
+            subtitle={stat.total !== undefined && !stat.isString ? `/ ${stat.total}` : undefined}
+            icon={stat.icon}
+            iconColor={stat.color}
+            iconBgColor={stat.bgColor}
+            href={stat.href}
+            loading={isLoading}
+          />
         ))}
-      </div>
+      </StatsGrid>
 
       {/* Secondary Stats */}
       <div className="grid gap-4 md:grid-cols-3">

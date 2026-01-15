@@ -21,11 +21,15 @@ function LoginForm() {
     setError('')
     setIsLoading(true)
 
+    const normalizedEmail = email.trim().toLowerCase()
+    console.log('📧 Sending login request with email:', normalizedEmail)
+    console.log('📱 User agent:', navigator.userAgent)
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
       })
 
       const data = await response.json()
@@ -101,7 +105,10 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 disabled={isLoading}
                 className="h-11"
               />

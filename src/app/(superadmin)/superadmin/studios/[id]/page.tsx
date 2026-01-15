@@ -12,6 +12,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatsCard, StatsGrid } from '@/components/ui'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -266,18 +267,19 @@ export default function StudioDetailsPage() {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-700 pb-2">
         {[
-          { id: 'overview', label: 'Visão Geral', icon: Building2 },
-          { id: 'trainers', label: 'Trainers', icon: Users },
-          { id: 'alunos', label: 'Alunos', icon: UserCheck },
+          { id: 'overview', label: 'Visão Geral', shortLabel: 'Geral', icon: Building2 },
+          { id: 'trainers', label: 'Trainers', shortLabel: 'Train.', icon: Users },
+          { id: 'alunos', label: 'Alunos', shortLabel: 'Alunos', icon: UserCheck },
         ].map((tab) => (
           <Button
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
             className={activeTab === tab.id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
             onClick={() => setActiveTab(tab.id as TabType)}
+            size="sm"
           >
-            <tab.icon className="h-4 w-4 mr-2" />
-            {tab.label}
+            <tab.icon className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{tab.label}</span>
           </Button>
         ))}
       </div>
@@ -286,55 +288,39 @@ export default function StudioDetailsPage() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Metrics Grid */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Trainers</CardTitle>
-                <Users className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{studio.metrics.totalTrainers}</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Alunos</CardTitle>
-                <UserCheck className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">
-                  {studio.metrics.activeClients}
-                  <span className="text-sm text-gray-500 ml-1">/ {studio.metrics.totalClients}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">ativos / total</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Aulas (mês)</CardTitle>
-                <Calendar className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${studio.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {studio.metrics.lessonsThisMonth}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{studio.metrics.avgLessonsPerWeek} por semana</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Avaliações (mês)</CardTitle>
-                <ClipboardCheck className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{studio.metrics.assessmentsThisMonth}</div>
-                <p className="text-xs text-gray-500 mt-1">{studio.metrics.totalAssessments} total</p>
-              </CardContent>
-            </Card>
-          </div>
+          <StatsGrid columns={4}>
+            <StatsCard
+              title="Trainers"
+              value={studio.metrics.totalTrainers}
+              icon={<Users className="h-4 w-4" />}
+              iconColor="text-amber-500"
+              iconBgColor="bg-amber-500/10"
+            />
+            <StatsCard
+              title="Alunos"
+              value={studio.metrics.activeClients}
+              subtitle={`/ ${studio.metrics.totalClients} total`}
+              icon={<UserCheck className="h-4 w-4" />}
+              iconColor="text-amber-500"
+              iconBgColor="bg-amber-500/10"
+            />
+            <StatsCard
+              title="Aulas (mês)"
+              value={studio.metrics.lessonsThisMonth}
+              subtitle={`${studio.metrics.avgLessonsPerWeek}/semana`}
+              icon={<Calendar className="h-4 w-4" />}
+              iconColor="text-amber-500"
+              iconBgColor="bg-amber-500/10"
+            />
+            <StatsCard
+              title="Avaliações (mês)"
+              value={studio.metrics.assessmentsThisMonth}
+              subtitle={`${studio.metrics.totalAssessments} total`}
+              icon={<ClipboardCheck className="h-4 w-4" />}
+              iconColor="text-amber-500"
+              iconBgColor="bg-amber-500/10"
+            />
+          </StatsGrid>
 
           {/* Usage Indicator */}
           <Card className="bg-gray-800 border-gray-700">
@@ -470,59 +456,91 @@ export default function StudioDetailsPage() {
                   Nenhum trainer cadastrado
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-700">
-                      <TableHead className="text-gray-400">Nome</TableHead>
-                      <TableHead className="text-gray-400">Status</TableHead>
-                      <TableHead className="text-gray-400">Role</TableHead>
-                      <TableHead className="text-gray-400">Alunos</TableHead>
-                      <TableHead className="text-gray-400">Aulas (mês)</TableHead>
-                      <TableHead className="text-gray-400">Avaliações (mês)</TableHead>
-                      <TableHead className="text-gray-400">Última Atividade</TableHead>
-                      <TableHead className="text-gray-400 text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Mobile: Cards */}
+                  <div className="md:hidden space-y-3">
                     {trainers.map((t) => (
-                      <TableRow key={t.id} className="border-gray-700">
-                        <TableCell>
+                      <div key={t.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                        <div className="flex items-start justify-between mb-2">
                           <div>
                             <div className="font-medium text-white">{t.name}</div>
                             <div className="text-xs text-gray-500">{t.email}</div>
                           </div>
-                        </TableCell>
-                        <TableCell>
                           <Badge className={t.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
                             {t.isActive ? 'Ativo' : 'Inativo'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
-                            {t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-400">{t.metrics.clients}</TableCell>
-                        <TableCell>
-                          <span className={t.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}>
-                            {t.metrics.lessonsThisMonth}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-gray-400">{t.metrics.assessmentsThisMonth}</TableCell>
-                        <TableCell className="text-gray-400 text-sm">
-                          {formatDate(t.metrics.lastActivity)}
-                        </TableCell>
-                      <TableCell className="text-right">
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                          <div><span className="text-gray-400">Role:</span> <Badge className={`${t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'} text-xs`}>{t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}</Badge></div>
+                          <div><span className="text-gray-400">Alunos:</span> {t.metrics.clients}</div>
+                          <div><span className="text-gray-400">Aulas:</span> <span className={t.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}>{t.metrics.lessonsThisMonth}</span></div>
+                          <div><span className="text-gray-400">Avaliações:</span> {t.metrics.assessmentsThisMonth}</div>
+                        </div>
                         <Link href={`/superadmin/studios/${studioId}/trainers/${t.userId}`}>
-                          <Button variant="ghost" size="icon" className="hover:bg-gray-700">
-                            <ExternalLink className="h-4 w-4 text-amber-500" />
+                          <Button variant="outline" size="sm" className="w-full">
+                            <ExternalLink className="h-4 w-4 mr-1" /> Ver Detalhes
                           </Button>
                         </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Desktop: Table */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-700">
+                          <TableHead className="text-gray-400">Nome</TableHead>
+                          <TableHead className="text-gray-400">Status</TableHead>
+                          <TableHead className="text-gray-400">Role</TableHead>
+                          <TableHead className="text-gray-400">Alunos</TableHead>
+                          <TableHead className="text-gray-400">Aulas (mês)</TableHead>
+                          <TableHead className="text-gray-400">Avaliações (mês)</TableHead>
+                          <TableHead className="text-gray-400">Última Atividade</TableHead>
+                          <TableHead className="text-gray-400 text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {trainers.map((t) => (
+                          <TableRow key={t.id} className="border-gray-700">
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-white">{t.name}</div>
+                                <div className="text-xs text-gray-500">{t.email}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={t.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+                                {t.isActive ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
+                                {t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-400">{t.metrics.clients}</TableCell>
+                            <TableCell>
+                              <span className={t.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}>
+                                {t.metrics.lessonsThisMonth}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-gray-400">{t.metrics.assessmentsThisMonth}</TableCell>
+                            <TableCell className="text-gray-400 text-sm">
+                              {formatDate(t.metrics.lastActivity)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Link href={`/superadmin/studios/${studioId}/trainers/${t.userId}`}>
+                                <Button variant="ghost" size="icon" className="hover:bg-gray-700">
+                                  <ExternalLink className="h-4 w-4 text-amber-500" />
+                                </Button>
+                              </Link>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
             )}
           </CardContent>
         </Card>
@@ -579,49 +597,78 @@ export default function StudioDetailsPage() {
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-700">
-                      <TableHead className="text-gray-400">Nome</TableHead>
-                      <TableHead className="text-gray-400">Trainer</TableHead>
-                      <TableHead className="text-gray-400">Avaliações</TableHead>
-                      <TableHead className="text-gray-400">Última Avaliação</TableHead>
-                      <TableHead className="text-gray-400">Aulas</TableHead>
-                      <TableHead className="text-gray-400">Última Presença</TableHead>
-                      <TableHead className="text-gray-400">Status</TableHead>
-                      <TableHead className="text-gray-400 text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {alunos.map((a) => (
-                      <TableRow key={a.id} className="border-gray-700">
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-white">{a.name}</div>
-                            <div className="text-xs text-gray-500">{a.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-gray-400">{a.trainer?.name || '-'}</TableCell>
-                        <TableCell className="text-gray-400">{a.metrics.totalAssessments}</TableCell>
-                        <TableCell className="text-gray-400 text-sm">{formatDate(a.metrics.lastAssessment)}</TableCell>
-                        <TableCell className="text-gray-400">{a.metrics.totalLessons}</TableCell>
-                        <TableCell className="text-gray-400 text-sm">{formatDate(a.metrics.lastLesson)}</TableCell>
-                        <TableCell>
-                          <Badge className={a.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
-                            {a.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link href={`/superadmin/studios/${studioId}/alunos/${a.id}`}>
-                            <Button variant="ghost" size="icon" className="hover:bg-gray-700">
-                              <ExternalLink className="h-4 w-4 text-amber-500" />
-                            </Button>
-                          </Link>
-                        </TableCell>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
+                  {alunos.map((a) => (
+                    <div key={a.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="font-medium text-white">{a.name}</div>
+                          <div className="text-xs text-gray-500">{a.email}</div>
+                        </div>
+                        <Badge className={a.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
+                          {a.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div><span className="text-gray-400">Trainer:</span> {a.trainer?.name || '-'}</div>
+                        <div><span className="text-gray-400">Avaliações:</span> {a.metrics.totalAssessments}</div>
+                        <div><span className="text-gray-400">Aulas:</span> {a.metrics.totalLessons}</div>
+                      </div>
+                      <Link href={`/superadmin/studios/${studioId}/alunos/${a.id}`}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <ExternalLink className="h-4 w-4 mr-1" /> Ver Detalhes
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Nome</TableHead>
+                        <TableHead className="text-gray-400">Trainer</TableHead>
+                        <TableHead className="text-gray-400">Avaliações</TableHead>
+                        <TableHead className="text-gray-400">Última Avaliação</TableHead>
+                        <TableHead className="text-gray-400">Aulas</TableHead>
+                        <TableHead className="text-gray-400">Última Presença</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                        <TableHead className="text-gray-400 text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {alunos.map((a) => (
+                        <TableRow key={a.id} className="border-gray-700">
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-white">{a.name}</div>
+                              <div className="text-xs text-gray-500">{a.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-gray-400">{a.trainer?.name || '-'}</TableCell>
+                          <TableCell className="text-gray-400">{a.metrics.totalAssessments}</TableCell>
+                          <TableCell className="text-gray-400 text-sm">{formatDate(a.metrics.lastAssessment)}</TableCell>
+                          <TableCell className="text-gray-400">{a.metrics.totalLessons}</TableCell>
+                          <TableCell className="text-gray-400 text-sm">{formatDate(a.metrics.lastLesson)}</TableCell>
+                          <TableCell>
+                            <Badge className={a.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
+                              {a.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/superadmin/studios/${studioId}/alunos/${a.id}`}>
+                              <Button variant="ghost" size="icon" className="hover:bg-gray-700">
+                                <ExternalLink className="h-4 w-4 text-amber-500" />
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
                 {alunoTotalPages > 1 && (
                   <div className="mt-4 flex items-center justify-between">
                     <p className="text-sm text-gray-400">Página {alunoPage} de {alunoTotalPages}</p>

@@ -9,6 +9,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { StatsCard, StatsGrid } from '@/components/ui'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -298,69 +299,36 @@ export default function SuperAdminBackupPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <FileArchive className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{totalBackups}</p>
-                <p className="text-sm text-muted-foreground">Total de Backups</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-lg">
-                <HardDrive className="w-6 h-6 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {(totalSize / (1024 * 1024)).toFixed(2)} MB
-                </p>
-                <p className="text-sm text-muted-foreground">Espaço Utilizado</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-500/10 rounded-lg">
-                <Clock className="w-6 h-6 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {lastBackup ? formatDate(lastBackup.createdAt).split(' ')[0] : '-'}
-                </p>
-                <p className="text-sm text-muted-foreground">Último Backup</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-500/10 rounded-lg">
-                <Shield className="w-6 h-6 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {lastBackup ? lastBackup.totalRecords.toLocaleString() : '-'}
-                </p>
-                <p className="text-sm text-muted-foreground">Registros (último)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total de Backups"
+          value={totalBackups}
+          icon={<FileArchive className="w-4 h-4" />}
+          iconColor="text-primary"
+          iconBgColor="bg-primary/10"
+        />
+        <StatsCard
+          title="Espaço Utilizado"
+          value={`${(totalSize / (1024 * 1024)).toFixed(2)} MB`}
+          icon={<HardDrive className="w-4 h-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Último Backup"
+          value={lastBackup ? formatDate(lastBackup.createdAt).split(' ')[0] : '-'}
+          icon={<Clock className="w-4 h-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+        <StatsCard
+          title="Registros (último)"
+          value={lastBackup ? lastBackup.totalRecords.toLocaleString() : '-'}
+          icon={<Shield className="w-4 h-4" />}
+          iconColor="text-purple-500"
+          iconBgColor="bg-purple-500/10"
+        />
+      </StatsGrid>
 
       {/* Info Card */}
       <Card className="border-blue-500/50 bg-blue-500/5">
@@ -411,79 +379,69 @@ export default function SuperAdminBackupPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Criado por</TableHead>
-                  <TableHead>Registros</TableHead>
-                  <TableHead>Tamanho</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: Cards */}
+              <div className="md:hidden space-y-3">
                 {backups.map((backup) => (
-                  <TableRow key={backup.id}>
-                    <TableCell className="font-mono text-sm">
-                      {backup.id}
-                    </TableCell>
-                    <TableCell>{formatDate(backup.createdAt)}</TableCell>
-                    <TableCell>{backup.createdByName}</TableCell>
-                    <TableCell>{backup.totalRecords.toLocaleString()}</TableCell>
-                    <TableCell>{backup.sizeFormatted}</TableCell>
-                    <TableCell>{getStatusBadge(backup.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Ver detalhes"
-                          onClick={() => {
-                            setSelectedBackup(backup)
-                            setIsDetailsOpen(true)
-                          }}
-                        >
-                          <Info className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Baixar backup"
-                          onClick={() => handleDownload(backup)}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Restaurar"
-                          onClick={() => {
-                            setSelectedBackup(backup)
-                            setIsRestoreOpen(true)
-                          }}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Deletar"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            setSelectedBackup(backup)
-                            setIsDeleteOpen(true)
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <div key={backup.id} className="p-4 border rounded-lg bg-card">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="font-mono text-xs text-muted-foreground">{backup.id}</div>
+                      {getStatusBadge(backup.status)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div><span className="text-muted-foreground">Data:</span> {formatDate(backup.createdAt)}</div>
+                      <div><span className="text-muted-foreground">Por:</span> {backup.createdByName}</div>
+                      <div><span className="text-muted-foreground">Registros:</span> {backup.totalRecords.toLocaleString()}</div>
+                      <div><span className="text-muted-foreground">Tamanho:</span> {backup.sizeFormatted}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => { setSelectedBackup(backup); setIsDetailsOpen(true) }}>
+                        <Info className="w-4 h-4 mr-1" /> Detalhes
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDownload(backup)}><Download className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => { setSelectedBackup(backup); setIsRestoreOpen(true) }}><RotateCcw className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setSelectedBackup(backup); setIsDeleteOpen(true) }}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Criado por</TableHead>
+                      <TableHead>Registros</TableHead>
+                      <TableHead>Tamanho</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {backups.map((backup) => (
+                      <TableRow key={backup.id}>
+                        <TableCell className="font-mono text-sm">{backup.id}</TableCell>
+                        <TableCell>{formatDate(backup.createdAt)}</TableCell>
+                        <TableCell>{backup.createdByName}</TableCell>
+                        <TableCell>{backup.totalRecords.toLocaleString()}</TableCell>
+                        <TableCell>{backup.sizeFormatted}</TableCell>
+                        <TableCell>{getStatusBadge(backup.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="Ver detalhes" onClick={() => { setSelectedBackup(backup); setIsDetailsOpen(true) }}><Info className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Baixar backup" onClick={() => handleDownload(backup)}><Download className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Restaurar" onClick={() => { setSelectedBackup(backup); setIsRestoreOpen(true) }}><RotateCcw className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Deletar" className="text-destructive hover:text-destructive" onClick={() => { setSelectedBackup(backup); setIsDeleteOpen(true) }}><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

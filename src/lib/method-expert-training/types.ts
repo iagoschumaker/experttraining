@@ -76,3 +76,47 @@ export type WorkoutPlan = {
   protocol?: Protocol
   audit: { rulesTriggered: string[] }
 }
+
+// ============================================================================
+// DAILY SCHEDULE - Cronograma Completo do Dia (Novo Output do Motor)
+// ============================================================================
+
+export type ExerciseRole = 'FOCO_PRINCIPAL' | 'PUSH_PULL_INTEGRADO' | 'CORE'
+
+export type ScheduleExercise = {
+  role: ExerciseRole
+  name: string
+  execution: string
+  rest: string
+}
+
+export type ScheduleBlock = {
+  blockIndex: 1 | 2 | 3
+  exercises: [ScheduleExercise, ScheduleExercise, ScheduleExercise]
+  restAfterBlock: string
+}
+
+export type PreparationExercise = {
+  name: string
+  duration: string
+}
+
+export type Preparation = {
+  title: 'Preparação do Movimento'
+  totalTime: string
+  exercises: PreparationExercise[]
+}
+
+export type FinalProtocol = {
+  name: string
+  totalTime: string
+  structure?: string
+}
+
+export type DailySchedule = {
+  focus: string
+  preparation: Preparation
+  blocks: [ScheduleBlock, ScheduleBlock, ScheduleBlock]
+  finalProtocol: FinalProtocol
+  audit: { rulesTriggered: string[] }
+}

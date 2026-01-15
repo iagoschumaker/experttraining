@@ -383,16 +383,55 @@ export async function POST(
     console.log(`   - Regras aplicadas: ${appliedRules.length}`)
     console.log(`   - Confiança: ${confidence}%`)
 
+    // ========================================================================
+    // 9. EXTRAIR MÉTRICAS CORPORAIS PARA ATUALIZAR CLIENTE
+    // ========================================================================
+    const bodyMetrics = assessment.bodyMetricsJson as any
+    const clientUpdateData: any = {}
+
+    if (bodyMetrics) {
+      // Atualizar peso e altura se fornecidos
+      if (bodyMetrics.weight) clientUpdateData.weight = bodyMetrics.weight
+      if (bodyMetrics.height) clientUpdateData.height = bodyMetrics.height
+      
+      // Atualizar medidas corporais se fornecidas
+      if (bodyMetrics.measurements) {
+        const m = bodyMetrics.measurements
+        if (m.waist) clientUpdateData.waist = m.waist
+        if (m.hip) clientUpdateData.hip = m.hip
+        if (m.chest) clientUpdateData.chest = m.chest
+        // Para medidas bilaterais, usar média ou lado dominante
+        if (m.arm_left || m.arm_right) {
+          clientUpdateData.arm = m.arm_right || m.arm_left
+        }
+        if (m.thigh_left || m.thigh_right) {
+          clientUpdateData.thigh = m.thigh_right || m.thigh_left
+        }
+        if (m.calf) clientUpdateData.calf = m.calf
+      }
+    }
+
     // Update assessment
     const updatedAssessment = await prisma.assessment.update({
       where: { id: assessmentId },
       data: {
         status: 'COMPLETED',
         resultJson,
-        confidence: confidence / 100, // Converter para decimal (0.70 ao invés de 70)
+        confidence: confidence / 100,
         completedAt: new Date(),
       },
     })
+
+    // ========================================================================
+    // 10. ATUALIZAR CLIENTE COM ESTADO ATUAL (se houver medidas)
+    // ========================================================================
+    if (Object.keys(clientUpdateData).length > 0) {
+      await prisma.client.update({
+        where: { id: assessment.clientId },
+        data: clientUpdateData,
+      })
+      console.log(`📏 Cliente atualizado com ${Object.keys(clientUpdateData).length} métricas`)
+    }
 
     // Audit log
     await prisma.auditLog.create({
@@ -408,6 +447,7 @@ export async function POST(
           blocksAllowed: uniqueAllowedBlocks.length,
           blocksBlocked: uniqueBlockedBlocks.length,
           rulesApplied: appliedRules.length,
+          clientMetricsUpdated: Object.keys(clientUpdateData),
         },
       },
     })

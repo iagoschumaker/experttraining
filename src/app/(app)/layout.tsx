@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { AppSidebar, AppHeader } from '@/components/layout'
 
 export default function AppLayout({
@@ -7,15 +8,20 @@ export default function AppLayout({
 }: {
   children: React.ReactNode
 }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      <AppSidebar />
+      <AppSidebar 
+        isMobileOpen={isMobileMenuOpen}
+        onMobileOpenChange={setIsMobileMenuOpen}
+      />
       
       {/* Main Content */}
       <div className="md:pl-64 transition-all duration-300">
         {/* Header */}
-        <AppHeader />
+        <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
         
         {/* Page Content */}
         <main className="p-3 sm:p-4 md:p-6">

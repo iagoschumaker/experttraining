@@ -30,7 +30,7 @@ import {
   ArrowRight, Shield, Zap, Target, Activity, ChevronLeft, ChevronRight,
   Eye, Edit, AlertTriangle, CheckCircle, XCircle
 } from 'lucide-react'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
 // ============================================================================
 // TYPES
@@ -451,74 +451,52 @@ export default function SuperAdminHierarchyPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Itens
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalLevels + stats.totalCapacities + stats.totalPatterns}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Níveis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{stats.totalLevels}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Capacidades
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">{stats.totalCapacities}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Padrões
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{stats.totalPatterns}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Protegidos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-400">{stats.lockedItems}</div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsGrid columns={4}>
+          <StatsCard
+            title="Total de Itens"
+            value={stats.totalLevels + stats.totalCapacities + stats.totalPatterns}
+            icon={<Pyramid className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBgColor="bg-amber-500/10"
+          />
+          <StatsCard
+            title="Níveis"
+            value={stats.totalLevels}
+            icon={<Target className="h-4 w-4" />}
+            iconColor="text-blue-500"
+            iconBgColor="bg-blue-500/10"
+          />
+          <StatsCard
+            title="Capacidades"
+            value={stats.totalCapacities}
+            icon={<Zap className="h-4 w-4" />}
+            iconColor="text-green-500"
+            iconBgColor="bg-green-500/10"
+          />
+          <StatsCard
+            title="Protegidos"
+            value={stats.lockedItems}
+            icon={<Lock className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBgColor="bg-amber-500/10"
+          />
+        </StatsGrid>
       )}
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="levels" className="flex items-center gap-2">
-            <Pyramid className="h-4 w-4" />
-            Níveis
+          <TabsTrigger value="levels" className="flex items-center justify-center gap-1 px-2">
+            <Pyramid className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Níveis</span>
           </TabsTrigger>
-          <TabsTrigger value="capacities" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            Capacidades
+          <TabsTrigger value="capacities" className="flex items-center justify-center gap-1 px-2">
+            <Zap className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Capacidades</span>
           </TabsTrigger>
-          <TabsTrigger value="patterns" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Padrões
+          <TabsTrigger value="patterns" className="flex items-center justify-center gap-1 px-2">
+            <Activity className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Padrões</span>
           </TabsTrigger>
         </TabsList>
 

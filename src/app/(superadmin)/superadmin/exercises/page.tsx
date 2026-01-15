@@ -31,7 +31,7 @@ import {
   Clock, RotateCcw, Hash, FileText, Target, Activity,
   ChevronLeft, ChevronRight, Eye, Layers, AlertCircle
 } from 'lucide-react'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
 // ============================================================================
 // TYPES
@@ -633,61 +633,36 @@ export default function SuperAdminExercisesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-            <Dumbbell className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats?.total || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Com Vídeo</CardTitle>
-            <Video className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats?.withVideo || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Em Blocos</CardTitle>
-            <Layers className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats?.withBlock || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Órfãos</CardTitle>
-            <AlertCircle className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-400">{stats?.orphans || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Por Nível</CardTitle>
-            <Activity className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 text-xs">
-              <Badge className="bg-green-500/20 text-green-400">{stats?.byDifficulty?.beginner || 0}</Badge>
-              <Badge className="bg-yellow-500/20 text-yellow-400">{stats?.byDifficulty?.intermediate || 0}</Badge>
-              <Badge className="bg-red-500/20 text-red-400">{stats?.byDifficulty?.advanced || 0}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total"
+          value={stats?.total || 0}
+          icon={<Dumbbell className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Com Vídeo"
+          value={stats?.withVideo || 0}
+          icon={<Video className="h-4 w-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+        <StatsCard
+          title="Em Blocos"
+          value={stats?.withBlock || 0}
+          icon={<Layers className="h-4 w-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Órfãos"
+          value={stats?.orphans || 0}
+          icon={<AlertCircle className="h-4 w-4" />}
+          iconColor="text-yellow-500"
+          iconBgColor="bg-yellow-500/10"
+        />
+      </StatsGrid>
 
       {/* Filters and Table */}
       <Card className="bg-card border-border">
@@ -763,74 +738,105 @@ export default function SuperAdminExercisesPage() {
               <p className="text-muted-foreground">Ajuste os filtros ou crie um novo exercício</p>
             </div>
           ) : (
-            <div className="responsive-table-wrapper">
-              <table className="responsive-table">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Bloco</th>
-                    <th>Tipo</th>
-                    <th>Grupo</th>
-                    <th>Prescrição</th>
-                    <th>Nível</th>
-                    <th>Vídeo</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {exercises.map((e) => (
-                    <tr key={e.id}>
-                      <td data-label="Nome">
-                        <div className="flex items-center gap-2">
-                          {e.isLocked && <Lock className="h-3 w-3 text-amber-500" />}
-                          <span className="font-medium text-foreground">{e.name}</span>
+            <>
+              {/* Mobile: Cards */}
+              <div className="md:hidden space-y-3">
+                {exercises.map((e) => (
+                  <div key={e.id} className="p-4 border rounded-lg bg-card">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {e.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
+                        <div>
+                          <div className="font-medium">{e.name}</div>
+                          <div className="text-xs text-muted-foreground">{e.type || '-'} • {e.muscleGroup || '-'}</div>
                         </div>
-                        {e.orderInBlock && (
-                          <span className="text-xs text-muted-foreground">#{e.orderInBlock}</span>
-                        )}
-                      </td>
-                      <td data-label="Bloco">{getBlockBadge(e.block)}</td>
-                      <td data-label="Tipo" className="text-muted-foreground">{e.type || '-'}</td>
-                      <td data-label="Grupo" className="text-muted-foreground">{e.muscleGroup || '-'}</td>
-                      <td data-label="Prescrição">
-                        {e.defaultSets || e.defaultReps ? (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {e.defaultSets && `${e.defaultSets}x`}
-                            {e.defaultReps}
-                            {e.defaultRest && ` (${e.defaultRest})`}
-                          </span>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td data-label="Nível">{getDifficultyBadge(e.difficulty)}</td>
-                      <td data-label="Vídeo">
-                        {e.videoUrl ? (
-                          <a href={e.videoUrl} target="_blank" rel="noopener noreferrer">
-                            <Video className="h-4 w-4 text-green-500 mx-auto hover:text-green-400" />
-                          </a>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td data-label="Ações">
-                        <div className="flex gap-1 justify-end">
-                          <Button variant="ghost" size="icon" onClick={() => openView(e)} className="hover:bg-muted">
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="hover:bg-muted">
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)} className="hover:bg-muted">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </td>
+                      </div>
+                      {getDifficultyBadge(e.difficulty)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div><span className="text-muted-foreground">Bloco:</span> {e.block?.code || '-'}</div>
+                      <div><span className="text-muted-foreground">Prescrição:</span> {e.defaultSets ? `${e.defaultSets}x${e.defaultReps || ''}` : '-'}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openView(e)} className="flex-1">
+                        <Eye className="h-4 w-4 mr-1" /> Ver
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
+                <table className="responsive-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Bloco</th>
+                      <th>Tipo</th>
+                      <th>Grupo</th>
+                      <th>Prescrição</th>
+                      <th>Nível</th>
+                      <th>Vídeo</th>
+                      <th>Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {exercises.map((e) => (
+                      <tr key={e.id}>
+                        <td data-label="Nome">
+                          <div className="flex items-center gap-2">
+                            {e.isLocked && <Lock className="h-3 w-3 text-amber-500" />}
+                            <span className="font-medium text-foreground">{e.name}</span>
+                          </div>
+                          {e.orderInBlock && (
+                            <span className="text-xs text-muted-foreground">#{e.orderInBlock}</span>
+                          )}
+                        </td>
+                        <td data-label="Bloco">{getBlockBadge(e.block)}</td>
+                        <td data-label="Tipo" className="text-muted-foreground">{e.type || '-'}</td>
+                        <td data-label="Grupo" className="text-muted-foreground">{e.muscleGroup || '-'}</td>
+                        <td data-label="Prescrição">
+                          {e.defaultSets || e.defaultReps ? (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {e.defaultSets && `${e.defaultSets}x`}
+                              {e.defaultReps}
+                              {e.defaultRest && ` (${e.defaultRest})`}
+                            </span>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                        <td data-label="Nível">{getDifficultyBadge(e.difficulty)}</td>
+                        <td data-label="Vídeo">
+                          {e.videoUrl ? (
+                            <a href={e.videoUrl} target="_blank" rel="noopener noreferrer">
+                              <Video className="h-4 w-4 text-green-500 mx-auto hover:text-green-400" />
+                            </a>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                        <td data-label="Ações">
+                          <div className="flex gap-1 justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => openView(e)} className="hover:bg-muted">
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="hover:bg-muted">
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)} className="hover:bg-muted">
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
           
           {/* Pagination */}

@@ -37,8 +37,11 @@ import {
   Calendar,
   Pencil,
   Plus,
+  MessageCircle,
+  Award,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
+import { ClientEvolution } from '@/components/clients/client-evolution'
 
 interface Assessment {
   id: string
@@ -61,6 +64,7 @@ interface Client {
   phone: string | null
   objectives: string | null
   history: string | null
+  goal: string | null
   isActive: boolean
   createdAt: string
   trainerId: string | null
@@ -187,7 +191,7 @@ export default function ClientDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{client.name}</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-[200px] sm:max-w-none">{client.name}</h1>
             <p className="text-sm text-gray-500">
               Cliente desde {formatDate(client.createdAt)}
               {client.trainer && (
@@ -203,90 +207,12 @@ export default function ClientDetailPage() {
         </div>
         <div className="flex gap-2">
           {canEdit && (
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <form onSubmit={handleUpdate}>
-                  <DialogHeader>
-                    <DialogTitle>Editar Cliente</DialogTitle>
-                    <DialogDescription>
-                      Atualize as informações do cliente
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="objectives">Objetivos</Label>
-                    <Input
-                      id="objectives"
-                      value={formData.objectives}
-                      onChange={(e) =>
-                        setFormData({ ...formData, objectives: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="history">Histórico</Label>
-                    <Input
-                      id="history"
-                      value={formData.history}
-                      onChange={(e) =>
-                        setFormData({ ...formData, history: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? 'Salvando...' : 'Salvar'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <Link href={`/clients/${client.id}/edit`}>
+              <Button variant="outline">
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            </Link>
           )}
           <Link href={`/assessments/new?clientId=${client.id}`}>
             <Button className="bg-amber-500 hover:bg-amber-600 text-black">
@@ -314,6 +240,35 @@ export default function ClientDetailPage() {
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-muted-foreground" />
               <span>{client.phone || 'Não informado'}</span>
+              {client.phone && (
+                <a
+                  href={`https://wa.me/55${client.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto"
+                >
+                  <Button size="sm" variant="outline" className="gap-2">
+                    <MessageCircle className="h-4 w-4 text-green-500" />
+                    WhatsApp
+                  </Button>
+                </a>
+              )}
+            </div>
+            <Separator />
+            <div>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Award className="h-4 w-4" />
+                Meta Principal
+              </div>
+              <p className="mt-1">
+                {client.goal === 'HYPERTROPHY' && 'Hipertrofia'}
+                {client.goal === 'STRENGTH' && 'Força'}
+                {client.goal === 'CONDITIONING' && 'Condicionamento'}
+                {client.goal === 'WEIGHT_LOSS' && 'Emagrecimento'}
+                {client.goal === 'REHABILITATION' && 'Reabilitação'}
+                {client.goal === 'PERFORMANCE' && 'Performance'}
+                {!client.goal && 'Não definida'}
+              </p>
             </div>
             <Separator />
             <div>
@@ -423,6 +378,9 @@ export default function ClientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Evolução do Cliente */}
+      <ClientEvolution clientId={client.id} />
 
       {/* Workouts */}
       <Card>

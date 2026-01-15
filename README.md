@@ -297,12 +297,15 @@ Client {
 - SuperAdmin dashboard
 - Sistema de auditoria
 - Auto-atualização de dados do cliente
+- **Sistema de evolução de clientes** (Jan 2026)
+- **Gestão aprimorada de treinos** (Jan 2026)
+- **Edição full-screen de clientes** (Jan 2026)
+- **Indicadores visuais de evolução** (Jan 2026)
 
 ### 🔄 Em Desenvolvimento
 - Sistema completo de aulas coletivas
 - Agenda de treinos
 - Check-in de alunos
-- Relatórios de evolução
 
 ### 📋 Backlog
 - App mobile para alunos

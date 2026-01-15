@@ -359,6 +359,7 @@ model Workout {
   updatedAt    DateTime  @updatedAt @map("updated_at")
   client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   studio       Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  lessons      Lesson[]  // Aulas derivadas deste treino
 
   @@index([clientId])
   @@index([studioId])
@@ -404,27 +405,41 @@ model AuditLog {
 }
 
 model Lesson {
-  id        String         @id @default(cuid())
-  studioId  String         @map("studio_id")
-  trainerId String         @map("trainer_id")
-  type      LessonType     @default(INDIVIDUAL)
-  photoUrl  String?        @map("photo_url")
-  photoKey  String?        @map("photo_key")
-  startedAt DateTime       @default(now()) @map("started_at")
-  endedAt   DateTime?      @map("ended_at")
-  duration  Int?
-  notes     String?
-  status    LessonStatus   @default(STARTED)
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  clients   LessonClient[]
-  studio    Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  trainer   User           @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  id              String         @id @default(cuid())
+  studioId        String         @map("studio_id")
+  trainerId       String         @map("trainer_id")
+  type            LessonType     @default(INDIVIDUAL)
+  photoUrl        String?        @map("photo_url")
+  photoKey        String?        @map("photo_key")
+  
+  // Campos de data/hora - OBRIGATÓRIOS para rastreamento
+  date            DateTime       @map("lesson_date") @db.Date // Data da aula (YYYY-MM-DD)
+  startedAt       DateTime       @default(now()) @map("started_at") // DateTime completo de início
+  endedAt         DateTime?      @map("ended_at") // DateTime completo de término
+  duration        Int?           // Duração em minutos (calculada automaticamente)
+  
+  // Campos do cronograma - derivados do treino ativo
+  workoutId       String?        @map("workout_id") // Treino de origem
+  weekIndex       Int?           @map("week_index") // Semana do cronograma (1-4)
+  dayIndex        Int?           @map("day_index") // Dia do cronograma (1-7)
+  focus           String?        // Foco principal do treino (PERNA, SUPERIOR, etc.)
+  
+  notes           String?
+  status          LessonStatus   @default(STARTED)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  
+  clients         LessonClient[]
+  studio          Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  trainer         User           @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  workout         Workout?       @relation(fields: [workoutId], references: [id], onDelete: SetNull)
 
   @@index([studioId])
   @@index([trainerId])
   @@index([startedAt])
   @@index([status])
+  @@index([date])
+  @@index([workoutId])
   @@map("lessons")
 }
 

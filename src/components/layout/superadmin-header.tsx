@@ -11,8 +11,10 @@ import {
 import { 
   ChevronDown, 
   LogOut, 
-  Shield
+  Shield,
+  Menu
 } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { getInitials } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -23,7 +25,11 @@ interface UserData {
   isSuperAdmin: boolean
 }
 
-export function SuperAdminHeader() {
+interface SuperAdminHeaderProps {
+  onMenuClick?: () => void
+}
+
+export function SuperAdminHeader({ onMenuClick }: SuperAdminHeaderProps = {}) {
   const router = useRouter()
   const [user, setUser] = useState<UserData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -55,7 +61,7 @@ export function SuperAdminHeader() {
 
   if (isLoading) {
     return (
-      <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
+      <header className="sticky top-0 z-50 h-16 border-b border-border bg-card px-6 flex items-center justify-between">
         <Skeleton className="h-6 w-32 bg-muted" />
         <Skeleton className="h-10 w-10 rounded-full bg-muted" />
       </header>
@@ -63,14 +69,21 @@ export function SuperAdminHeader() {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
-      {/* Left: Title */}
-      <div className="flex items-center gap-3">
-        <Badge className="bg-accent text-accent-foreground hover:bg-accent/90">
-          <Shield className="w-3 h-3 mr-1" />
-          SuperAdmin
-        </Badge>
-        <span className="text-muted-foreground text-sm">Painel de Controle</span>
+    <header className="sticky top-0 z-50 h-16 border-b border-border bg-card px-3 sm:px-4 md:px-6 flex items-center justify-between">
+      {/* Left: Menu Button (Mobile) */}
+      <div className="flex items-center gap-2 md:gap-3">
+        {/* Mobile Menu Button */}
+        {onMenuClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={onMenuClick}
+            aria-label="Abrir menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
       </div>
 
       {/* Right: User Menu */}

@@ -25,7 +25,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Blocks, Plus, Search, Pencil, Trash2, Lock, Shield, Heart, Target, Zap, ArrowUpRight, Eye } from 'lucide-react'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
 interface Block {
   id: string
@@ -354,30 +354,36 @@ export default function SuperAdminBlocksPage() {
       </Card>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-            <Blocks className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-foreground">{stats?.total || 0}</div></CardContent>
-        </Card>
-        {Object.entries(LEVEL_CONFIG).map(([level, config]) => {
-          const levelKeys = ['CONDICIONAMENTO', 'INICIANTE', 'INTERMEDIARIO', 'AVANCADO'] as const
-          const key = levelKeys[parseInt(level)]
-          const count = stats?.byLevel?.[key] ?? 0
-          const Icon = config.icon
-          return (
-            <Card key={level} className="bg-card border-border">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{config.label}</CardTitle>
-                <Icon className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-foreground">{count}</div></CardContent>
-            </Card>
-          )
-        })}
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total"
+          value={stats?.total || 0}
+          icon={<Blocks className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Condicion."
+          value={stats?.byLevel?.CONDICIONAMENTO ?? 0}
+          icon={<Heart className="h-4 w-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+        <StatsCard
+          title="Iniciante"
+          value={stats?.byLevel?.INICIANTE ?? 0}
+          icon={<Target className="h-4 w-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+        <StatsCard
+          title="Avançado"
+          value={stats?.byLevel?.AVANCADO ?? 0}
+          icon={<ArrowUpRight className="h-4 w-4" />}
+          iconColor="text-red-500"
+          iconBgColor="bg-red-500/10"
+        />
+      </StatsGrid>
 
       {/* Filters and Table */}
       <Card className="bg-card border-border">
@@ -408,62 +414,98 @@ export default function SuperAdminBlocksPage() {
               <h3 className="mt-4 text-lg font-medium text-foreground">Nenhum bloco encontrado</h3>
             </div>
           ) : (
-            <div className="responsive-table-wrapper">
-              <table className="responsive-table">
-                <thead>
-                  <tr>
-                    <th>Lock</th>
-                    <th>Código</th>
-                    <th>Nome</th>
-                    <th>Nível</th>
-                    <th>Capacidade</th>
-                    <th>Complexidade</th>
-                    <th>Impacto</th>
-                    <th>Risco</th>
-                    <th>Exercícios</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {blocks.map((b) => {
-                    const levelConfig = LEVEL_CONFIG[b.level]
-                    const riskConfig = RISK_CONFIG[b.riskLevel]
-                    return (
-                      <tr key={b.id}>
-                        <td data-label="Lock">
+            <>
+              {/* Mobile: Cards */}
+              <div className="md:hidden space-y-3">
+                {blocks.map((b) => {
+                  const levelConfig = LEVEL_CONFIG[b.level]
+                  const riskConfig = RISK_CONFIG[b.riskLevel]
+                  return (
+                    <div key={b.id} className="p-4 border rounded-lg bg-card">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
                           {b.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
-                        </td>
-                        <td data-label="Código" className="font-mono text-xs text-muted-foreground">{b.code}</td>
-                        <td data-label="Nome" className="font-medium text-foreground">{b.name}</td>
-                        <td data-label="Nível">
-                          <Badge className={levelConfig?.color}>{levelConfig?.label}</Badge>
-                        </td>
-                        <td data-label="Capacidade" className="text-muted-foreground">{CAPACITY_LABELS[b.primaryCapacity] || b.primaryCapacity}</td>
-                        <td data-label="Complexidade">{renderBar(b.complexity, 'bg-blue-500')}</td>
-                        <td data-label="Impacto">{renderBar(b.impact, 'bg-orange-500')}</td>
-                        <td data-label="Risco">
-                          <Badge className={riskConfig?.color}>{riskConfig?.label}</Badge>
-                        </td>
-                        <td data-label="Exercícios" className="text-muted-foreground">
-                          {Array.isArray(b.exercises) ? b.exercises.length : 0}
-                        </td>
-                        <td data-label="Ações">
-                        <Button variant="ghost" size="icon" onClick={() => openView(b)} className="hover:bg-muted">
-                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">{b.name}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{b.code}</div>
+                          </div>
+                        </div>
+                        <Badge className={levelConfig?.color}>{levelConfig?.label}</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div><span className="text-muted-foreground">Capacidade:</span> {CAPACITY_LABELS[b.primaryCapacity] || b.primaryCapacity}</div>
+                        <div><span className="text-muted-foreground">Exercícios:</span> {Array.isArray(b.exercises) ? b.exercises.length : 0}</div>
+                        <div><span className="text-muted-foreground">Risco:</span> <Badge className={`${riskConfig?.color} text-xs`}>{riskConfig?.label}</Badge></div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => openView(b)} className="flex-1">
+                          <Eye className="h-4 w-4 mr-1" /> Ver
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(b)} className="hover:bg-muted">
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(b.id, b.isLocked)} className="hover:bg-muted">
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </td>
-                    </tr>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(b)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(b.id, b.isLocked)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                      </div>
+                    </div>
                   )
                 })}
-              </tbody>
-            </table>
-            </div>
+              </div>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
+                <table className="responsive-table">
+                  <thead>
+                    <tr>
+                      <th>Lock</th>
+                      <th>Código</th>
+                      <th>Nome</th>
+                      <th>Nível</th>
+                      <th>Capacidade</th>
+                      <th>Complexidade</th>
+                      <th>Impacto</th>
+                      <th>Risco</th>
+                      <th>Exercícios</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blocks.map((b) => {
+                      const levelConfig = LEVEL_CONFIG[b.level]
+                      const riskConfig = RISK_CONFIG[b.riskLevel]
+                      return (
+                        <tr key={b.id}>
+                          <td data-label="Lock">
+                            {b.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
+                          </td>
+                          <td data-label="Código" className="font-mono text-xs text-muted-foreground">{b.code}</td>
+                          <td data-label="Nome" className="font-medium text-foreground">{b.name}</td>
+                          <td data-label="Nível">
+                            <Badge className={levelConfig?.color}>{levelConfig?.label}</Badge>
+                          </td>
+                          <td data-label="Capacidade" className="text-muted-foreground">{CAPACITY_LABELS[b.primaryCapacity] || b.primaryCapacity}</td>
+                          <td data-label="Complexidade">{renderBar(b.complexity, 'bg-blue-500')}</td>
+                          <td data-label="Impacto">{renderBar(b.impact, 'bg-orange-500')}</td>
+                          <td data-label="Risco">
+                            <Badge className={riskConfig?.color}>{riskConfig?.label}</Badge>
+                          </td>
+                          <td data-label="Exercícios" className="text-muted-foreground">
+                            {Array.isArray(b.exercises) ? b.exercises.length : 0}
+                          </td>
+                          <td data-label="Ações">
+                            <Button variant="ghost" size="icon" onClick={() => openView(b)} className="hover:bg-muted">
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(b)} className="hover:bg-muted">
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(b.id, b.isLocked)} className="hover:bg-muted">
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">

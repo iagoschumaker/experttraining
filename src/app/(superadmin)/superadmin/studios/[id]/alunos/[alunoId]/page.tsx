@@ -12,6 +12,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatsCard, StatsGrid } from '@/components/ui'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -221,7 +222,7 @@ export default function AlunoDetailsPage() {
         </Link>
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white">{data.client.name}</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-white truncate max-w-[180px] sm:max-w-none">{data.client.name}</h1>
             <Badge className={data.client.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
               {data.client.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
             </Badge>
@@ -233,89 +234,59 @@ export default function AlunoDetailsPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Trainer Atual</CardTitle>
-            <User className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold text-white">
-              {data.currentTrainer?.name || 'Não atribuído'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Avaliações</CardTitle>
-            <ClipboardCheck className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {data.metrics.completedAssessments}
-              <span className="text-sm text-gray-500 ml-1">/ {data.metrics.totalAssessments}</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">concluídas / total</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Treinos</CardTitle>
-            <Dumbbell className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {data.metrics.totalWorkouts}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">total criados</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Aulas (mês)</CardTitle>
-            <Calendar className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${data.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {data.metrics.lessonsThisMonth}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{data.metrics.weeklyAverage} por semana</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Nível Atual</CardTitle>
-            <TrendingUp className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {getLevelName(data.metrics.currentLevel)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Trainer Atual"
+          value={data.currentTrainer?.name || 'Não atribuído'}
+          icon={<User className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Avaliações"
+          value={data.metrics.completedAssessments}
+          subtitle={`/ ${data.metrics.totalAssessments} total`}
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Treinos"
+          value={data.metrics.totalWorkouts}
+          subtitle="total criados"
+          icon={<Dumbbell className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Aulas (mês)"
+          value={data.metrics.lessonsThisMonth}
+          subtitle={`${data.metrics.weeklyAverage}/semana`}
+          icon={<Calendar className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+      </StatsGrid>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-700 pb-2">
+      <div className="flex gap-1 sm:gap-2 border-b border-gray-700 pb-2 overflow-x-auto">
         {[
-          { id: 'overview', label: 'Visão Geral' },
-          { id: 'assessments', label: 'Avaliações', count: data.assessments.length },
-          { id: 'lessons', label: 'Aulas', count: data.lessons.length },
-          { id: 'workouts', label: 'Treinos', count: data.workouts.length },
+          { id: 'overview', label: 'Visão Geral', shortLabel: 'Geral' },
+          { id: 'assessments', label: 'Avaliações', shortLabel: 'Aval.', count: data.assessments.length },
+          { id: 'lessons', label: 'Aulas', shortLabel: 'Aulas', count: data.lessons.length },
+          { id: 'workouts', label: 'Treinos', shortLabel: 'Treinos', count: data.workouts.length },
         ].map((tab) => (
           <Button
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
             className={activeTab === tab.id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
+            size="sm"
           >
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden">{tab.shortLabel}</span>
             {tab.count !== undefined && (
-              <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-gray-700">
+              <span className="ml-1 px-1 py-0.5 rounded-full text-xs bg-gray-700">
                 {tab.count}
               </span>
             )}
@@ -379,33 +350,56 @@ export default function AlunoDetailsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-700">
-                      <TableHead className="text-gray-400">Data</TableHead>
-                      <TableHead className="text-gray-400">Peso (kg)</TableHead>
-                      <TableHead className="text-gray-400">% Gordura</TableHead>
-                      <TableHead className="text-gray-400">Cintura (cm)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.evolution.slice(0, 5).map((e, i) => (
-                      <TableRow key={i} className="border-gray-700">
-                        <TableCell className="text-white">{formatDate(e.date)}</TableCell>
-                        <TableCell className="text-gray-400">
-                          {e.weight || '-'}
-                          {i === 0 && weightDelta && (
-                            <span className={`ml-2 text-xs ${weightDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                              {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-gray-400">{e.bodyFat || '-'}</TableCell>
-                        <TableCell className="text-gray-400">{e.measurements?.waist || '-'}</TableCell>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
+                  {data.evolution.slice(0, 5).map((e, i) => (
+                    <div key={i} className="p-3 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-white font-medium">{formatDate(e.date)}</span>
+                        {i === 0 && weightDelta && (
+                          <span className={`text-xs ${weightDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)}kg
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div><span className="text-gray-400">Peso:</span> {e.weight || '-'}</div>
+                        <div><span className="text-gray-400">%G:</span> {e.bodyFat || '-'}</div>
+                        <div><span className="text-gray-400">Cintura:</span> {e.measurements?.waist || '-'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Data</TableHead>
+                        <TableHead className="text-gray-400">Peso (kg)</TableHead>
+                        <TableHead className="text-gray-400">% Gordura</TableHead>
+                        <TableHead className="text-gray-400">Cintura (cm)</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {data.evolution.slice(0, 5).map((e, i) => (
+                        <TableRow key={i} className="border-gray-700">
+                          <TableCell className="text-white">{formatDate(e.date)}</TableCell>
+                          <TableCell className="text-gray-400">
+                            {e.weight || '-'}
+                            {i === 0 && weightDelta && (
+                              <span className={`ml-2 text-xs ${weightDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-gray-400">{e.bodyFat || '-'}</TableCell>
+                          <TableCell className="text-gray-400">{e.measurements?.waist || '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -421,67 +415,95 @@ export default function AlunoDetailsPage() {
                 Nenhuma avaliação registrada
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Data Criação</TableHead>
-                    <TableHead className="text-gray-400">Data Conclusão</TableHead>
-                    <TableHead className="text-gray-400">Avaliador</TableHead>
-                    <TableHead className="text-gray-400">Nível</TableHead>
-                    <TableHead className="text-gray-400">Confiança</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
                   {data.assessments.map((assessment) => (
-                    <TableRow key={assessment.id} className="border-gray-700">
-                      <TableCell className="text-white">{formatDate(assessment.createdAt)}</TableCell>
-                      <TableCell className="text-gray-400">
-                        {assessment.completedAt ? formatDate(assessment.completedAt) : '-'}
-                      </TableCell>
-                      <TableCell className="text-gray-400">{assessment.assessor.name}</TableCell>
-                      <TableCell>
-                        {assessment.level ? (
-                          <Badge className="bg-amber-500">{getLevelName(assessment.level)}</Badge>
-                        ) : (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-gray-400">
-                        {assessment.confidence ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-green-500 h-2 rounded-full" 
-                                style={{ width: `${Math.round(assessment.confidence)}%` }}
-                              />
-                            </div>
-                            <span className="text-xs">{Math.round(assessment.confidence)}%</span>
-                          </div>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
+                    <div key={assessment.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="text-white font-medium">{formatDate(assessment.createdAt)}</div>
+                          <div className="text-xs text-gray-400">{assessment.assessor.name}</div>
+                        </div>
                         <Badge className={assessment.status === 'COMPLETED' ? 'bg-green-500' : 'bg-yellow-500'}>
-                          {assessment.status === 'COMPLETED' ? 'Concluída' : 'Em progresso'}
+                          {assessment.status === 'COMPLETED' ? 'Concluída' : 'Pendente'}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedAssessment(assessment)
-                            setShowAssessmentDialog(true)
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div><span className="text-gray-400">Nível:</span> {assessment.level ? getLevelName(assessment.level) : '-'}</div>
+                        <div><span className="text-gray-400">Confiança:</span> {assessment.confidence ? `${Math.round(assessment.confidence)}%` : '-'}</div>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => { setSelectedAssessment(assessment); setShowAssessmentDialog(true) }}>
+                        <Eye className="h-4 w-4 mr-1" /> Ver Detalhes
+                      </Button>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Data Criação</TableHead>
+                        <TableHead className="text-gray-400">Data Conclusão</TableHead>
+                        <TableHead className="text-gray-400">Avaliador</TableHead>
+                        <TableHead className="text-gray-400">Nível</TableHead>
+                        <TableHead className="text-gray-400">Confiança</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                        <TableHead className="text-gray-400">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.assessments.map((assessment) => (
+                        <TableRow key={assessment.id} className="border-gray-700">
+                          <TableCell className="text-white">{formatDate(assessment.createdAt)}</TableCell>
+                          <TableCell className="text-gray-400">
+                            {assessment.completedAt ? formatDate(assessment.completedAt) : '-'}
+                          </TableCell>
+                          <TableCell className="text-gray-400">{assessment.assessor.name}</TableCell>
+                          <TableCell>
+                            {assessment.level ? (
+                              <Badge className="bg-amber-500">{getLevelName(assessment.level)}</Badge>
+                            ) : (
+                              <span className="text-gray-500">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-gray-400">
+                            {assessment.confidence ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 bg-gray-700 rounded-full h-2">
+                                  <div 
+                                    className="bg-green-500 h-2 rounded-full" 
+                                    style={{ width: `${Math.round(assessment.confidence)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs">{Math.round(assessment.confidence)}%</span>
+                              </div>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={assessment.status === 'COMPLETED' ? 'bg-green-500' : 'bg-yellow-500'}>
+                              {assessment.status === 'COMPLETED' ? 'Concluída' : 'Em progresso'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedAssessment(assessment)
+                                setShowAssessmentDialog(true)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -496,44 +518,75 @@ export default function AlunoDetailsPage() {
                 Nenhuma aula registrada
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Data/Hora</TableHead>
-                    <TableHead className="text-gray-400">Trainer</TableHead>
-                    <TableHead className="text-gray-400">Tipo</TableHead>
-                    <TableHead className="text-gray-400">Duração</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
                   {data.lessons.map((lesson) => (
-                    <TableRow key={lesson.id} className="border-gray-700">
-                      <TableCell className="text-white">{formatDateTime(lesson.startedAt)}</TableCell>
-                      <TableCell className="text-gray-400">{lesson.trainer.name}</TableCell>
-                      <TableCell>
+                    <div key={lesson.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="text-white font-medium">{formatDateTime(lesson.startedAt)}</div>
+                          <div className="text-xs text-gray-400">{lesson.trainer.name}</div>
+                        </div>
                         <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
                           {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-400">{formatDuration(lesson.duration)}</TableCell>
-                      <TableCell>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">Duração: {formatDuration(lesson.duration)}</span>
                         {lesson.status === 'COMPLETED' ? (
-                          <span className="flex items-center gap-1 text-green-400">
-                            <CheckCircle className="h-4 w-4" /> Finalizada
-                          </span>
+                          <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="h-3 w-3" /> Finalizada</span>
                         ) : lesson.status === 'CANCELLED' ? (
-                          <span className="flex items-center gap-1 text-red-400">
-                            <XCircle className="h-4 w-4" /> Cancelada
-                          </span>
+                          <span className="flex items-center gap-1 text-red-400 text-xs"><XCircle className="h-3 w-3" /> Cancelada</span>
                         ) : (
-                          <span className="text-blue-400">Em andamento</span>
+                          <span className="text-blue-400 text-xs">Em andamento</span>
                         )}
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Data/Hora</TableHead>
+                        <TableHead className="text-gray-400">Trainer</TableHead>
+                        <TableHead className="text-gray-400">Tipo</TableHead>
+                        <TableHead className="text-gray-400">Duração</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.lessons.map((lesson) => (
+                        <TableRow key={lesson.id} className="border-gray-700">
+                          <TableCell className="text-white">{formatDateTime(lesson.startedAt)}</TableCell>
+                          <TableCell className="text-gray-400">{lesson.trainer.name}</TableCell>
+                          <TableCell>
+                            <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
+                              {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-400">{formatDuration(lesson.duration)}</TableCell>
+                          <TableCell>
+                            {lesson.status === 'COMPLETED' ? (
+                              <span className="flex items-center gap-1 text-green-400">
+                                <CheckCircle className="h-4 w-4" /> Finalizada
+                              </span>
+                            ) : lesson.status === 'CANCELLED' ? (
+                              <span className="flex items-center gap-1 text-red-400">
+                                <XCircle className="h-4 w-4" /> Cancelada
+                              </span>
+                            ) : (
+                              <span className="text-blue-400">Em andamento</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -549,78 +602,105 @@ export default function AlunoDetailsPage() {
                 Nenhum treino registrado
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Nome</TableHead>
-                    <TableHead className="text-gray-400">Blocos Utilizados</TableHead>
-                    <TableHead className="text-gray-400">Período</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Criado em</TableHead>
-                    <TableHead className="text-gray-400">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
                   {data.workouts.map((workout) => (
-                    <TableRow key={workout.id} className="border-gray-700">
-                      <TableCell>
-                        <div className="text-white font-medium">{workout.name || 'Sem nome'}</div>
-                        <div className="text-xs text-gray-500 mt-1">ID: {workout.id.slice(0, 8)}...</div>
-                      </TableCell>
-                      <TableCell className="text-gray-400">
-                        <div className="flex flex-wrap gap-1">
-                          {workout.blocksUsed.length > 0 ? (
-                            workout.blocksUsed.slice(0, 3).map((block, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {block}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-gray-500">Nenhum</span>
-                          )}
-                          {workout.blocksUsed.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{workout.blocksUsed.length - 3}
-                            </Badge>
-                          )}
+                    <div key={workout.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="text-white font-medium">{workout.name || 'Sem nome'}</div>
+                          <div className="text-xs text-gray-500">{formatDate(workout.createdAt)}</div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-gray-400">
-                        {workout.startDate && workout.endDate ? (
-                          <div className="text-sm">
-                            <div>{formatDate(workout.startDate)}</div>
-                            <div className="text-xs text-gray-500">até {formatDate(workout.endDate)}</div>
-                          </div>
-                        ) : workout.startDate ? (
-                          <span className="text-sm">A partir de {formatDate(workout.startDate)}</span>
-                        ) : (
-                          <span className="text-gray-500">Sem período definido</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
                         <Badge className={workout.isActive ? 'bg-green-500' : 'bg-gray-500'}>
                           {workout.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-400">
-                        <div className="text-sm">{formatDate(workout.createdAt)}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedWorkout(workout)
-                            setShowWorkoutDialog(true)
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      <div className="text-sm text-gray-400 mb-3">
+                        {workout.blocksUsed.length > 0 ? `${workout.blocksUsed.length} blocos` : 'Nenhum bloco'}
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => { setSelectedWorkout(workout); setShowWorkoutDialog(true) }}>
+                        <Eye className="h-4 w-4 mr-1" /> Ver Detalhes
+                      </Button>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Nome</TableHead>
+                        <TableHead className="text-gray-400">Blocos Utilizados</TableHead>
+                        <TableHead className="text-gray-400">Período</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                        <TableHead className="text-gray-400">Criado em</TableHead>
+                        <TableHead className="text-gray-400">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.workouts.map((workout) => (
+                        <TableRow key={workout.id} className="border-gray-700">
+                          <TableCell>
+                            <div className="text-white font-medium">{workout.name || 'Sem nome'}</div>
+                            <div className="text-xs text-gray-500 mt-1">ID: {workout.id.slice(0, 8)}...</div>
+                          </TableCell>
+                          <TableCell className="text-gray-400">
+                            <div className="flex flex-wrap gap-1">
+                              {workout.blocksUsed.length > 0 ? (
+                                workout.blocksUsed.slice(0, 3).map((block, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {block}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-gray-500">Nenhum</span>
+                              )}
+                              {workout.blocksUsed.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{workout.blocksUsed.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-gray-400">
+                            {workout.startDate && workout.endDate ? (
+                              <div className="text-sm">
+                                <div>{formatDate(workout.startDate)}</div>
+                                <div className="text-xs text-gray-500">até {formatDate(workout.endDate)}</div>
+                              </div>
+                            ) : workout.startDate ? (
+                              <span className="text-sm">A partir de {formatDate(workout.startDate)}</span>
+                            ) : (
+                              <span className="text-gray-500">Sem período definido</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={workout.isActive ? 'bg-green-500' : 'bg-gray-500'}>
+                              {workout.isActive ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-400">
+                            <div className="text-sm">{formatDate(workout.createdAt)}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedWorkout(workout)
+                                setShowWorkoutDialog(true)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

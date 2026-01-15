@@ -28,7 +28,7 @@ import {
   AlertCircle, Plus, Search, Pencil, Trash2, Lock, Eye,
   ChevronLeft, ChevronRight, Settings, CheckCircle, XCircle, Code
 } from 'lucide-react'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
 // ============================================================================
 // TYPES
@@ -492,48 +492,36 @@ export default function SuperAdminRulesPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Regras
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Regras Ativas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-500">{stats.active}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Regras Protegidas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-500">{stats.locked}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Prioridade Média
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.avgPriority}</div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsGrid columns={4}>
+          <StatsCard
+            title="Total Regras"
+            value={stats.total}
+            icon={<Code className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBgColor="bg-amber-500/10"
+          />
+          <StatsCard
+            title="Ativas"
+            value={stats.active}
+            icon={<CheckCircle className="h-4 w-4" />}
+            iconColor="text-green-500"
+            iconBgColor="bg-green-500/10"
+          />
+          <StatsCard
+            title="Protegidas"
+            value={stats.locked}
+            icon={<Lock className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBgColor="bg-amber-500/10"
+          />
+          <StatsCard
+            title="Prio. Média"
+            value={stats.avgPriority}
+            icon={<Settings className="h-4 w-4" />}
+            iconColor="text-blue-500"
+            iconBgColor="bg-blue-500/10"
+          />
+        </StatsGrid>
       )}
 
       {/* Filters */}
@@ -591,7 +579,42 @@ export default function SuperAdminRulesPage() {
             </div>
           ) : (
             <>
-              <div className="responsive-table-wrapper">
+              {/* Mobile: Cards */}
+              <div className="md:hidden space-y-3">
+                {rules.map((rule) => (
+                  <div key={rule.id} className="p-4 border rounded-lg bg-card">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {rule.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
+                        <div>
+                          <div className="font-medium">{rule.name}</div>
+                          <div className="text-xs text-muted-foreground">{rule.description || '-'}</div>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => handleToggleActive(rule.id, rule.isActive)}>
+                        {rule.isActive ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-muted-foreground" />}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div><span className="text-muted-foreground">Prioridade:</span> {rule.priority}</div>
+                      <div><span className="text-muted-foreground">Condições:</span> {rule.conditionJson.conditions?.length || 0}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openViewDialog(rule)} className="flex-1">
+                        <Eye className="h-4 w-4 mr-1" /> Ver
+                      </Button>
+                      {!rule.isLocked && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(rule)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(rule.id, rule.isLocked)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
                 <table className="responsive-table">
                   <thead>
                     <tr>

@@ -12,6 +12,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatsCard, StatsGrid } from '@/components/ui'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -161,7 +162,7 @@ export default function TrainerDetailsPage() {
         </Link>
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white">{data.trainer.name}</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-white truncate max-w-[180px] sm:max-w-none">{data.trainer.name}</h1>
             <Badge className={data.trainer.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
               {data.trainer.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
             </Badge>
@@ -176,56 +177,40 @@ export default function TrainerDetailsPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Alunos</CardTitle>
-            <Users className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {data.metrics.activeClients}
-              <span className="text-sm text-gray-500 ml-1">/ {data.metrics.totalClients}</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">ativos / total</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Aulas (mês)</CardTitle>
-            <Calendar className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${data.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {data.metrics.lessonsThisMonth}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{data.metrics.lessonsThisWeek} esta semana</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Média Semanal</CardTitle>
-            <TrendingUp className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{data.metrics.weeklyAverage}</div>
-            <p className="text-xs text-gray-500 mt-1">aulas por semana</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Avaliações (mês)</CardTitle>
-            <ClipboardCheck className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{data.metrics.assessmentsThisMonth}</div>
-            <p className="text-xs text-gray-500 mt-1">{data.metrics.totalAssessments} total</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Alunos"
+          value={data.metrics.activeClients}
+          subtitle={`/ ${data.metrics.totalClients} total`}
+          icon={<Users className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Aulas (mês)"
+          value={data.metrics.lessonsThisMonth}
+          subtitle={`${data.metrics.lessonsThisWeek} esta semana`}
+          icon={<Calendar className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Média Semanal"
+          value={data.metrics.weeklyAverage}
+          subtitle="aulas/semana"
+          icon={<TrendingUp className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Avaliações (mês)"
+          value={data.metrics.assessmentsThisMonth}
+          subtitle={`${data.metrics.totalAssessments} total`}
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+      </StatsGrid>
 
       {/* Activity Summary */}
       <Card className="bg-gray-800 border-gray-700">
@@ -272,28 +257,49 @@ export default function TrainerDetailsPage() {
                 Nenhum aluno atribuído a este trainer
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Nome</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Cadastrado em</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
                   {data.clients.map((client) => (
-                    <TableRow key={client.id} className="border-gray-700">
-                      <TableCell className="font-medium text-white">{client.name}</TableCell>
-                      <TableCell>
+                    <div key={client.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-white">{client.name}</div>
+                          <div className="text-xs text-gray-400">{formatDate(client.createdAt)}</div>
+                        </div>
                         <Badge className={client.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
                           {client.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-400">{formatDate(client.createdAt)}</TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Nome</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                        <TableHead className="text-gray-400">Cadastrado em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.clients.map((client) => (
+                        <TableRow key={client.id} className="border-gray-700">
+                          <TableCell className="font-medium text-white">{client.name}</TableCell>
+                          <TableCell>
+                            <Badge className={client.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
+                              {client.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-400">{formatDate(client.createdAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -308,46 +314,77 @@ export default function TrainerDetailsPage() {
                 Nenhuma aula registrada
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Data/Hora</TableHead>
-                    <TableHead className="text-gray-400">Tipo</TableHead>
-                    <TableHead className="text-gray-400">Alunos</TableHead>
-                    <TableHead className="text-gray-400">Duração</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
                   {data.lessons.map((lesson) => (
-                    <TableRow key={lesson.id} className="border-gray-700">
-                      <TableCell className="text-white">{formatDateTime(lesson.startedAt)}</TableCell>
-                      <TableCell>
+                    <div key={lesson.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="text-white font-medium">{formatDateTime(lesson.startedAt)}</div>
+                          <div className="text-xs text-gray-400">{lesson.clients.map((c) => c.client.name).join(', ')}</div>
+                        </div>
                         <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
                           {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-400">
-                        {lesson.clients.map((c) => c.client.name).join(', ')}
-                      </TableCell>
-                      <TableCell className="text-gray-400">{formatDuration(lesson.duration)}</TableCell>
-                      <TableCell>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">Duração: {formatDuration(lesson.duration)}</span>
                         {lesson.status === 'COMPLETED' ? (
-                          <span className="flex items-center gap-1 text-green-400">
-                            <CheckCircle className="h-4 w-4" /> Finalizada
-                          </span>
+                          <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="h-3 w-3" /> Finalizada</span>
                         ) : lesson.status === 'CANCELLED' ? (
-                          <span className="flex items-center gap-1 text-red-400">
-                            <XCircle className="h-4 w-4" /> Cancelada
-                          </span>
+                          <span className="flex items-center gap-1 text-red-400 text-xs"><XCircle className="h-3 w-3" /> Cancelada</span>
                         ) : (
-                          <span className="text-blue-400">Em andamento</span>
+                          <span className="text-blue-400 text-xs">Em andamento</span>
                         )}
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Data/Hora</TableHead>
+                        <TableHead className="text-gray-400">Tipo</TableHead>
+                        <TableHead className="text-gray-400">Alunos</TableHead>
+                        <TableHead className="text-gray-400">Duração</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.lessons.map((lesson) => (
+                        <TableRow key={lesson.id} className="border-gray-700">
+                          <TableCell className="text-white">{formatDateTime(lesson.startedAt)}</TableCell>
+                          <TableCell>
+                            <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
+                              {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-400">
+                            {lesson.clients.map((c) => c.client.name).join(', ')}
+                          </TableCell>
+                          <TableCell className="text-gray-400">{formatDuration(lesson.duration)}</TableCell>
+                          <TableCell>
+                            {lesson.status === 'COMPLETED' ? (
+                              <span className="flex items-center gap-1 text-green-400">
+                                <CheckCircle className="h-4 w-4" /> Finalizada
+                              </span>
+                            ) : lesson.status === 'CANCELLED' ? (
+                              <span className="flex items-center gap-1 text-red-400">
+                                <XCircle className="h-4 w-4" /> Cancelada
+                              </span>
+                            ) : (
+                              <span className="text-blue-400">Em andamento</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -362,30 +399,51 @@ export default function TrainerDetailsPage() {
                 Nenhuma avaliação realizada
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Data</TableHead>
-                    <TableHead className="text-gray-400">Aluno</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Concluída em</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile: Cards */}
+                <div className="md:hidden space-y-3">
                   {data.assessments.map((assessment) => (
-                    <TableRow key={assessment.id} className="border-gray-700">
-                      <TableCell className="text-white">{formatDate(assessment.createdAt)}</TableCell>
-                      <TableCell className="text-gray-400">{assessment.client.name}</TableCell>
-                      <TableCell>
+                    <div key={assessment.id} className="p-4 border border-gray-700 rounded-lg bg-gray-900">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="text-white font-medium">{formatDate(assessment.createdAt)}</div>
+                          <div className="text-xs text-gray-400">{assessment.client.name}</div>
+                        </div>
                         <Badge className={assessment.status === 'COMPLETED' ? 'bg-green-500' : 'bg-yellow-500'}>
-                          {assessment.status === 'COMPLETED' ? 'Concluída' : 'Em progresso'}
+                          {assessment.status === 'COMPLETED' ? 'Concluída' : 'Pendente'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-400">{formatDate(assessment.completedAt)}</TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-400">Data</TableHead>
+                        <TableHead className="text-gray-400">Aluno</TableHead>
+                        <TableHead className="text-gray-400">Status</TableHead>
+                        <TableHead className="text-gray-400">Concluída em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.assessments.map((assessment) => (
+                        <TableRow key={assessment.id} className="border-gray-700">
+                          <TableCell className="text-white">{formatDate(assessment.createdAt)}</TableCell>
+                          <TableCell className="text-gray-400">{assessment.client.name}</TableCell>
+                          <TableCell>
+                            <Badge className={assessment.status === 'COMPLETED' ? 'bg-green-500' : 'bg-yellow-500'}>
+                              {assessment.status === 'COMPLETED' ? 'Concluída' : 'Em progresso'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-400">{formatDate(assessment.completedAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

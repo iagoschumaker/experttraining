@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FloatingActionButton } from '@/components/ui'
-import { Dumbbell, Plus, Search, Eye, FileText } from 'lucide-react'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
+import { Dumbbell, Plus, Search, Eye, FileText, Download, Trash2 } from 'lucide-react'
 
 interface Workout {
   id: string
@@ -44,6 +44,7 @@ export default function WorkoutsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const fetchWorkouts = async () => {
     setLoading(true)
@@ -82,6 +83,34 @@ export default function WorkoutsPage() {
     })
   }
 
+  const handleDelete = async (workoutId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este treino? Esta ação não pode ser desfeita.')) return
+    
+    setDeleting(workoutId)
+    try {
+      const res = await fetch(`/api/studio/workouts/${workoutId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        // Recarregar a lista de treinos
+        await fetchWorkouts()
+      } else {
+        alert(data.error || 'Erro ao excluir treino')
+      }
+    } catch (error) {
+      console.error('Error deleting workout:', error)
+      alert('Erro ao excluir treino')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const handleDownloadPDF = (workoutId: string) => {
+    window.open(`/workouts/${workoutId}`, '_blank')
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -99,45 +128,29 @@ export default function WorkoutsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Treinos
-            </CardTitle>
-            <Dumbbell className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Com Avaliação
-            </CardTitle>
-            <FileText className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {workouts.filter(w => w.assessment?.completedAt).length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pendentes
-            </CardTitle>
-            <FileText className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {workouts.filter(w => !w.assessment?.completedAt).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={3}>
+        <StatsCard
+          title="Total de Treinos"
+          value={total}
+          icon={<Dumbbell className="h-4 w-4" />}
+          iconColor="text-amber-500"
+          iconBgColor="bg-amber-500/10"
+        />
+        <StatsCard
+          title="Com Avaliação"
+          value={workouts.filter(w => w.assessment?.completedAt).length}
+          icon={<FileText className="h-4 w-4" />}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-500/10"
+        />
+        <StatsCard
+          title="Pendentes"
+          value={workouts.filter(w => !w.assessment?.completedAt).length}
+          icon={<FileText className="h-4 w-4" />}
+          iconColor="text-orange-500"
+          iconBgColor="bg-orange-500/10"
+        />
+      </StatsGrid>
 
       <Card>
         <CardHeader>
@@ -204,11 +217,28 @@ export default function WorkoutsPage() {
                           Pendente
                         </span>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(workout.id)}
+                        title="Baixar PDF"
+                      >
+                        <Download className="h-4 w-4 text-amber-500" />
+                      </Button>
                       <Link href={`/workouts/${workout.id}`}>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" title="Visualizar">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(workout.id)}
+                        disabled={deleting === workout.id}
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                     </div>
                   </div>
                 </div>

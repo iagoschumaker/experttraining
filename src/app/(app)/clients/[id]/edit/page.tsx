@@ -38,6 +38,7 @@ export default function EditClientPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>>([])
   
   function formatDate(value: string) {
     // Remove tudo que não é número
@@ -104,6 +105,7 @@ export default function EditClientPage() {
     weight: '',
     notes: '',
     goal: '',
+    trainerId: '',
     // Medidas corporais
     chest: '',
     waist: '',
@@ -113,15 +115,20 @@ export default function EditClientPage() {
     calf: '',
   })
 
-  // Fetch client data
+  // Fetch client data and trainers
   useEffect(() => {
-    const fetchClient = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/clients/${clientId}`)
-        const data = await res.json()
+        const [clientRes, trainersRes] = await Promise.all([
+          fetch(`/api/clients/${clientId}`),
+          fetch('/api/studio/users')
+        ])
+        
+        const clientData = await clientRes.json()
+        const trainersData = await trainersRes.json()
 
-        if (data.success) {
-          const client = data.data
+        if (clientData.success) {
+          const client = clientData.data
           setFormData({
             name: client.name || '',
             email: client.email || '',
@@ -134,6 +141,7 @@ export default function EditClientPage() {
             weight: client.weight ? String(client.weight) : '',
             notes: client.notes || '',
             goal: client.goal || '',
+            trainerId: client.trainerId || '',
             chest: client.chest ? String(client.chest) : '',
             waist: client.waist ? String(client.waist) : '',
             hip: client.hip ? String(client.hip) : '',
@@ -145,14 +153,18 @@ export default function EditClientPage() {
           alert('Cliente não encontrado')
           router.push('/clients')
         }
+
+        if (trainersData.success) {
+          setTrainers(trainersData.data?.items || [])
+        }
       } catch (error) {
-        console.error('Error fetching client:', error)
-        alert('Erro ao carregar cliente')
+        console.error('Error fetching data:', error)
+        alert('Erro ao carregar dados')
       } finally {
         setLoading(false)
       }
     }
-    fetchClient()
+    fetchData()
   }, [clientId, router])
 
   // Update client
@@ -170,6 +182,7 @@ export default function EditClientPage() {
         history: formData.history || null,
         notes: formData.notes || null,
         goal: formData.goal || null,
+        trainerId: formData.trainerId || null,
       }
 
       if (formData.birthDate) {
@@ -330,6 +343,24 @@ export default function EditClientPage() {
                     <option value="M" className="bg-background text-foreground">Masculino</option>
                     <option value="F" className="bg-background text-foreground">Feminino</option>
                     <option value="O" className="bg-background text-foreground">Outro</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="trainerId">Personal Responsável</Label>
+                  <select
+                    id="trainerId"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={formData.trainerId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, trainerId: e.target.value })
+                    }
+                  >
+                    <option value="" className="bg-background text-foreground">Nenhum</option>
+                    {trainers.map((trainer) => (
+                      <option key={trainer.userId} value={trainer.userId} className="bg-background text-foreground">
+                        {trainer.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

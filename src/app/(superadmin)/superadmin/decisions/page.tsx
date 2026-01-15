@@ -30,7 +30,7 @@ import {
   Pause, BarChart3, Target, Zap, AlertTriangle, CheckCircle, 
   Eye, RefreshCw, Download, Upload, FileText, Cpu
 } from 'lucide-react'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
 // ============================================================================
 // TYPES
@@ -419,85 +419,53 @@ export default function SuperAdminDecisionsPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Motores
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEngines}</div>
-              <div className="text-xs text-green-400">{stats.activeEngines} ativos</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Algoritmos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalAlgorithms}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Decisões/Dia
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{stats.dailyDecisions}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Confiança Média
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">{(stats.avgConfidence * 100).toFixed(1)}%</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Tempo Médio
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{stats.avgProcessingTime}ms</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Sucesso
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-400">{(stats.successRate * 100).toFixed(1)}%</div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsGrid columns={4}>
+          <StatsCard
+            title="Motores"
+            value={stats.totalEngines}
+            subtitle={`${stats.activeEngines} ativos`}
+            icon={<Cpu className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBgColor="bg-amber-500/10"
+          />
+          <StatsCard
+            title="Algoritmos"
+            value={stats.totalAlgorithms}
+            icon={<Brain className="h-4 w-4" />}
+            iconColor="text-blue-500"
+            iconBgColor="bg-blue-500/10"
+          />
+          <StatsCard
+            title="Confiança Média"
+            value={`${(stats.avgConfidence * 100).toFixed(0)}%`}
+            icon={<Target className="h-4 w-4" />}
+            iconColor="text-green-500"
+            iconBgColor="bg-green-500/10"
+          />
+          <StatsCard
+            title="Sucesso"
+            value={`${(stats.successRate * 100).toFixed(0)}%`}
+            icon={<CheckCircle className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBgColor="bg-amber-500/10"
+          />
+        </StatsGrid>
       )}
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="engines" className="flex items-center gap-2">
-            <Cpu className="h-4 w-4" />
-            Motores
+          <TabsTrigger value="engines" className="flex items-center justify-center gap-1 px-2">
+            <Cpu className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Motores</span>
           </TabsTrigger>
-          <TabsTrigger value="algorithms" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            Algoritmos
+          <TabsTrigger value="algorithms" className="flex items-center justify-center gap-1 px-2">
+            <Brain className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Algoritmos</span>
           </TabsTrigger>
-          <TabsTrigger value="logs" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Logs
+          <TabsTrigger value="logs" className="flex items-center justify-center gap-1 px-2">
+            <FileText className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Logs</span>
           </TabsTrigger>
         </TabsList>
 

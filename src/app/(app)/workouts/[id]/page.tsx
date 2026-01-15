@@ -26,7 +26,7 @@ import {
   Pause,
   CheckCircle,
   Trash2,
-  Printer,
+  Download,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -63,6 +63,13 @@ interface Workout {
     confidence: number
   } | null
   blocks: Block[]
+  studio?: {
+    name: string
+    logoUrl: string | null
+    phone: string | null
+    email: string | null
+    address: string | null
+  }
 }
 
 export default function WorkoutDetailPage({ params }: { params: { id: string } }) {
@@ -144,6 +151,166 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
     }
   }
 
+  // ========================================================================
+  // FUNÇÃO DE DOWNLOAD PDF - ULTRA COMPACTO (4 SEMANAS EM 1 PÁGINA A4)
+  // ========================================================================
+  function handleDownloadPDF() {
+    if (!workout || !schedule) return
+
+    const freq = workout.weeklyFrequency || 3
+
+    // Gerar linha de exercício compacta
+    const exRow = (ex: any) => {
+      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'
+      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'f' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'p' : 'c'
+      return `<div class="ex"><span class="${cls}">${label}</span>${ex.name}<em>${ex.sets}×${ex.reps}</em></div>`
+    }
+
+    // Gerar preparação compacta
+    const genPrep = (prep: any) => {
+      if (!prep?.exercises || prep.exercises.length === 0) {
+        return '<div class="prep">PREPARAÇÃO (12 min)</div>'
+      }
+      return `
+        <div class="prep">
+          <div class="prep-title">PREP (${prep.totalTime || '12 min'})</div>
+          ${prep.exercises.slice(0, 4).map((ex: any) => 
+            `<div class="prep-ex">${ex.name} ${ex.sets || '2'}×${ex.reps || ex.duration || '10'}</div>`
+          ).join('')}
+        </div>
+      `
+    }
+
+    // Gerar protocolo final compacto
+    const genProtocol = (protocol: any) => {
+      if (!protocol) return '<div class="prot">PROTOCOLO (6 min)</div>'
+      return `
+        <div class="prot">
+          <div class="prot-title">${protocol.name || 'PROTOCOLO'} (${protocol.totalTime || '6 min'})</div>
+          ${protocol.exercises?.slice(0, 3).map((ex: any) => 
+            `<div class="prot-ex">${ex.name} ${ex.duration || '40s'}</div>`
+          ).join('') || ''}
+        </div>
+      `
+    }
+
+    // Gerar sessão compacta
+    const genSession = (s: any) => `
+      <td class="day">
+        <div class="dh">D${s.session}</div>
+        ${genPrep(s.preparation)}
+        ${s.blocks.map((b: any, i: number) => `
+          <div class="bl">
+            <div class="bh">B${i + 1}</div>
+            ${b.exercises?.map((e: any) => exRow(e)).join('') || ''}
+          </div>
+        `).join('')}
+        ${genProtocol(s.finalProtocol)}
+      </td>
+    `
+
+    // Gerar semana compacta
+    const genWeek = (w: any) => `
+      <tr class="week-row">
+        <td class="wk">S${w.week}</td>
+        ${w.sessions.map((s: any) => genSession(s)).join('')}
+      </tr>
+    `
+
+    const studioName = workout.studio?.name || 'Studio'
+    const studioLogo = workout.studio?.logoUrl || ''
+    const studioPhone = workout.studio?.phone || ''
+    const studioEmail = workout.studio?.email || ''
+    const studioAddress = workout.studio?.address || ''
+    
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Treino ${workout.client.name}</title>
+<style>
+@page{size:A4 portrait;margin:8mm}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Arial,sans-serif;font-size:5.5pt;line-height:1.15}
+body{display:flex;flex-direction:column;min-height:100vh}
+.content{flex:1}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:2px solid #f59e0b;margin-bottom:4px}
+.hdr-left{display:flex;align-items:center;gap:8px}
+.hdr-logo{max-width:50px;max-height:50px;object-fit:contain}
+.hdr-info h1{font-size:11pt;color:#333;margin:0;font-weight:bold}
+.hdr-info p{font-size:5pt;color:#666;margin:1px 0}
+.hdr-right{text-align:right;font-size:5pt;color:#666}
+.info{display:flex;justify-content:space-between;font-size:5.5pt;padding:3px 6px;background:#f5f5f5;margin-bottom:4px;border-radius:2px}
+table{width:100%;border-collapse:collapse}
+.wk{width:22px;background:#f59e0b;color:#fff;font-weight:bold;font-size:6.5pt;text-align:center;vertical-align:top;padding:3px 1px}
+.day{border:1px solid #ccc;vertical-align:top;padding:2px;width:${Math.floor(95/freq)}%}
+.dh{background:#333;color:#fff;text-align:center;font-size:5.5pt;font-weight:bold;padding:2px;margin-bottom:2px;border-radius:1px}
+.prep{background:#fff8e1;border:1px solid #ffe082;border-radius:1px;padding:2px;margin-bottom:2px}
+.prep-title{font-size:5pt;font-weight:bold;color:#f57c00;margin-bottom:1px}
+.prep-ex{font-size:4.5pt;color:#666;padding:0 2px}
+.bl{border:1px solid #90caf9;margin-bottom:2px;background:#f8fbff;border-radius:1px}
+.bh{background:#1976d2;color:#fff;font-size:5pt;padding:1px 3px;font-weight:bold}
+.ex{display:flex;align-items:center;font-size:5pt;padding:1px 2px;border-bottom:1px solid #e8f4fd}
+.ex:last-child{border:none}
+.ex span{width:9px;height:9px;display:inline-flex;align-items:center;justify-content:center;font-size:4.5pt;font-weight:bold;margin-right:3px;border-radius:1px;flex-shrink:0}
+.ex em{margin-left:auto;font-style:normal;color:#666;font-size:4.5pt;white-space:nowrap;padding-left:2px}
+.f{background:#fff3e0;color:#e65100}
+.p{background:#f3e5f5;color:#7b1fa2}
+.c{background:#e8f5e9;color:#2e7d32}
+.prot{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:1px;padding:2px;margin-top:2px}
+.prot-title{font-size:5pt;font-weight:bold;color:#2e7d32;margin-bottom:1px}
+.prot-ex{font-size:4.5pt;color:#666;padding:0 2px}
+.week-row{page-break-inside:avoid}
+.footer-wrapper{margin-top:auto}
+.client-info{display:flex;justify-content:space-between;padding:4px 8px;background:#f9f9f9;border-top:1px solid #ddd;font-size:5.5pt}
+.ft{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:4.5pt;color:#999;padding:3px 0;border-top:1px solid #ddd}
+.ft-logo{max-width:20px;max-height:20px;object-fit:contain;opacity:0.6}
+</style></head><body>
+<div class="content">
+<div class="hdr">
+  <div class="hdr-left">
+    ${studioLogo ? `<img src="${studioLogo}" class="hdr-logo" alt="Logo">` : ''}
+    <div class="hdr-info">
+      <h1>${studioName}</h1>
+      ${studioPhone ? `<p>Tel: ${studioPhone}</p>` : ''}
+      ${studioEmail ? `<p>${studioEmail}</p>` : ''}
+    </div>
+  </div>
+  <div class="hdr-right">
+    ${studioAddress ? `<p>${studioAddress}</p>` : ''}
+    <p><b>Data:</b> ${new Date(workout.createdAt).toLocaleDateString('pt-BR')}</p>
+  </div>
+</div>
+<div class="info">
+<span><b>Freq:</b> ${freq}x/sem</span>
+<span><b>Duração:</b> ${workout.phaseDuration} sem</span>
+<span><b>Foco:</b> ${schedule.mainFocus || 'PERNA'}</span>
+</div>
+<table>
+<thead><tr><th></th>${Array.from({length: freq}, (_, i) => `<th style="font-size:5.5pt;background:#eee;padding:2px">DIA ${i+1}</th>`).join('')}</tr></thead>
+<tbody>
+${schedule.weeks?.map((w: any) => genWeek(w)).join('') || ''}
+</tbody>
+</table>
+</div>
+<div class="footer-wrapper">
+<div class="client-info">
+  <div><b>Aluno:</b> ${workout.client.name} | <b>Email:</b> ${workout.client.email}</div>
+  <div><b>Treinador:</b> ${workout.creator.name}</div>
+</div>
+<div class="ft">
+  ${studioLogo ? `<img src="${studioLogo}" class="ft-logo" alt="Logo">` : ''}
+  <span>Expert Training System | F=Foco | P=Push/Pull | C=Core</span>
+</div>
+</div>
+</body></html>`
+
+    // Abrir em nova janela para impressão/download
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(htmlContent)
+      printWindow.document.close()
+      setTimeout(() => printWindow.print(), 300)
+    }
+  }
+
   function getStatusBadge(status: string) {
     const variants: Record<string, any> = {
       ACTIVE: { variant: 'default', label: 'Ativo', icon: Play },
@@ -181,7 +348,47 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
     )
   }
 
-  const schedule = workout.scheduleJson as any
+  const rawSchedule = workout.scheduleJson as any
+
+  // Função de fallback para gerar preparação quando não existe
+  const generatePreparationFallback = (focus: string) => {
+    const focusLabel = focus?.includes('LOWER') ? 'membros inferiores' : 
+                       focus?.includes('UPPER') ? 'membros superiores' : 'geral'
+    return {
+      title: 'Preparação do Movimento',
+      totalTime: '12 minutos',
+      exercises: [
+        { name: `Mobilidade articular (${focusLabel})`, duration: '3 min' },
+        { name: 'Ativação de core e estabilizadores', duration: '3 min' },
+        { name: 'Estabilidade articular', duration: '3 min' },
+        { name: 'Ativação neuromuscular progressiva', duration: '3 min' },
+      ],
+    }
+  }
+
+  // Função de fallback para gerar protocolo final quando não existe
+  const generateFinalProtocolFallback = (focus: string, phase: string) => {
+    if (focus?.includes('CONDITIONING') || focus?.includes('CARDIO')) {
+      return { name: 'Protocolo Metabólico', totalTime: '8 minutos', structure: '30s trabalho / 30s descanso × 8 rounds' }
+    }
+    if (phase === 'PEAK') {
+      return { name: 'HIIT Intensivo', totalTime: '6 minutos', structure: '20s máximo / 40s recuperação × 6 rounds' }
+    }
+    return { name: 'Protocolo Regenerativo', totalTime: '6 minutos', structure: 'Respiração + alongamento ativo' }
+  }
+
+  // Enriquecer schedule com fallbacks para treinos antigos
+  const schedule = rawSchedule ? {
+    ...rawSchedule,
+    weeks: rawSchedule.weeks?.map((week: any) => ({
+      ...week,
+      sessions: week.sessions?.map((session: any) => ({
+        ...session,
+        preparation: session.preparation || generatePreparationFallback(session.focus),
+        finalProtocol: session.finalProtocol || generateFinalProtocolFallback(session.focus, week.phase),
+      })),
+    })),
+  } : null
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -207,11 +414,11 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
             <Button
               variant="default"
               size="sm"
-              onClick={() => window.print()}
+              onClick={handleDownloadPDF}
               className="bg-amber-500 hover:bg-amber-600 text-white"
             >
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir PDF
+              <Download className="w-4 h-4 mr-2" />
+              Download PDF
             </Button>
             {getStatusBadge(workout.status)}
           </div>
@@ -356,27 +563,137 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
           <CardHeader>
             <CardTitle>Cronograma</CardTitle>
             <CardDescription>
-              Visualização das {schedule.weeks.length} semanas do programa
+              {schedule.weeks.length} semanas • {schedule.weeklyFrequency || 3} sessões por semana
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-8">
               {schedule.weeks.slice(0, 4).map((week: any) => (
-                <div key={week.week} className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3">Semana {week.week}</h4>
-                  <div className="grid gap-2">
+                <div key={week.week} className="space-y-4">
+                  {/* Cabeçalho da Semana */}
+                  <div className="flex items-center gap-3 pb-3 border-b-2 border-primary/20">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary font-bold text-lg">
+                      {week.week}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-lg">Semana {week.week}</h4>
+                      {week.phaseLabel && (
+                        <span className="text-xs text-muted-foreground">
+                          Fase: {week.phaseLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Grid de Dias - Responsivo sem scroll */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {week.sessions.map((session: any) => (
-                      <div key={session.session} className="flex items-center gap-3 text-sm">
-                        <Badge variant="outline" className="w-20">
-                          Dia {session.session}
-                        </Badge>
-                        <div className="flex-1">
-                          {session.blocks.map((b: any, idx: number) => (
-                            <span key={idx} className="text-muted-foreground">
-                              {b.blockName}
-                              {idx < session.blocks.length - 1 && ' • '}
+                      <div key={session.session} className="border-2 border-border rounded-xl overflow-hidden bg-card hover:border-primary/50 transition-colors">
+                        {/* Header do Dia */}
+                        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground font-bold text-sm">
+                                {session.session}
+                              </div>
+                              <span className="font-semibold">Dia {session.session}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {session.estimatedDuration} min
                             </span>
-                          ))}
+                          </div>
+                        </div>
+
+                        {/* Conteúdo do Dia */}
+                        <div className="p-4 space-y-3">
+                        
+                          {/* Preparação do Movimento */}
+                          {session.preparation && (
+                            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                  Preparação
+                                </span>
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">
+                                  {session.preparation.totalTime}
+                                </span>
+                              </div>
+                              <div className="space-y-0.5">
+                                {session.preparation.exercises?.slice(0, 4).map((ex: any, idx: number) => (
+                                  <div key={idx} className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                    <span className="truncate flex-1">{ex.name}</span>
+                                    <span className="shrink-0 ml-1 font-mono">
+                                      {ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration}
+                                    </span>
+                                  </div>
+                                ))}
+                                {session.preparation.exercises?.length > 4 && (
+                                  <span className="text-[9px] text-muted-foreground">
+                                    +{session.preparation.exercises.length - 4} mais
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Blocos de Treino - Compacto */}
+                          <div className="space-y-2">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                              Blocos
+                            </span>
+                            {session.blocks.map((b: any, idx: number) => (
+                              <div key={idx} className="p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-xs font-semibold text-foreground">
+                                    {b.name || `Bloco ${idx + 1}`}
+                                  </span>
+                                  <span className="text-[10px] text-blue-500 font-mono">
+                                    {b.restAfterBlock}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  {b.exercises?.map((ex: any, exIdx: number) => (
+                                    <div key={exIdx} className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
+                                          ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
+                                          ex.role === 'PUSH_PULL_INTEGRADO' ? 'bg-purple-500/20 text-purple-500' :
+                                          'bg-green-500/20 text-green-600'
+                                        }`}>
+                                          {ex.role === 'FOCO_PRINCIPAL' ? 'F' : 
+                                           ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'}
+                                        </span>
+                                        <span className="truncate font-medium">{ex.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 ml-2">
+                                        {ex.sets && ex.reps && <span>{ex.sets}×{ex.reps}</span>}
+                                        <span className="text-amber-500 font-mono">{ex.rest}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Protocolo Final */}
+                          {session.finalProtocol && (
+                            <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                  {session.finalProtocol.name}
+                                </span>
+                                <span className="text-[10px] text-green-600 dark:text-green-400 font-mono">
+                                  {session.finalProtocol.totalTime}
+                                </span>
+                              </div>
+                              {session.finalProtocol.structure && (
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {session.finalProtocol.structure}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ResponsiveTable, FloatingActionButton } from '@/components/ui'
+import { ResponsiveTable, FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 import {
   Table,
   TableBody,
@@ -148,17 +148,15 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total de Alunos"
+          value={total}
+          icon={<Users className="h-4 w-4" />}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-500/10"
+        />
+      </StatsGrid>
 
       {/* Search and filters */}
       <Card>
@@ -199,7 +197,43 @@ export default function ClientsPage() {
             </div>
           ) : (
             <>
-              <div className="responsive-table-wrapper">
+              {/* Mobile: Cards */}
+              <div className="md:hidden space-y-3">
+                {clients.map((client) => (
+                  <div key={client.id} className="p-4 border rounded-lg bg-card">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="font-medium">{client.name}</div>
+                        <div className="text-xs text-muted-foreground">{client.email || client.phone || '-'}</div>
+                      </div>
+                      <Badge variant={client.isActive ? 'default' : 'secondary'}>
+                        {client.isActive ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div><span className="text-muted-foreground">Personal:</span> {client.trainer?.name || '-'}</div>
+                      <div><span className="text-muted-foreground">Avaliações:</span> {client._count?.assessments || 0}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/clients/${client.id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Eye className="h-4 w-4 mr-1" /> Ver
+                        </Button>
+                      </Link>
+                      <Link href={`/assessments/new?clientId=${client.id}`}>
+                        <Button variant="ghost" size="icon"><ClipboardCheck className="h-4 w-4" /></Button>
+                      </Link>
+                      {canEdit(client) && (
+                        <Link href={`/clients/${client.id}/edit`}>
+                          <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
                 <table className="responsive-table">
                   <thead>
                     <tr>
@@ -211,83 +245,83 @@ export default function ClientsPage() {
                       <th>Ações</th>
                     </tr>
                   </thead>
-                <tbody>
-                  {clients.map((client) => (
-                    <tr key={client.id}>
-                      <td data-label="Nome" className="font-medium">
-                        <div>
-                          {client.name}
-                          <span className="block text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
-                            {client.objectives || '-'}
-                          </span>
-                        </div>
-                      </td>
-                      <td data-label="Contato">
-                        <div className="text-sm">
-                          {client.email && <div>{client.email}</div>}
-                          {client.phone && (
-                            <div className="text-muted-foreground">{client.phone}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Personal">
-                        <div className="text-sm">
-                          {client.trainer?.name || (
-                            <span className="text-muted-foreground">Não atribuído</span>
-                          )}
-                          {client.trainerId === user?.id && (
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              Você
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Avaliações">
-                        {client._count?.assessments || 0}
-                      </td>
-                      <td data-label="Status">
-                        <Badge
-                          variant={client.isActive ? 'default' : 'secondary'}
-                        >
-                          {client.isActive ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      </td>
-                      <td data-label="Ações">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link href={`/clients/${client.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Ver detalhes">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Link href={`/assessments/new?clientId=${client.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Nova avaliação">
-                              <ClipboardCheck className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          {canEdit(client) && (
-                            <Link href={`/clients/${client.id}/edit`}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Editar">
-                                <Pencil className="h-4 w-4" />
+                  <tbody>
+                    {clients.map((client) => (
+                      <tr key={client.id}>
+                        <td data-label="Nome" className="font-medium">
+                          <div>
+                            {client.name}
+                            <span className="block text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
+                              {client.objectives || '-'}
+                            </span>
+                          </div>
+                        </td>
+                        <td data-label="Contato">
+                          <div className="text-sm">
+                            {client.email && <div>{client.email}</div>}
+                            {client.phone && (
+                              <div className="text-muted-foreground">{client.phone}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td data-label="Personal">
+                          <div className="text-sm">
+                            {client.trainer?.name || (
+                              <span className="text-muted-foreground">Não atribuído</span>
+                            )}
+                            {client.trainerId === user?.id && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                Você
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td data-label="Avaliações">
+                          {client._count?.assessments || 0}
+                        </td>
+                        <td data-label="Status">
+                          <Badge
+                            variant={client.isActive ? 'default' : 'secondary'}
+                          >
+                            {client.isActive ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </td>
+                        <td data-label="Ações">
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/clients/${client.id}`}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Ver detalhes">
+                                <Eye className="w-4 h-4" />
                               </Button>
                             </Link>
-                          )}
-                          {canDelete && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              title="Excluir"
-                              onClick={() => handleDelete(client.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            <Link href={`/assessments/new?clientId=${client.id}`}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Nova avaliação">
+                                <ClipboardCheck className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            {canEdit(client) && (
+                              <Link href={`/clients/${client.id}/edit`}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Editar">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                title="Excluir"
+                                onClick={() => handleDelete(client.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {/* Pagination */}

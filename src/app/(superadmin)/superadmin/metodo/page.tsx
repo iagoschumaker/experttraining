@@ -31,7 +31,7 @@ import {
   Pencil, Trash2, Lock, Eye, CheckCircle, XCircle, Activity,
   Zap, Target, FileText, AlertTriangle, Settings, BarChart3
 } from 'lucide-react'
-import { FloatingActionButton } from '@/components/ui'
+import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 import {
   translateLevel,
   translateRisk,
@@ -361,25 +361,25 @@ export default function SuperAdminMetodoPage() {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="hierarchy" className="flex items-center gap-2">
+          <TabsTrigger value="hierarchy" className="flex items-center justify-center gap-1 px-2">
             <Pyramid className="h-4 w-4" />
-            Hierarquia
+            <span className="hidden sm:inline text-xs">Hier.</span>
           </TabsTrigger>
-          <TabsTrigger value="decisions" className="flex items-center gap-2">
+          <TabsTrigger value="decisions" className="flex items-center justify-center gap-1 px-2">
             <Brain className="h-4 w-4" />
-            Motor
+            <span className="hidden sm:inline text-xs">Motor</span>
           </TabsTrigger>
-          <TabsTrigger value="blocks" className="flex items-center gap-2">
+          <TabsTrigger value="blocks" className="flex items-center justify-center gap-1 px-2">
             <Boxes className="h-4 w-4" />
-            Blocos
+            <span className="hidden sm:inline text-xs">Blocos</span>
           </TabsTrigger>
-          <TabsTrigger value="exercises" className="flex items-center gap-2">
+          <TabsTrigger value="exercises" className="flex items-center justify-center gap-1 px-2">
             <Dumbbell className="h-4 w-4" />
-            Exercícios
+            <span className="hidden sm:inline text-xs">Exerc.</span>
           </TabsTrigger>
-          <TabsTrigger value="rules" className="flex items-center gap-2">
+          <TabsTrigger value="rules" className="flex items-center justify-center gap-1 px-2">
             <GitBranch className="h-4 w-4" />
-            Regras
+            <span className="hidden sm:inline text-xs">Regras</span>
           </TabsTrigger>
         </TabsList>
 
@@ -577,40 +577,36 @@ export default function SuperAdminMetodoPage() {
 
                   {/* Stats */}
                   {decisionData?.stats && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-2xl font-bold text-blue-400">
-                            {decisionData.stats.dailyDecisions}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Decisões/Dia</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-2xl font-bold text-green-400">
-                            {(decisionData.stats.avgConfidence * 100).toFixed(1)}%
-                          </div>
-                          <div className="text-xs text-muted-foreground">Confiança Média</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-2xl font-bold text-purple-400">
-                            {decisionData.stats.avgProcessingTime}ms
-                          </div>
-                          <div className="text-xs text-muted-foreground">Tempo Médio</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-2xl font-bold text-amber-400">
-                            {(decisionData.stats.successRate * 100).toFixed(1)}%
-                          </div>
-                          <div className="text-xs text-muted-foreground">Taxa de Sucesso</div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                    <StatsGrid columns={4}>
+                      <StatsCard
+                        title="Decisões/Dia"
+                        value={decisionData.stats.dailyDecisions}
+                        icon={<BarChart3 className="h-4 w-4" />}
+                        iconColor="text-blue-500"
+                        iconBgColor="bg-blue-500/10"
+                      />
+                      <StatsCard
+                        title="Confiança"
+                        value={`${(decisionData.stats.avgConfidence * 100).toFixed(0)}%`}
+                        icon={<Target className="h-4 w-4" />}
+                        iconColor="text-green-500"
+                        iconBgColor="bg-green-500/10"
+                      />
+                      <StatsCard
+                        title="Tempo Médio"
+                        value={`${decisionData.stats.avgProcessingTime}ms`}
+                        icon={<Activity className="h-4 w-4" />}
+                        iconColor="text-purple-500"
+                        iconBgColor="bg-purple-500/10"
+                      />
+                      <StatsCard
+                        title="Sucesso"
+                        value={`${(decisionData.stats.successRate * 100).toFixed(0)}%`}
+                        icon={<CheckCircle className="h-4 w-4" />}
+                        iconColor="text-amber-500"
+                        iconBgColor="bg-amber-500/10"
+                      />
+                    </StatsGrid>
                   )}
                 </div>
               )}
@@ -622,20 +618,17 @@ export default function SuperAdminMetodoPage() {
         <TabsContent value="blocks" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="space-y-3">
                 <CardTitle className="flex items-center gap-2">
                   <Boxes className="h-5 w-5 text-amber-400" />
-                  Blocos do Método
+                  Blocos
                 </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Buscar blocos..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-64"
-                  />
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </div>
+                <Input
+                  placeholder="Buscar blocos..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full"
+                />
               </div>
             </CardHeader>
             <CardContent>
@@ -655,11 +648,11 @@ export default function SuperAdminMetodoPage() {
                       <div key={block.id} className="p-4 border rounded-lg bg-card">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Badge className="bg-amber-500/20 text-amber-400 font-mono">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <Badge className="bg-amber-500/20 text-amber-400 font-mono text-xs">
                                 {block.code}
                               </Badge>
-                              <h3 className="font-semibold">{block.name}</h3>
+                              <h3 className="font-semibold text-sm">{block.name}</h3>
                               {block.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
                               <Badge className="bg-blue-500/20 text-blue-400">
                                 {translateLevel(block.level)}
@@ -709,26 +702,26 @@ export default function SuperAdminMetodoPage() {
         <TabsContent value="exercises" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Dumbbell className="h-5 w-5 text-green-400" />
-                  Biblioteca de Exercícios
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Buscar exercícios..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-64"
-                  />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Dumbbell className="h-5 w-5 text-green-400" />
+                    Exercícios
+                  </CardTitle>
                   <Button 
                     onClick={() => { resetExerciseForm(); setIsCreateExerciseOpen(true); }}
                     className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    size="sm"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Exercício
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+                <Input
+                  placeholder="Buscar exercícios..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full"
+                />
               </div>
             </CardHeader>
             <CardContent>
@@ -738,7 +731,7 @@ export default function SuperAdminMetodoPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {exercises
+                  {Array.isArray(exercises) && exercises
                     .filter(ex => 
                       search === '' || 
                       ex.name.toLowerCase().includes(search.toLowerCase())
@@ -747,8 +740,8 @@ export default function SuperAdminMetodoPage() {
                       <div key={exercise.id} className="p-4 border rounded-lg bg-card">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold">{exercise.name}</h3>
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-sm">{exercise.name}</h3>
                               {exercise.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
                               {exercise.block && (
                                 <Badge variant="outline" className="text-xs">

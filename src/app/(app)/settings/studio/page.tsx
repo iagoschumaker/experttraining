@@ -286,22 +286,22 @@ export default function StudioSettingsPage() {
       )}
 
       <Tabs defaultValue="info" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="info">
-            <Building2 className="w-4 h-4 mr-2" />
-            Informações
+        <TabsList className="grid w-full grid-cols-4 bg-card">
+          <TabsTrigger value="info" className="flex items-center justify-center gap-1 px-2">
+            <Building2 className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Info</span>
           </TabsTrigger>
-          <TabsTrigger value="visual">
-            <ImageIcon className="w-4 h-4 mr-2" />
-            Identidade Visual
+          <TabsTrigger value="visual" className="flex items-center justify-center gap-1 px-2">
+            <ImageIcon className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Visual</span>
           </TabsTrigger>
-          <TabsTrigger value="security">
-            <Shield className="w-4 h-4 mr-2" />
-            Segurança
+          <TabsTrigger value="security" className="flex items-center justify-center gap-1 px-2">
+            <Shield className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Segurança</span>
           </TabsTrigger>
-          <TabsTrigger value="plan">
-            <CreditCard className="w-4 h-4 mr-2" />
-            Plano
+          <TabsTrigger value="plan" className="flex items-center justify-center gap-1 px-2">
+            <CreditCard className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline text-xs">Plano</span>
           </TabsTrigger>
         </TabsList>
 

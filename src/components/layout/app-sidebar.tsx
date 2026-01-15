@@ -51,11 +51,13 @@ const sidebarLinks: SidebarLink[] = [
     label: 'Treinos',
     icon: <Dumbbell className="w-5 h-5" />,
   },
-  {
-    href: '/lessons',
-    label: 'Aulas',
-    icon: <Calendar className="w-5 h-5" />,
-  },
+  // DEPRECATED: Aulas removidas do Método Expert Training
+  // O sistema agora é controlado por Avaliações e Cronogramas
+  // {
+  //   href: '/lessons',
+  //   label: 'Aulas',
+  //   icon: <Calendar className="w-5 h-5" />,
+  // },
   {
     href: '/team',
     label: 'Equipe',
@@ -64,11 +66,19 @@ const sidebarLinks: SidebarLink[] = [
   },
 ]
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  isMobileOpen?: boolean
+  onMobileOpenChange?: (open: boolean) => void
+}
+
+export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChange }: AppSidebarProps = {}) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
+  
+  const isMobileOpen = externalMobileOpen ?? internalMobileOpen
+  const setIsMobileOpen = onMobileOpenChange ?? setInternalMobileOpen
 
   // Buscar role do usuário
   useEffect(() => {
@@ -97,19 +107,6 @@ export function AppSidebar() {
           onClick={() => setIsMobileOpen(false)}
         />
       )}
-      
-      {/* Mobile menu button */}
-      {!isMobileOpen && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed top-4 left-4 z-50 md:hidden bg-card border border-border shadow-lg hover:bg-muted rounded-lg transition-all duration-200"
-          onClick={() => setIsMobileOpen(true)}
-          aria-label="Abrir menu"
-        >
-          <Menu className="w-5 h-5 text-foreground" />
-        </Button>
-      )}
 
       <aside
         className={cn(
@@ -123,7 +120,7 @@ export function AppSidebar() {
         )}
       >
       {/* Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-border relative z-50">
+      <div className="flex items-center justify-between h-16 px-4 relative z-50">
         {!isCollapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
@@ -156,52 +153,52 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-col h-[calc(100vh-4rem)]">
-        <div className="p-2 space-y-1 flex-1">
-          {sidebarLinks
-            .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
-            .map((link) => {
-            const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
-            
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-amber-500 text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
-                )}
-                title={isCollapsed ? link.label : undefined}
-                onClick={() => setIsMobileOpen(false)}
-              >
-                {link.icon}
-                {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
-              </Link>
-            )
-          })}
-        </div>
-
-        {/* Settings at bottom */}
-        <div className="p-2 border-t border-border">
+      <nav className="p-2 space-y-1">
+        {sidebarLinks
+          .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
+          .map((link) => {
+          const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+          
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
+                isActive
+                  ? 'bg-amber-500 text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
+              )}
+              style={{ transition: 'none' }}
+              title={isCollapsed ? link.label : undefined}
+              onClick={() => setIsMobileOpen(false)}
+            >
+              {link.icon}
+              {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
+            </Link>
+          )
+        })}
+        
+        {/* Settings */}
+        {userRole === 'STUDIO_ADMIN' && (
           <Link
             href="/settings/studio"
             className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
               pathname === '/settings/studio' || pathname.startsWith('/settings/studio/')
                 ? 'bg-amber-500 text-accent-foreground'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
             )}
+            style={{ transition: 'none' }}
             title={isCollapsed ? 'Configurações' : undefined}
             onClick={() => setIsMobileOpen(false)}
           >
             <Settings className="w-5 h-5" />
             {(!isCollapsed || isMobileOpen) && <span className="font-medium">Configurações</span>}
           </Link>
-        </div>
+        )}
       </nav>
     </aside>
     </>

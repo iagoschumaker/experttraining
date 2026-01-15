@@ -19,7 +19,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 // Validation schema
 const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().trim().toLowerCase().email('Email inválido'),
   password: z.string().min(1, 'Senha é obrigatória'),
 })
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
       include: {
         studios: {
           where: { isActive: true },
