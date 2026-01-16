@@ -17,7 +17,7 @@ import { z } from 'zod'
 const generateWorkoutSchema = z.object({
   assessmentId: z.string().cuid(),
   weeklyFrequency: z.number().min(1).max(7),
-  phaseDuration: z.number().min(1).max(52).default(4),
+  phaseDuration: z.number().min(1).max(4).default(4),
   notes: z.string().optional(),
 })
 

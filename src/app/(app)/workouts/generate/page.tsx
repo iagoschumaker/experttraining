@@ -395,14 +395,14 @@ function GenerateWorkoutPage() {
                 id="duration"
                 type="number"
                 min="1"
-                max="52"
+                max="4"
                 value={formData.phaseDuration}
                 onChange={(e) =>
-                  setFormData({ ...formData, phaseDuration: parseInt(e.target.value) })
+                  setFormData({ ...formData, phaseDuration: Math.min(4, parseInt(e.target.value)) })
                 }
               />
               <p className="text-sm text-muted-foreground">
-                Duração do ciclo de treino (1-52 semanas)
+                Duração do ciclo de treino (1-4 semanas)
               </p>
             </div>
           </div>

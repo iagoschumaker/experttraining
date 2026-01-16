@@ -13,7 +13,7 @@ import { COOKIES, ROUTES } from '@/lib/constants'
 // ROUTE PATTERNS
 // ============================================================================
 
-const PUBLIC_ROUTES = ['/login', '/api/auth/login', '/api/auth/refresh']
+const PUBLIC_ROUTES = ['/login', '/api/auth/login', '/api/auth/refresh', '/areaaluno', '/api/areaaluno']
 const SUPERADMIN_ROUTES = /^\/superadmin/
 const APP_ROUTES = /^\/app/
 const SELECT_STUDIO_ROUTE = '/select-studio'

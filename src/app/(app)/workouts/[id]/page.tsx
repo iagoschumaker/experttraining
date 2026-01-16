@@ -154,160 +154,237 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
   // ========================================================================
   // FUNÇÃO DE DOWNLOAD PDF - ULTRA COMPACTO (4 SEMANAS EM 1 PÁGINA A4)
   // ========================================================================
-  function handleDownloadPDF() {
+  async function handleDownloadPDF() {
     if (!workout || !schedule) return
 
     const freq = workout.weeklyFrequency || 3
-
-    // Gerar linha de exercício compacta
-    const exRow = (ex: any) => {
-      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'
-      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'f' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'p' : 'c'
-      return `<div class="ex"><span class="${cls}">${label}</span>${ex.name}<em>${ex.sets}×${ex.reps}</em></div>`
-    }
-
-    // Gerar preparação compacta
-    const genPrep = (prep: any) => {
-      if (!prep?.exercises || prep.exercises.length === 0) {
-        return '<div class="prep">PREPARAÇÃO (12 min)</div>'
-      }
-      return `
-        <div class="prep">
-          <div class="prep-title">PREP (${prep.totalTime || '12 min'})</div>
-          ${prep.exercises.slice(0, 4).map((ex: any) => 
-            `<div class="prep-ex">${ex.name} ${ex.sets || '2'}×${ex.reps || ex.duration || '10'}</div>`
-          ).join('')}
-        </div>
-      `
-    }
-
-    // Gerar protocolo final compacto
-    const genProtocol = (protocol: any) => {
-      if (!protocol) return '<div class="prot">PROTOCOLO (6 min)</div>'
-      return `
-        <div class="prot">
-          <div class="prot-title">${protocol.name || 'PROTOCOLO'} (${protocol.totalTime || '6 min'})</div>
-          ${protocol.exercises?.slice(0, 3).map((ex: any) => 
-            `<div class="prot-ex">${ex.name} ${ex.duration || '40s'}</div>`
-          ).join('') || ''}
-        </div>
-      `
-    }
-
-    // Gerar sessão compacta
-    const genSession = (s: any) => `
-      <td class="day">
-        <div class="dh">D${s.session}</div>
-        ${genPrep(s.preparation)}
-        ${s.blocks.map((b: any, i: number) => `
-          <div class="bl">
-            <div class="bh">B${i + 1}</div>
-            ${b.exercises?.map((e: any) => exRow(e)).join('') || ''}
-          </div>
-        `).join('')}
-        ${genProtocol(s.finalProtocol)}
-      </td>
-    `
-
-    // Gerar semana compacta
-    const genWeek = (w: any) => `
-      <tr class="week-row">
-        <td class="wk">S${w.week}</td>
-        ${w.sessions.map((s: any) => genSession(s)).join('')}
-      </tr>
-    `
-
     const studioName = workout.studio?.name || 'Studio'
     const studioLogo = workout.studio?.logoUrl || ''
     const studioPhone = workout.studio?.phone || ''
     const studioEmail = workout.studio?.email || ''
-    const studioAddress = workout.studio?.address || ''
+
+    // Converter logo para base64 (necessário para Puppeteer)
+    let logoBase64 = ''
+    if (studioLogo) {
+      try {
+        const response = await fetch(studioLogo)
+        const blob = await response.blob()
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(blob)
+        })
+      } catch (e) {
+        console.error('Erro ao converter logo:', e)
+      }
+    }
+
+    // Gerar linha de exercício (igual ao desktop)
+    const exRow = (ex: any) => {
+      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'
+      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'ex-p' : 'ex-c'
+      return `<div class="ex-row">
+        <span class="ex-badge ${cls}">${label}</span>
+        <span class="ex-name">${ex.name}</span>
+        <span class="ex-info">${ex.sets}×${ex.reps} <em>${ex.rest || ''}</em></span>
+      </div>`
+    }
+
+    // Gerar preparação (estilo desktop)
+    const genPrep = (prep: any) => {
+      if (!prep?.exercises || prep.exercises.length === 0) return ''
+      return `
+        <div class="prep-card">
+          <div class="prep-header">
+            <span>Preparação</span>
+            <span class="time">${prep.totalTime || '12 min'}</span>
+          </div>
+          <div class="prep-content">
+            ${prep.exercises.slice(0, 4).map((ex: any) => 
+              `<div class="prep-item">
+                <span>${ex.name}</span>
+                <span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span>
+              </div>`
+            ).join('')}
+          </div>
+        </div>
+      `
+    }
+
+    // Gerar bloco (estilo desktop)
+    const genBlock = (b: any, idx: number) => `
+      <div class="block-card">
+        <div class="block-header">
+          <span>${b.name || `Bloco ${idx + 1}`}</span>
+          <span class="time">${b.restAfterBlock || ''}</span>
+        </div>
+        <div class="block-content">
+          ${b.exercises?.map((e: any) => exRow(e)).join('') || ''}
+        </div>
+      </div>
+    `
+
+    // Gerar protocolo (estilo desktop)
+    const genProtocol = (protocol: any) => {
+      if (!protocol) return ''
+      return `
+        <div class="prot-card">
+          <div class="prot-header">
+            <span>${protocol.name || 'Protocolo'}</span>
+            <span class="time">${protocol.totalTime || '6 min'}</span>
+          </div>
+          ${protocol.structure ? `<div class="prot-structure">${protocol.structure}</div>` : ''}
+        </div>
+      `
+    }
+
+    // Gerar sessão/dia (card igual desktop)
+    const genSession = (s: any) => `
+      <div class="day-card">
+        <div class="day-header">
+          <div class="day-badge">${s.session}</div>
+          <span class="day-title">Dia ${s.session}</span>
+          <span class="day-duration">${s.estimatedDuration || 60} min</span>
+        </div>
+        <div class="day-content">
+          ${genPrep(s.preparation)}
+          <div class="blocks-label">Blocos</div>
+          ${s.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}
+          ${genProtocol(s.finalProtocol)}
+        </div>
+      </div>
+    `
+
+    // Gerar semana (layout grid 3 colunas)
+    const genWeek = (w: any) => `
+      <section class="week-section">
+        <div class="week-header">
+          <div class="week-badge">${w.week}</div>
+          <div class="week-info">
+            <h2>Semana ${w.week}</h2>
+            ${w.phaseLabel ? `<span class="phase-label">Fase: ${w.phaseLabel}</span>` : ''}
+          </div>
+        </div>
+        <div class="days-grid">
+          ${w.sessions.map((s: any) => genSession(s)).join('')}
+        </div>
+      </section>
+    `
     
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Treino ${workout.client.name}</title>
 <style>
-@page{size:A4 portrait;margin:8mm}
+@page{size:A4 portrait;margin:6mm}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:Arial,sans-serif;font-size:5.5pt;line-height:1.15}
-body{display:flex;flex-direction:column;min-height:100vh}
-.content{flex:1}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:2px solid #f59e0b;margin-bottom:4px}
-.hdr-left{display:flex;align-items:center;gap:8px}
-.hdr-logo{max-width:50px;max-height:50px;object-fit:contain}
-.hdr-info h1{font-size:11pt;color:#333;margin:0;font-weight:bold}
-.hdr-info p{font-size:5pt;color:#666;margin:1px 0}
-.hdr-right{text-align:right;font-size:5pt;color:#666}
-.info{display:flex;justify-content:space-between;font-size:5.5pt;padding:3px 6px;background:#f5f5f5;margin-bottom:4px;border-radius:2px}
-table{width:100%;border-collapse:collapse}
-.wk{width:22px;background:#f59e0b;color:#fff;font-weight:bold;font-size:6.5pt;text-align:center;vertical-align:top;padding:3px 1px}
-.day{border:1px solid #ccc;vertical-align:top;padding:2px;width:${Math.floor(95/freq)}%}
-.dh{background:#333;color:#fff;text-align:center;font-size:5.5pt;font-weight:bold;padding:2px;margin-bottom:2px;border-radius:1px}
-.prep{background:#fff8e1;border:1px solid #ffe082;border-radius:1px;padding:2px;margin-bottom:2px}
-.prep-title{font-size:5pt;font-weight:bold;color:#f57c00;margin-bottom:1px}
-.prep-ex{font-size:4.5pt;color:#666;padding:0 2px}
-.bl{border:1px solid #90caf9;margin-bottom:2px;background:#f8fbff;border-radius:1px}
-.bh{background:#1976d2;color:#fff;font-size:5pt;padding:1px 3px;font-weight:bold}
-.ex{display:flex;align-items:center;font-size:5pt;padding:1px 2px;border-bottom:1px solid #e8f4fd}
-.ex:last-child{border:none}
-.ex span{width:9px;height:9px;display:inline-flex;align-items:center;justify-content:center;font-size:4.5pt;font-weight:bold;margin-right:3px;border-radius:1px;flex-shrink:0}
-.ex em{margin-left:auto;font-style:normal;color:#666;font-size:4.5pt;white-space:nowrap;padding-left:2px}
-.f{background:#fff3e0;color:#e65100}
-.p{background:#f3e5f5;color:#7b1fa2}
-.c{background:#e8f5e9;color:#2e7d32}
-.prot{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:1px;padding:2px;margin-top:2px}
-.prot-title{font-size:5pt;font-weight:bold;color:#2e7d32;margin-bottom:1px}
-.prot-ex{font-size:4.5pt;color:#666;padding:0 2px}
-.week-row{page-break-inside:avoid}
-.footer-wrapper{margin-top:auto}
-.client-info{display:flex;justify-content:space-between;padding:4px 8px;background:#f9f9f9;border-top:1px solid #ddd;font-size:5.5pt}
-.ft{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:4.5pt;color:#999;padding:3px 0;border-top:1px solid #ddd}
-.ft-logo{max-width:20px;max-height:20px;object-fit:contain;opacity:0.6}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:6.5pt;color:#1a1a1a;line-height:1.15;background:#fff;transform:scale(0.82);transform-origin:top center}
+
+/* HEADER */
+.page-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:1.5mm;margin-bottom:2mm;border-bottom:1.5px solid #f59e0b}
+.header-left{display:flex;align-items:center;gap:2mm}
+.header-left img{height:10mm;max-width:25mm;object-fit:contain}
+.header-info h1{font-size:9pt;font-weight:700;color:#1a1a1a;margin-bottom:0.3mm}
+.header-info p{font-size:6.5pt;color:#666;margin:0;line-height:1.15}
+.header-right{text-align:right;font-size:6.5pt;color:#666}
+.header-right strong{color:#1a1a1a}
+
+/* WEEK SECTION */
+.week-section{margin-bottom:3mm}
+.week-header{display:flex;align-items:center;gap:1.5mm;padding-bottom:1mm;margin-bottom:1.5mm;border-bottom:1px solid #e5e5e5}
+.week-badge{width:7mm;height:7mm;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;font-size:8pt;display:flex;align-items:center;justify-content:center;border-radius:1.2mm}
+.week-info h2{font-size:8pt;font-weight:600;color:#1a1a1a;margin:0}
+.phase-label{font-size:5.5pt;color:#888}
+
+/* DAYS GRID - 3 colunas */
+.days-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5mm}
+
+/* DAY CARD */
+.day-card{border:1px solid #e5e5e5;border-radius:1.2mm;overflow:hidden;break-inside:avoid}
+.day-header{background:linear-gradient(135deg,#fef3c7,#fef9c3);padding:1.2mm;display:flex;align-items:center;gap:1.2mm;border-bottom:1px solid #fcd34d}
+.day-badge{width:4.5mm;height:4.5mm;background:#f59e0b;color:#fff;font-weight:700;font-size:6.5pt;display:flex;align-items:center;justify-content:center;border-radius:0.7mm}
+.day-title{font-weight:600;font-size:6.5pt;flex:1}
+.day-duration{font-size:4.5pt;color:#92400e;font-family:monospace}
+.day-content{padding:1.2mm}
+
+/* PREP CARD */
+.prep-card{background:#fffbeb;border:1px solid #fcd34d;border-radius:0.8mm;padding:0.8mm;margin-bottom:1.2mm}
+.prep-header{display:flex;justify-content:space-between;font-size:5.5pt;font-weight:600;color:#b45309;margin-bottom:0.4mm}
+.prep-header .time{font-family:monospace;font-weight:400}
+.prep-content{font-size:4.5pt;color:#78716c}
+.prep-item{display:flex;justify-content:space-between;padding:0.15mm 0}
+
+/* BLOCKS */
+.blocks-label{font-size:4.5pt;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.2px;margin:0.8mm 0 0.4mm}
+.block-card{background:#eff6ff;border:1px solid #93c5fd;border-radius:0.8mm;padding:0.8mm;margin-bottom:0.8mm}
+.block-header{display:flex;justify-content:space-between;font-size:5.5pt;font-weight:600;color:#1e40af;margin-bottom:0.4mm}
+.block-header .time{font-family:monospace;font-weight:400;color:#3b82f6}
+.block-content{background:#fff;border-radius:0.6mm;overflow:hidden}
+
+/* EXERCISE ROW */
+.ex-row{display:flex;align-items:center;padding:0.6mm;border-bottom:1px solid #e0f2fe;font-size:5.5pt}
+.ex-row:last-child{border-bottom:none}
+.ex-badge{width:3mm;height:3mm;font-size:3.5pt;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:0.5mm;margin-right:0.8mm;flex-shrink:0}
+.ex-f{background:#ffedd5;color:#c2410c}
+.ex-p{background:#f3e8ff;color:#7c3aed}
+.ex-c{background:#dcfce7;color:#15803d}
+.ex-name{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ex-info{font-size:4.5pt;color:#6b7280;margin-left:0.6mm;white-space:nowrap}
+.ex-info em{color:#f59e0b;font-style:normal;margin-left:0.2mm}
+
+/* PROTOCOL CARD */
+.prot-card{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:0.8mm;padding:0.8mm;margin-top:0.8mm}
+.prot-header{display:flex;justify-content:space-between;font-size:5.5pt;font-weight:600;color:#047857}
+.prot-header .time{font-family:monospace;font-weight:400}
+.prot-structure{font-size:4.5pt;color:#6b7280;margin-top:0.2mm}
 </style></head><body>
-<div class="content">
-<div class="hdr">
-  <div class="hdr-left">
-    ${studioLogo ? `<img src="${studioLogo}" class="hdr-logo" alt="Logo">` : ''}
-    <div class="hdr-info">
+<header class="page-header">
+  <div class="header-left">
+    ${logoBase64 ? `<img src="${logoBase64}" alt="Logo">` : ''}
+    <div class="header-info">
       <h1>${studioName}</h1>
-      ${studioPhone ? `<p>Tel: ${studioPhone}</p>` : ''}
-      ${studioEmail ? `<p>${studioEmail}</p>` : ''}
+      <p><strong>Aluno:</strong> ${workout.client.name}</p>
+      <p><strong>Programa:</strong> ${workout.phaseDuration} semanas • ${freq}x/semana</p>
+      ${studioPhone ? `<p>${studioPhone}${studioEmail ? ` • ${studioEmail}` : ''}</p>` : ''}
     </div>
   </div>
-  <div class="hdr-right">
-    ${studioAddress ? `<p>${studioAddress}</p>` : ''}
-    <p><b>Data:</b> ${new Date(workout.createdAt).toLocaleDateString('pt-BR')}</p>
+  <div class="header-right">
+    <p><strong>Método Expert Training</strong></p>
+    <p>Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
   </div>
-</div>
-<div class="info">
-<span><b>Freq:</b> ${freq}x/sem</span>
-<span><b>Duração:</b> ${workout.phaseDuration} sem</span>
-<span><b>Foco:</b> ${schedule.mainFocus || 'PERNA'}</span>
-</div>
-<table>
-<thead><tr><th></th>${Array.from({length: freq}, (_, i) => `<th style="font-size:5.5pt;background:#eee;padding:2px">DIA ${i+1}</th>`).join('')}</tr></thead>
-<tbody>
+</header>
+<main>
 ${schedule.weeks?.map((w: any) => genWeek(w)).join('') || ''}
-</tbody>
-</table>
-</div>
-<div class="footer-wrapper">
-<div class="client-info">
-  <div><b>Aluno:</b> ${workout.client.name} | <b>Email:</b> ${workout.client.email}</div>
-  <div><b>Treinador:</b> ${workout.creator.name}</div>
-</div>
-<div class="ft">
-  ${studioLogo ? `<img src="${studioLogo}" class="ft-logo" alt="Logo">` : ''}
-  <span>Expert Training System | F=Foco | P=Push/Pull | C=Core</span>
-</div>
-</div>
+</main>
 </body></html>`
 
-    // Abrir em nova janela para impressão/download
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(htmlContent)
-      printWindow.document.close()
-      setTimeout(() => printWindow.print(), 300)
+    // Gerar PDF via API backend (Puppeteer)
+    try {
+      const res = await fetch('/api/pdf/treino', {
+        method: 'POST',
+        body: htmlContent,
+        headers: { 'Content-Type': 'text/html' },
+        credentials: 'include',
+      })
+
+      if (!res.ok) throw new Error('Erro ao gerar PDF')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Treino_${workout.client.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
+      a.click()
+
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      // Fallback: abrir em nova janela para impressão
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(htmlContent)
+        printWindow.document.close()
+        setTimeout(() => printWindow.print(), 300)
+      }
     }
   }
 
