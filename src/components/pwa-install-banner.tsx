@@ -40,24 +40,16 @@ export function PWAInstallBanner() {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
     setIsIOS(isIOSDevice)
 
-    // Para iOS, mostrar banner após delay (não tem beforeinstallprompt)
-    if (isIOSDevice) {
-      const timeout = setTimeout(() => {
-        setShowBanner(true)
-        localStorage.setItem('pwa-banner-last-shown', Date.now().toString())
-      }, 2000)
-      return () => clearTimeout(timeout)
-    }
+    // Mostrar banner após 2 segundos para TODOS os dispositivos móveis
+    const timeout = setTimeout(() => {
+      setShowBanner(true)
+      localStorage.setItem('pwa-banner-last-shown', Date.now().toString())
+    }, 2000)
 
-    // Para Android/Chrome, escutar evento beforeinstallprompt
+    // Para Android/Chrome, também escutar evento beforeinstallprompt
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      // Mostrar banner quando tiver o prompt disponível
-      setTimeout(() => {
-        setShowBanner(true)
-        localStorage.setItem('pwa-banner-last-shown', Date.now().toString())
-      }, 1000)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
@@ -70,6 +62,7 @@ export function PWAInstallBanner() {
     window.addEventListener('appinstalled', installedHandler)
 
     return () => {
+      clearTimeout(timeout)
       window.removeEventListener('beforeinstallprompt', handler)
       window.removeEventListener('appinstalled', installedHandler)
     }
