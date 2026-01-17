@@ -96,13 +96,17 @@ export default function AssessmentsPage() {
       const res = await fetch(`/api/assessments?${params}`)
       const data: AssessmentsResponse = await res.json()
 
-      if (data.success) {
-        setAssessments(data.data.items)
-        setTotalPages(data.data.totalPages)
-        setTotal(data.data.total)
+      if (data.success && data.data) {
+        setAssessments(data.data.items || [])
+        setTotalPages(data.data.totalPages || 1)
+        setTotal(data.data.total || 0)
+      } else {
+        console.error('API error:', data)
+        setAssessments([])
       }
     } catch (error) {
       console.error('Error fetching assessments:', error)
+      setAssessments([])
     } finally {
       setLoading(false)
     }
