@@ -195,7 +195,7 @@
       font-weight: 500;
       font-size: 0.875rem;
       color: hsl(var(--muted-foreground));
-      background: hsl(var(--muted) / 0.2);
+      background: hsl(var(--secondary));
       vertical-align: middle !important;
     }
     
