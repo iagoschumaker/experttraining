@@ -149,7 +149,7 @@ export default function SuperAdminUsersPage() {
 
   const handleStudioChange = (studioId: string) => {
     if (!selectedUser) {
-      setFormData({ ...formData, studioId })
+      setFormData((prev) => ({ ...prev, studioId }))
       return
     }
     
@@ -157,7 +157,7 @@ export default function SuperAdminUsersPage() {
     const studioAssignment = selectedUser.studios.find(s => s.studio.id === studioId)
     const role = studioAssignment?.role || 'TRAINER'
     
-    setFormData({ ...formData, studioId, studioRole: role })
+    setFormData((prev) => ({ ...prev, studioId, studioRole: role }))
   }
 
 
@@ -210,17 +210,17 @@ export default function SuperAdminUsersPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-muted-foreground">Nome *</Label>
-            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-card border-border text-foreground" required />
+            <Input value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} className="bg-card border-border text-foreground" required />
           </div>
           <div className="space-y-2">
             <Label className="text-muted-foreground">Email *</Label>
-            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="bg-card border-border text-foreground" required />
+            <Input type="email" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} className="bg-card border-border text-foreground" required />
           </div>
         </div>
         {!isEdit ? (
           <div className="space-y-2">
             <Label className="text-muted-foreground">Senha *</Label>
-            <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="bg-card border-border text-foreground" required />
+            <Input type="password" value={formData.password} onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))} className="bg-card border-border text-foreground" required />
           </div>
         ) : (
           <div className="space-y-2">
@@ -237,7 +237,7 @@ export default function SuperAdminUsersPage() {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={(e) => setFormData({ ...formData, isSuperAdmin: e.target.checked })} className="rounded border-border" />
+          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={(e) => setFormData((prev) => ({ ...prev, isSuperAdmin: e.target.checked }))} className="rounded border-border" />
           <Label htmlFor="isSuperAdmin" className="text-muted-foreground">Super Administrador</Label>
         </div>
         <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
@@ -247,7 +247,7 @@ export default function SuperAdminUsersPage() {
               <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
               <SelectContent>{studios.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={formData.studioRole} onValueChange={(v) => setFormData({ ...formData, studioRole: v })}>
+            <Select value={formData.studioRole} onValueChange={(v) => setFormData((prev) => ({ ...prev, studioRole: v }))}>
               <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="STUDIO_ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
             </Select>
