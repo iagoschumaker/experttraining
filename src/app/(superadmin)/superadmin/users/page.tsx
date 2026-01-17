@@ -626,7 +626,10 @@ export default function SuperAdminUsersPage() {
         actions={[
           {
             label: 'Novo Usuário',
-            onClick: resetForm,
+            onClick: () => {
+              resetForm()
+              setIsCreateOpen(true)
+            },
             icon: <Plus className="h-5 w-5" />
           }
         ]}
