@@ -237,16 +237,40 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
     credentials: 'include',
   })
 
-  if (!res.ok) throw new Error('Erro ao gerar PDF')
+  if (!res.ok) {
+    const errorText = await res.text()
+    console.error('Erro ao gerar PDF:', errorText)
+    throw new Error('Erro ao gerar PDF. Verifique se o servidor está configurado corretamente.')
+  }
 
+  // Download do PDF
   const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
+  
+  // Criar link de download com tipo MIME correto
+  const pdfBlob = new Blob([blob], { type: 'application/pdf' })
+  const url = window.URL.createObjectURL(pdfBlob)
+  
+  // Nome do arquivo sanitizado
+  const fileName = `Treino_${workout.client.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
 
+  // Usar window.open como fallback para evitar bloqueio de download
   const a = document.createElement('a')
+  a.style.display = 'none'
   a.href = url
-  a.download = `treino-${workout.client.name.replace(/\s+/g, '-')}.pdf`
+  a.download = fileName
+  a.type = 'application/pdf'
   document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  
+  // Tentar click, se falhar, abrir em nova aba
+  try {
+    a.click()
+  } catch {
+    window.open(url, '_blank')
+  }
+  
+  // Cleanup após delay
+  setTimeout(() => {
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }, 1000)
 }
