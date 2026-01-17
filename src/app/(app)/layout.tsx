@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AppSidebar, AppHeader } from '@/components/layout'
+import { PWAInstallBanner } from '@/components/pwa-install-banner'
 
 export default function AppLayout({
   children,
@@ -12,6 +13,9 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
+      
       {/* Sidebar */}
       <AppSidebar 
         isMobileOpen={isMobileMenuOpen}

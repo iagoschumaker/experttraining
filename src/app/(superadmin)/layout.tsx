@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { SuperAdminSidebar, SuperAdminHeader } from '@/components/layout'
+import { PWAInstallBanner } from '@/components/pwa-install-banner'
 import { Toaster } from 'sonner'
 
 export default function SuperAdminLayout({
@@ -13,6 +14,9 @@ export default function SuperAdminLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
+      
       {/* Sidebar */}
       <SuperAdminSidebar 
         isMobileOpen={isMobileMenuOpen}
