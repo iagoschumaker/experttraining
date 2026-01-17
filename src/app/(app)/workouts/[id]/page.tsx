@@ -531,15 +531,6 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
             <p className="text-muted-foreground font-medium">Cliente: {workout.client.name}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleDownloadPDF}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download PDF
-            </Button>
             {getStatusBadge(workout.status)}
           </div>
         </div>

@@ -312,48 +312,87 @@
 /* Escala base reduzida no mobile para parecer menos "zoomado" */
 @media (max-width: 767px) {
   html {
-    font-size: 14px;
+    font-size: 13px;
   }
   
+  /* Textos menores no mobile */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.1rem !important; }
+  
   /* Cards e containers mais compactos no mobile */
-  .space-y-6 {
-    --tw-space-y-reverse: 0;
-    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
-    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+  .space-y-6 > * + * {
+    margin-top: 1rem;
   }
   
   /* Padding reduzido em cards no mobile */
   [class*="CardContent"] {
-    padding: 1rem;
+    padding: 0.875rem;
   }
+  
+  /* Padding geral reduzido */
+  .p-4 { padding: 0.75rem; }
+  .p-6 { padding: 1rem; }
+  .px-4 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 }
 
-/* Inputs ficarem visíveis acima do teclado no mobile */
-@supports (-webkit-touch-callout: none) {
-  /* iOS Safari */
+/* ============================================================================
+   MODAIS E INPUTS - TECLADO MOBILE
+   ============================================================================ */
+
+/* Modais devem ter scroll interno e não cobrir tudo */
+[role="dialog"] {
+  max-height: 85vh !important;
+  max-height: 85dvh !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Conteúdo do modal com scroll */
+[role="dialog"] > div {
+  max-height: 80vh !important;
+  max-height: 80dvh !important;
+  overflow-y: auto !important;
+}
+
+/* Quando input está focado, garantir visibilidade */
+@media (max-width: 767px) {
+  /* Modal mais compacto no mobile */
+  [role="dialog"] {
+    margin: 1rem !important;
+    max-height: 70vh !important;
+    max-height: 70dvh !important;
+  }
+  
+  /* Input focado rola para ficar visível */
   input:focus,
   textarea:focus,
   select:focus {
-    scroll-margin-bottom: 200px;
+    scroll-margin-bottom: 300px;
+    scroll-margin-top: 100px;
   }
 }
 
-/* Android e outros browsers */
-input:focus,
-textarea:focus,
-select:focus {
-  scroll-margin-bottom: 150px;
-  scroll-padding-bottom: 150px;
-}
-
-/* Garantir que o body não fique fixo quando teclado abre */
-body {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-}
-
-html {
-  height: -webkit-fill-available;
+/* iOS Safari - fix para virtual keyboard */
+@supports (-webkit-touch-callout: none) {
+  html {
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Modal no iOS */
+  [role="dialog"] {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    max-height: 70vh !important;
+  }
 }
 
 /* Keyframes para animações */

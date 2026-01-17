@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Smartphone, Share } from 'lucide-react'
+import { X, Smartphone, Share } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -11,10 +11,21 @@ interface BeforeInstallPromptEvent extends Event {
 export function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showBanner, setShowBanner] = useState(false)
-  const [isStandalone, setIsStandalone] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(true) // Start as true to avoid flash
   const [isIOS, setIsIOS] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    // Check if mobile device
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    setIsMobile(mobile)
+
+    // Only show on mobile
+    if (!mobile) {
+      setIsStandalone(true) // Hide on desktop
+      return
+    }
+
     // Check if already installed
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
                        (window.navigator as any).standalone === true
@@ -34,37 +45,30 @@ export function PWAInstallBanner() {
     const lastShown = localStorage.getItem('pwa-banner-last-shown')
     const now = Date.now()
     
-    // Show again after 7 days if dismissed
+    // Show again after 3 days if dismissed
     if (dismissed && lastShown) {
       const daysSinceLastShown = (now - parseInt(lastShown)) / (1000 * 60 * 60 * 24)
-      if (daysSinceLastShown < 7) {
+      if (daysSinceLastShown < 3) {
         return
       }
     }
 
-    // Para iOS, mostrar banner após 2 segundos (não tem beforeinstallprompt)
-    if (isIOSDevice) {
-      setTimeout(() => {
-        setShowBanner(true)
-        localStorage.setItem('pwa-banner-last-shown', now.toString())
-      }, 2000)
-      return
-    }
+    // Mostrar banner após 1.5 segundos para todos os dispositivos móveis
+    const timeout = setTimeout(() => {
+      setShowBanner(true)
+      localStorage.setItem('pwa-banner-last-shown', now.toString())
+    }, 1500)
 
+    // Também escutar o evento beforeinstallprompt para Android
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      
-      // Show banner after 2 seconds
-      setTimeout(() => {
-        setShowBanner(true)
-        localStorage.setItem('pwa-banner-last-shown', now.toString())
-      }, 2000)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
 
     return () => {
+      clearTimeout(timeout)
       window.removeEventListener('beforeinstallprompt', handler)
     }
   }, [])
