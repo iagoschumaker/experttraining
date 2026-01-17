@@ -4,7 +4,7 @@
 // EXPERT PRO TRAINING - SUPERADMIN USERS PAGE
 // ============================================================================
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,6 +44,93 @@ interface ClientData {
 }
 
 interface Studio { id: string; name: string }
+
+interface FormContentProps {
+  formData: { name: string; email: string; password: string; isSuperAdmin: boolean; studioId: string; studioRole: string }
+  studios: Studio[]
+  resetPassword: boolean
+  newPassword: string
+  saving: boolean
+  isEdit: boolean
+  onSubmit: (e: React.FormEvent) => void
+  onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onSuperAdminChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onStudioChange: (studioId: string) => void
+  onStudioRoleChange: (v: string) => void
+  onResetPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onNewPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onClose: () => void
+}
+
+const UserFormContent = React.memo<FormContentProps>(({ 
+  formData, studios, resetPassword, newPassword, saving, isEdit,
+  onSubmit, onNameChange, onEmailChange, onPasswordChange, 
+  onSuperAdminChange, onStudioChange, onStudioRoleChange,
+  onResetPasswordChange, onNewPasswordChange, onClose
+}) => (
+  <form onSubmit={onSubmit}>
+    <DialogHeader>
+      <DialogTitle className="text-foreground">{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
+      <DialogDescription className="text-muted-foreground">{isEdit ? 'Atualize os dados' : 'Cadastre um novo usuário'}</DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4 py-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-muted-foreground">Nome *</Label>
+          <Input value={formData.name} onChange={onNameChange} className="bg-card border-border text-foreground" required />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-muted-foreground">Email *</Label>
+          <Input type="email" value={formData.email} onChange={onEmailChange} className="bg-card border-border text-foreground" required />
+        </div>
+      </div>
+      {!isEdit ? (
+        <div className="space-y-2">
+          <Label className="text-muted-foreground">Senha *</Label>
+          <Input type="password" value={formData.password} onChange={onPasswordChange} className="bg-card border-border text-foreground" required />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="resetPassword" checked={resetPassword} onChange={onResetPasswordChange} className="rounded border-border" />
+            <Label htmlFor="resetPassword" className="text-muted-foreground">Resetar senha do usuário</Label>
+          </div>
+          {resetPassword && (
+            <div className="space-y-2 mt-2">
+              <Label className="text-muted-foreground">Nova Senha *</Label>
+              <Input type="password" value={newPassword} onChange={onNewPasswordChange} className="bg-card border-border text-foreground" required={resetPassword} placeholder="Digite a nova senha" />
+            </div>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={onSuperAdminChange} className="rounded border-border" />
+        <Label htmlFor="isSuperAdmin" className="text-muted-foreground">Super Administrador</Label>
+      </div>
+      <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
+        <h4 className="font-medium text-amber-500">Vínculo com Studio</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <Select value={formData.studioId} onValueChange={onStudioChange}>
+            <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
+            <SelectContent>{studios.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={formData.studioRole} onValueChange={onStudioRoleChange}>
+            <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="STUDIO_ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+    <DialogFooter>
+      <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+      <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Salvar'}</Button>
+    </DialogFooter>
+  </form>
+))
+
+UserFormContent.displayName = 'UserFormContent'
 
 export default function SuperAdminUsersPage() {
   const [users, setUsers] = useState<UserData[]>([])
@@ -221,66 +308,21 @@ export default function SuperAdminUsersPage() {
     setFormData((prev) => ({ ...prev, studioRole: v }))
   }, [])
 
-  const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
-    <form onSubmit={onSubmit}>
-      <DialogHeader>
-        <DialogTitle className="text-foreground">{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
-        <DialogDescription className="text-muted-foreground">{isEdit ? 'Atualize os dados' : 'Cadastre um novo usuário'}</DialogDescription>
-      </DialogHeader>
-      <div className="space-y-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Nome *</Label>
-            <Input value={formData.name} onChange={handleNameChange} className="bg-card border-border text-foreground" required />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Email *</Label>
-            <Input type="email" value={formData.email} onChange={handleEmailChange} className="bg-card border-border text-foreground" required />
-          </div>
-        </div>
-        {!isEdit ? (
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Senha *</Label>
-            <Input type="password" value={formData.password} onChange={handlePasswordChange} className="bg-card border-border text-foreground" required />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="resetPassword" checked={resetPassword} onChange={(e) => setResetPassword(e.target.checked)} className="rounded border-border" />
-              <Label htmlFor="resetPassword" className="text-muted-foreground">Resetar senha do usuário</Label>
-            </div>
-            {resetPassword && (
-              <div className="space-y-2 mt-2">
-                <Label className="text-muted-foreground">Nova Senha *</Label>
-                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-card border-border text-foreground" required={resetPassword} placeholder="Digite a nova senha" />
-              </div>
-            )}
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={handleSuperAdminChange} className="rounded border-border" />
-          <Label htmlFor="isSuperAdmin" className="text-muted-foreground">Super Administrador</Label>
-        </div>
-        <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
-          <h4 className="font-medium text-amber-500">Vínculo com Studio</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <Select value={formData.studioId} onValueChange={handleStudioChange}>
-              <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
-              <SelectContent>{studios.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={formData.studioRole} onValueChange={handleStudioRoleChange}>
-              <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="STUDIO_ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => isEdit ? setIsEditOpen(false) : setIsCreateOpen(false)}>Cancelar</Button>
-        <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Salvar'}</Button>
-      </DialogFooter>
-    </form>
-  )
+  const handleResetPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setResetPassword(e.target.checked)
+  }, [])
+
+  const handleNewPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewPassword(e.target.value)
+  }, [])
+
+  const handleCloseCreate = useCallback(() => {
+    setIsCreateOpen(false)
+  }, [])
+
+  const handleCloseEdit = useCallback(() => {
+    setIsEditOpen(false)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -293,7 +335,26 @@ export default function SuperAdminUsersPage() {
           <DialogTrigger asChild>
             <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}><Plus className="h-4 w-4" /> Novo Usuário</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-lg"><FormContent onSubmit={handleCreate} /></DialogContent>
+          <DialogContent className="bg-card border-border max-w-lg">
+            <UserFormContent 
+              formData={formData}
+              studios={studios}
+              resetPassword={resetPassword}
+              newPassword={newPassword}
+              saving={saving}
+              isEdit={false}
+              onSubmit={handleCreate}
+              onNameChange={handleNameChange}
+              onEmailChange={handleEmailChange}
+              onPasswordChange={handlePasswordChange}
+              onSuperAdminChange={handleSuperAdminChange}
+              onStudioChange={handleStudioChange}
+              onStudioRoleChange={handleStudioRoleChange}
+              onResetPasswordChange={handleResetPasswordChange}
+              onNewPasswordChange={handleNewPasswordChange}
+              onClose={handleCloseCreate}
+            />
+          </DialogContent>
         </Dialog>
       </div>
 
@@ -538,7 +599,26 @@ export default function SuperAdminUsersPage() {
       </Tabs>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="bg-card border-border max-w-lg"><FormContent onSubmit={handleUpdate} isEdit /></DialogContent>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <UserFormContent 
+            formData={formData}
+            studios={studios}
+            resetPassword={resetPassword}
+            newPassword={newPassword}
+            saving={saving}
+            isEdit={true}
+            onSubmit={handleUpdate}
+            onNameChange={handleNameChange}
+            onEmailChange={handleEmailChange}
+            onPasswordChange={handlePasswordChange}
+            onSuperAdminChange={handleSuperAdminChange}
+            onStudioChange={handleStudioChange}
+            onStudioRoleChange={handleStudioRoleChange}
+            onResetPasswordChange={handleResetPasswordChange}
+            onNewPasswordChange={handleNewPasswordChange}
+            onClose={handleCloseEdit}
+          />
+        </DialogContent>
       </Dialog>
       
       {/* Floating Action Button for Mobile */}
