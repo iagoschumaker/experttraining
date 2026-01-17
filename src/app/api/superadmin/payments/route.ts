@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN PAYMENT MANAGEMENT API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN PAYMENT MANAGEMENT API
 // ============================================================================
 // POST /api/superadmin/payments/mark-paid - Marcar studio como pago (manual)
 // POST /api/superadmin/payments/block - Bloquear studio por falta de pagamento

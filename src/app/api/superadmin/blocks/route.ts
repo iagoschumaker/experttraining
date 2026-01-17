@@ -1,9 +1,9 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN BLOCKS API (DADOS PROTEGIDOS DO MÉTODO)
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN BLOCKS API (DADOS PROTEGIDOS DO MÉTODO)
 // ============================================================================
 // GET /api/superadmin/blocks - Lista blocos de exercícios
 // POST /api/superadmin/blocks - Cria bloco (apenas SuperAdmin)
-// ⚠️ REGRA: Blocos são CORE DATA do Método Expert Training
+// ⚠️ REGRA: Blocos são CORE DATA do Método EXPERT PRO TRAINING
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'

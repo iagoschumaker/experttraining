@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// EXPERT TRAINING - CLIENTS API
+// EXPERT PRO TRAINING - CLIENTS API
 // ============================================================================
 // GET /api/clients - Lista clientes do studio
 // POST /api/clients - Cria novo cliente

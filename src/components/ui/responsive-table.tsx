@@ -89,7 +89,7 @@ export function ResponsiveCell({ children, label, className, priority = 'medium'
   return (
     <>
       {/* Desktop Cell */}
-      <td className={cn("hidden md:table-cell px-4 py-3 text-sm", className)}>
+      <td className={cn("hidden md:table-cell px-4 py-3 text-sm text-center align-middle last:!text-right", className)}>
         {children}
       </td>
       
@@ -113,7 +113,7 @@ export function ResponsiveCell({ children, label, className, priority = 'medium'
 
 export function ResponsiveHeaderCell({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <th className={cn("hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider", className)}>
+    <th className={cn("hidden md:table-cell px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider align-middle last:!text-right", className)}>
       {children}
     </th>
   )

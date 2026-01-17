@@ -1,9 +1,9 @@
 ﻿// ============================================================================
-// EXPERT TRAINING - LESSONS PAGE [DEPRECATED]
+// EXPERT PRO TRAINING - LESSONS PAGE [DEPRECATED]
 // ============================================================================
 // ⚠️ FUNCIONALIDADE DESCONTINUADA
 // 
-// O controle por aulas foi removido do Método Expert Training.
+// O controle por aulas foi removido do Método EXPERT PRO TRAINING.
 // O sistema agora é gerenciado por:
 // - Avaliações (Assessment)
 // - Cronogramas/Ciclos de treino (Workout)
@@ -42,7 +42,7 @@ export default function LessonsDeprecatedPage() {
           </h1>
           
           <p className="text-lg text-muted-foreground mb-4">
-            O controle por aulas foi descontinuado no Método Expert Training.
+            O controle por aulas foi descontinuado no Método EXPERT PRO TRAINING.
           </p>
           
           <div className="bg-card border border-border rounded-lg p-4 text-left mb-6">

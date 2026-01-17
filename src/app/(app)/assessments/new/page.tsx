@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - NEW ASSESSMENT PAGE
+// EXPERT PRO TRAINING - NEW ASSESSMENT PAGE
 // ============================================================================
 // Formulário para criar nova avaliação - Seleciona cliente
 // ============================================================================

@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button, Input, Label, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui'
-import { Loader2, AlertCircle, Dumbbell } from 'lucide-react'
+import { Loader2, AlertCircle, Dumbbell, Eye, EyeOff } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 function LoginForm() {
@@ -15,6 +15,7 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -67,7 +68,7 @@ function LoginForm() {
           <Dumbbell className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Expert Training
+          EXPERT PRO TRAINING
         </h1>
         <p className="text-muted-foreground">
           Método de treino funcional híbrido
@@ -116,20 +117,44 @@ function LoginForm() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
-                Senha
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                disabled={isLoading}
-                className="h-11"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-foreground">
+                  Senha
+                </Label>
+                <a
+                  href="https://wa.me/5517997141326?text=Olá,%20esqueci%20minha%20senha%20do%20Expert%20Training"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Esqueci a senha
+                </a>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  disabled={isLoading}
+                  className="h-11 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </CardContent>
 
@@ -159,7 +184,7 @@ function LoginForm() {
 
       {/* Footer */}
       <p className="text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Expert Training. Todos os direitos reservados.
+        © {new Date().getFullYear()} EXPERT PRO TRAINING. Todos os direitos reservados.
       </p>
     </div>
   )

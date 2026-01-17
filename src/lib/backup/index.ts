@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - BACKUP SYSTEM
+﻿// ============================================================================
+// EXPERT PRO TRAINING - BACKUP SYSTEM
 // ============================================================================
 // Sistema completo de backup e restauração de dados
 // ============================================================================
@@ -36,6 +36,7 @@ export interface BackupData {
     lessonClients: any[]
     plans: any[]
     subscriptions: any[]
+    studioSubscriptions: any[]
     invoices: any[]
     usageRecords: any[]
     auditLogs: any[]
@@ -84,6 +85,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     lessonClients,
     plans,
     subscriptions,
+    studioSubscriptions,
     invoices,
     usageRecords,
     auditLogs,
@@ -102,6 +104,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     prisma.lessonClient.findMany(),
     prisma.plan.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.subscription.findMany({ orderBy: { createdAt: 'asc' } }),
+    prisma.studioSubscription.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.invoice.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.usageRecord.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.auditLog.findMany({ orderBy: { createdAt: 'asc' } }),
@@ -122,6 +125,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     lessonClients,
     plans,
     subscriptions,
+    studioSubscriptions,
     invoices,
     usageRecords,
     auditLogs,
@@ -142,6 +146,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     lessonClients: lessonClients.length,
     plans: plans.length,
     subscriptions: subscriptions.length,
+    studioSubscriptions: studioSubscriptions.length,
     invoices: invoices.length,
     usageRecords: usageRecords.length,
     auditLogs: auditLogs.length,
@@ -247,6 +252,7 @@ export async function restoreFromBackup(
         await tx.usageRecord.deleteMany()
         await tx.invoice.deleteMany()
         await tx.subscription.deleteMany()
+        await tx.studioSubscription.deleteMany()
         await tx.userStudio.deleteMany()
         await tx.studio.deleteMany()
         await tx.plan.deleteMany()
@@ -414,6 +420,18 @@ export async function restoreFromBackup(
           })
         }
         restored.subscriptions = backup.data.subscriptions.length
+      }
+
+      // 13b. StudioSubscriptions
+      if (backup.data.studioSubscriptions?.length > 0) {
+        for (const ss of backup.data.studioSubscriptions) {
+          await tx.studioSubscription.upsert({
+            where: { id: ss.id },
+            create: ss,
+            update: ss,
+          })
+        }
+        restored.studioSubscriptions = backup.data.studioSubscriptions.length
       }
 
       // 14. Invoices

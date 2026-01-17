@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN DECISIONS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN DECISIONS API
 // ============================================================================
 // GET /api/superadmin/decisions - Lista motores de decisão e logs
 // POST /api/superadmin/decisions - Cria motor de decisão
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const engines = [
       {
         id: 'engine-1',
-        name: 'Motor Expert Training v1',
+        name: 'Motor EXPERT PRO TRAINING v1',
         version: '1.0.0',
         status: rules.length > 0 ? 'ACTIVE' : 'INACTIVE',
         config: {
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
         },
         processingTime: Math.floor(Math.random() * 500) + 100, // Simulado
         confidence: assessment.confidence ? Number(assessment.confidence) / 100 : 0.75,
-        algorithm: 'Motor Expert Training v1',
+        algorithm: 'Motor EXPERT PRO TRAINING v1',
         timestamp: assessment.completedAt?.toISOString() || new Date().toISOString(),
         success: true,
       }

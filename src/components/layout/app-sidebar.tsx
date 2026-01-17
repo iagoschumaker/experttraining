@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -51,7 +51,7 @@ const sidebarLinks: SidebarLink[] = [
     label: 'Treinos',
     icon: <Dumbbell className="w-5 h-5" />,
   },
-  // DEPRECATED: Aulas removidas do Método Expert Training
+  // DEPRECATED: Aulas removidas do Método EXPERT PRO TRAINING
   // O sistema agora é controlado por Avaliações e Cronogramas
   // {
   //   href: '/lessons',
@@ -126,7 +126,7 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
             <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
               <span className="text-accent-foreground font-bold text-sm">ET</span>
             </div>
-            <span className="font-semibold text-foreground">Expert Training</span>
+            <span className="font-semibold text-foreground">EXPERT PRO TRAINING</span>
           </Link>
         )}
         <Button

@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// EXPERT TRAINING - DASHBOARD DO STUDIO
+// EXPERT PRO TRAINING - DASHBOARD DO STUDIO
 // ============================================================================
 // Visão geral: KPIs, alunos ativos, avaliações pendentes, treinos recentes
 // ============================================================================

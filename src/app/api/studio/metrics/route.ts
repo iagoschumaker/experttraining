@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - STUDIO METRICS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - STUDIO METRICS API
 // ============================================================================
 // GET /api/studio/metrics - Métricas do studio para dashboard
 // Retorna estatísticas de equipe, aulas, avaliações, etc.

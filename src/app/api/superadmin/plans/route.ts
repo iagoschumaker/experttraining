@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN PLANS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN PLANS API
 // ============================================================================
 // GET /api/superadmin/plans - Lista todos os planos
 // POST /api/superadmin/plans - Cria novo plano

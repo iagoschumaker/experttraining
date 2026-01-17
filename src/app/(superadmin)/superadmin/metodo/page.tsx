@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN MÉTODO PAGE
+// EXPERT PRO TRAINING - SUPERADMIN MÉTODO PAGE
 // ============================================================================
-// Visualização consolidada do Método Expert Training:
+// Visualização consolidada do Método EXPERT PRO TRAINING:
 // - Hierarquia (níveis, capacidades, padrões)
 // - Motor de Decisão (algoritmos, regras)
 // - Blocos do Método
@@ -350,7 +350,7 @@ export default function SuperAdminMetodoPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Target className="h-6 w-6 text-amber-500" />
-            Método Expert Training
+            Método EXPERT PRO TRAINING
           </h1>
           <p className="text-sm text-muted-foreground">
             Visualização completa da estrutura, motor de decisão e biblioteca de exercícios

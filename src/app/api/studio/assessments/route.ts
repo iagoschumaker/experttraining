@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - ASSESSMENTS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - ASSESSMENTS API
 // ============================================================================
 // GET  /api/studio/assessments - Lista avaliações
 // POST /api/studio/assessments - Cria nova avaliação

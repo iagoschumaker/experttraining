@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - LAYOUT COMPONENTS BARREL EXPORT
+﻿// ============================================================================
+// EXPERT PRO TRAINING - LAYOUT COMPONENTS BARREL EXPORT
 // ============================================================================
 
 export { AppSidebar } from './app-sidebar'

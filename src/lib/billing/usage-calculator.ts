@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - USAGE CALCULATOR SERVICE
+﻿// ============================================================================
+// EXPERT PRO TRAINING - USAGE CALCULATOR SERVICE
 // ============================================================================
 // Calcula personals ativos baseado em ações reais no sistema
 // Definição: Personal ativo = fez pelo menos UMA das ações:

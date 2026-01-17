@@ -1,7 +1,7 @@
+﻿// ============================================================================
+// EXPERT PRO TRAINING - EXERCISES LIBRARY API
 // ============================================================================
-// EXPERT TRAINING - EXERCISES LIBRARY API
-// ============================================================================
-// API para gerenciamento de exercícios do método Expert Training
+// API para gerenciamento de exercícios do método EXPERT PRO TRAINING
 // GET - Lista exercícios (todos os usuários autenticados)
 // POST - Criar exercício (apenas SuperAdmin)
 // ============================================================================
@@ -20,7 +20,7 @@ const exerciseSchema = z.object({
   equipment: z.string().optional(),
   difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).optional(),
   
-  // Prescrição padrão (método Expert Training)
+  // Prescrição padrão (método EXPERT PRO TRAINING)
   defaultSets: z.number().min(1).max(10).optional(),
   defaultReps: z.string().optional(), // "10-12", "30s", "AMRAP"
   defaultTime: z.string().optional(), // "30s", "1min"

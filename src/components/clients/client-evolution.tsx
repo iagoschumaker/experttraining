@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - CLIENT EVOLUTION COMPONENT
+// EXPERT PRO TRAINING - CLIENT EVOLUTION COMPONENT
 // ============================================================================
 // Exibe evolução completa do cliente (baseline vs atual)
 // ============================================================================

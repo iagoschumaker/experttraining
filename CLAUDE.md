@@ -1677,13 +1677,80 @@ src/app/(app)/clients/[id]/edit/page.tsx - Seleção de trainer
 src/app/api/studio/users/route.ts - Lista de trainers
 ```
 
+### 11. Sistema de Geração de PDF Profissional (Jan 2026)
+
+#### Funcionalidades Implementadas
+- **Geração de PDF com Puppeteer**: Renderização server-side de HTML para PDF vetorial
+- **Layout Responsivo**: Adaptação automática baseada no número de dias de treino (3-7 dias)
+- **Header e Footer Fixos**: Cabeçalho com logo do studio e rodapé em todas as páginas
+- **Escala Dinâmica**: Ajuste automático de zoom baseado na quantidade de conteúdo
+- **Quebra de Página Inteligente**: Uma semana por página, sem cortar blocos ou protocolos
+- **Download Direto**: Biblioteca standalone para download sem navegação
+
+#### Estrutura do PDF
+```typescript
+// Layout inteligente baseado em dias
+const getLayout = (days: number) => {
+  if (days <= 3) return { cols: 3, scale: 1 }      // 3 colunas, 100%
+  if (days === 4) return { cols: 2, scale: 0.95 }  // 2 colunas, 95%
+  if (days === 5) return { cols: 2, scale: 0.9 }   // 2 colunas, 90%
+  if (days === 6) return { cols: 2, scale: 0.85 }  // 2 colunas, 85%
+  return { cols: 1, scale: 0.8 }                   // 1 coluna, 80%
+}
+```
+
+#### Componentes do PDF
+- **Header Fixo (26mm)**: Logo do studio, nome do aluno, programa, contatos
+- **Footer Fixo (4mm)**: "METODOLOGIA Expert Pro Training"
+- **Área de Conteúdo**: Margem superior 28mm para não sobrepor header
+- **Week Sections**: Badge de semana, fase, grid de dias com cards
+- **Day Cards**: Preparação, blocos de exercícios, protocolo final
+- **Exercise Rows**: Badge de tipo (F/P/C), nome, séries×reps, descanso
+
+#### Otimizações Visuais
+- **Fontes Compactas**: 6pt para exercícios, 5.5pt para séries/reps
+- **Cards Flexíveis**: `flex: 1` para preencher espaço vertical disponível
+- **Quebras Protegidas**: `page-break-inside: avoid` em cards, blocos e protocolos
+- **Margem Inteligente**: 30mm de margem superior nas semanas 2-4 para não esconder atrás do header
+
+#### API e Biblioteca
+```typescript
+// Biblioteca standalone
+import { generateWorkoutPDF } from '@/lib/pdf-generator'
+
+// Uso direto sem navegação
+await generateWorkoutPDF(workout, schedule)
+
+// API de geração
+POST /api/pdf/treino
+Body: HTML content
+Response: PDF blob
+```
+
+#### Arquivos Criados/Modificados
+```
+src/lib/pdf-generator.ts - Biblioteca standalone de geração
+src/app/api/pdf/treino/route.ts - API Puppeteer
+src/app/(app)/workouts/page.tsx - Download direto da lista
+src/app/(app)/workouts/[id]/page.tsx - Geração de PDF
+src/app/areaaluno/treino/page.tsx - PDF para área do aluno
+next.config.js - Webpack externals para Puppeteer
+```
+
+#### Características Técnicas
+- **Formato**: A4 Portrait (210mm × 297mm)
+- **Margens**: 10mm (topo/laterais), 12mm (rodapé)
+- **Resolução**: Vetorial (não rasterizado)
+- **Compressão**: Otimizada para impressão
+- **Tamanho**: ~200-400KB por PDF de 4 semanas
+
 ### Backlog
 - [ ] App mobile para alunos
 - [ ] Integração com wearables
 - [ ] Gamificação
 - [ ] Sistema de mensagens
 - [ ] Pagamentos integrados
-- [ ] Exportação de relatórios em PDF
+- [x] Exportação de relatórios em PDF ✅ (Implementado Jan 2026)
 - [ ] API GraphQL para consultas complexas
 - [ ] Sistema de notificações push
 - [ ] Integração com calendários externos

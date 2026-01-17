@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - MIDDLEWARE DE PROTEÇÃO DE DADOS DO MÉTODO
+﻿// ============================================================================
+// EXPERT PRO TRAINING - MIDDLEWARE DE PROTEÇÃO DE DADOS DO MÉTODO
 // ============================================================================
 // ⚠️ Este middleware implementa a REGRA ABSOLUTA DE NEGÓCIO:
 // - Dados com is_locked = true são IMUTÁVEIS para studios
@@ -243,7 +243,7 @@ export async function protectLockedData(
     return NextResponse.json(
       {
         error: 'Operação não permitida',
-        message: 'Este registro é parte do Método Expert Training e não pode ser modificado',
+        message: 'Este registro é parte do Método EXPERT PRO TRAINING e não pode ser modificado',
         code: 'LOCKED_DATA',
         hint: 'Apenas o SuperAdmin pode modificar dados protegidos do método',
       },
@@ -307,6 +307,6 @@ export function canStudioAccessProtectedData(
   // Qualquer outra operação em dado protegido é negada para studios
   return {
     allowed: false,
-    reason: 'Este dado é parte do Método Expert Training e não pode ser alterado por studios',
+    reason: 'Este dado é parte do Método EXPERT PRO TRAINING e não pode ser alterado por studios',
   }
 }

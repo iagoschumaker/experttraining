@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN PAYMENTS PAGE
+// EXPERT PRO TRAINING - SUPERADMIN PAYMENTS PAGE
 // ============================================================================
 
 import { useEffect, useState } from 'react'

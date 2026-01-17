@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN HIERARCHY API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN HIERARCHY API
 // ============================================================================
 // GET /api/superadmin/hierarchy - Lista hierarquia (níveis, capacidades, padrões)
 // POST /api/superadmin/hierarchy - Cria item de hierarquia
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       id: `level-${l.level}`,
       level: l.level,
       name: l.level === 0 ? 'Condicionamento' : l.level === 1 ? 'Iniciante' : l.level === 2 ? 'Intermediário' : 'Avançado',
-      description: `Nível ${l.level} do Método Expert Training`,
+      description: `Nível ${l.level} do Método EXPERT PRO TRAINING`,
       requirements: [],
       blockedCapacities: [],
       allowedCapacities: [],

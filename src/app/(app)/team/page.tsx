@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - TEAM MANAGEMENT (STUDIO)
+﻿// ============================================================================
+// EXPERT PRO TRAINING - TEAM MANAGEMENT (STUDIO)
 // ============================================================================
 // Página para STUDIO_ADMIN gerenciar trainers (personals)
 // Features:
@@ -455,14 +455,14 @@ export default function TeamPage() {
             </div>
             {/* Desktop: Table */}
             <div className="hidden md:block bg-card border border-border rounded-lg overflow-hidden">
-              <table className="w-full">
+              <table className="responsive-table w-full">
                 <thead className="bg-muted border-b border-border">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Cargo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Ações</th>
+                    <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome</th>
+                    <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Cargo</th>
+                    <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -484,7 +484,7 @@ export default function TeamPage() {
                           {trainer.isActive ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button onClick={() => openEditDialog(trainer)} className="text-amber-400 hover:text-amber-300 mr-3" title="Editar"><Edit2 size={18} /></button>
                         <button onClick={() => handleDelete(trainer)} className="text-red-400 hover:text-red-300" title="Remover"><Trash2 size={18} /></button>
                       </td>

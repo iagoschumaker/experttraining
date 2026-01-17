@@ -39,6 +39,7 @@ export default function EditClientPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>>([])
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   
   function formatDate(value: string) {
     // Remove tudo que não é número
@@ -119,13 +120,16 @@ export default function EditClientPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clientRes, trainersRes] = await Promise.all([
-          fetch(`/api/clients/${clientId}`),
-          fetch('/api/studio/users')
-        ])
-        
+        // Check if user is superadmin
+        const meRes = await fetch('/api/auth/me')
+        const meData = await meRes.json()
+        if (meData.success && meData.data?.user?.isSuperAdmin) {
+          setIsSuperAdmin(true)
+        }
+
+        // First fetch client data
+        const clientRes = await fetch(`/api/clients/${clientId}`)
         const clientData = await clientRes.json()
-        const trainersData = await trainersRes.json()
 
         if (clientData.success) {
           const client = clientData.data
@@ -149,13 +153,24 @@ export default function EditClientPage() {
             thigh: client.thigh ? String(client.thigh) : '',
             calf: client.calf ? String(client.calf) : '',
           })
+
+          // Then fetch trainers from the client's studio
+          if (client.studioId) {
+            const trainersRes = await fetch(`/api/superadmin/studios/${client.studioId}/trainers`)
+            const trainersData = await trainersRes.json()
+            
+            if (trainersData.success) {
+              // Map trainers to the format expected by the select (userId and name)
+              const trainersFormatted = trainersData.data.items.map((t: any) => ({
+                userId: t.oddsId,
+                name: t.name
+              }))
+              setTrainers(trainersFormatted)
+            }
+          }
         } else {
           alert('Cliente não encontrado')
           router.push('/clients')
-        }
-
-        if (trainersData.success) {
-          setTrainers(trainersData.data?.items || [])
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -226,7 +241,11 @@ export default function EditClientPage() {
 
       if (data.success) {
         alert('Cliente atualizado com sucesso!')
-        router.push(`/clients/${clientId}`)
+        if (isSuperAdmin) {
+          router.push('/superadmin/users')
+        } else {
+          router.push(`/clients/${clientId}`)
+        }
       } else {
         alert(data.error || 'Erro ao atualizar cliente')
       }
@@ -251,11 +270,15 @@ export default function EditClientPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href={`/clients/${clientId}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={() => {
+          if (isSuperAdmin) {
+            router.push('/superadmin/users')
+          } else {
+            router.push(`/clients/${clientId}`)
+          }
+        }}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Editar Aluno</h1>
           <p className="text-sm text-gray-500">Atualize as informações do aluno</p>

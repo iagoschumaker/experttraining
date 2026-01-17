@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - STUDIO SETTINGS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - STUDIO SETTINGS API
 // ============================================================================
 // GET: Buscar configurações do studio
 // PUT: Atualizar configurações do studio

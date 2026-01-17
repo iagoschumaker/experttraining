@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// EXPERT TRAINING - CLIENTS API
+// EXPERT PRO TRAINING - CLIENTS API
 // ============================================================================
 // GET  /api/studio/clients - Lista clientes (com RBAC)
 // POST /api/studio/clients - Cria novo cliente

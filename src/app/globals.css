@@ -190,19 +190,34 @@
     
     .responsive-table th {
       display: table-cell;
-      padding: 0.75rem 1rem;
-      text-align: left;
+      padding: 1rem;
+      text-align: center !important;
       font-weight: 500;
       font-size: 0.875rem;
       color: hsl(var(--muted-foreground));
       background: hsl(var(--muted) / 0.2);
+      vertical-align: middle !important;
     }
     
     .responsive-table td {
       display: table-cell;
-      padding: 0.75rem 1rem;
-      text-align: left;
-      vertical-align: middle;
+      padding: 1rem;
+      text-align: center;
+      vertical-align: middle !important;
+    }
+    
+    /* Ensure action column content is vertically centered */
+    .responsive-table td:last-child > div {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.25rem;
+    }
+    
+    /* Keep action columns right-aligned */
+    .responsive-table td:last-child,
+    .responsive-table th:last-child {
+      text-align: right !important;
     }
     
     .responsive-table td:before {

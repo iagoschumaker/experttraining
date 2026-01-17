@@ -1,7 +1,7 @@
+﻿// ============================================================================
+// EXPERT PRO TRAINING - THEME PROVIDER
 // ============================================================================
-// EXPERT TRAINING - THEME PROVIDER
-// ============================================================================
-// Sistema de tema claro/escuro com cores do Expert Training
+// Sistema de tema claro/escuro com cores do EXPERT PRO TRAINING
 // ============================================================================
 
 'use client'

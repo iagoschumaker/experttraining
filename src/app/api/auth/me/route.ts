@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - ME API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - ME API
 // ============================================================================
 // GET /api/auth/me
 // Retorna dados do usuário autenticado
@@ -76,6 +76,11 @@ export async function GET(request: NextRequest) {
       joinedAt: us.joinedAt,
     }))
 
+    // Determine user's primary role for password change feature
+    // Only TRAINER role users can change password via /select-studio
+    const hasTrainerRole = user.studios.some((us: any) => us.role === 'TRAINER')
+    const userRole = hasTrainerRole ? 'TRAINER' : null
+
     // Get current studio context if exists
     let currentStudio = null
     if (hasStudioContext(payload)) {
@@ -93,6 +98,7 @@ export async function GET(request: NextRequest) {
           id: user.id,
           name: user.name,
           email: user.email,
+          role: userRole,
           isSuperAdmin: user.isSuperAdmin,
         },
         studios,

@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // API: BLOCOS DO MÉTODO (STUDIO - SOMENTE LEITURA)
 // ============================================================================
 // GET /api/blocks - Lista blocos disponíveis para o studio
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         total: blocks.length,
         // Informar que são dados do método
         _meta: {
-          source: 'MÉTODO EXPERT TRAINING',
+          source: 'MÉTODO EXPERT PRO TRAINING',
           readOnly: true,
           message: 'Estes blocos são parte do método e não podem ser alterados',
         },

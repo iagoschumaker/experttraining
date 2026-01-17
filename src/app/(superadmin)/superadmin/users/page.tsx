@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN USERS PAGE
+// EXPERT PRO TRAINING - SUPERADMIN USERS PAGE
 // ============================================================================
 
 import { useEffect, useState } from 'react'
@@ -31,7 +31,7 @@ interface UserData {
   email: string
   isSuperAdmin: boolean
   createdAt: string
-  userStudios: UserStudio[]
+  studios: UserStudio[]
 }
 
 interface ClientData {
@@ -68,6 +68,8 @@ export default function SuperAdminUsersPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
+  const [resetPassword, setResetPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
 
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', isSuperAdmin: false, studioId: '', studioRole: 'TRAINER',
@@ -116,7 +118,11 @@ export default function SuperAdminUsersPage() {
   useEffect(() => { fetchUsers() }, [page, search])
   useEffect(() => { fetchClients() }, [clientPage, clientSearch])
 
-  const resetForm = () => setFormData({ name: '', email: '', password: '', isSuperAdmin: false, studioId: '', studioRole: 'TRAINER' })
+  const resetForm = () => {
+    setFormData({ name: '', email: '', password: '', isSuperAdmin: false, studioId: '', studioRole: 'TRAINER' })
+    setResetPassword(false)
+    setNewPassword('')
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -133,11 +139,27 @@ export default function SuperAdminUsersPage() {
   }
 
   const openEdit = (user: UserData) => {
-    const firstStudio = user.userStudios[0]
+    const firstStudio = user.studios[0]
     setSelectedUser(user)
     setFormData({ name: user.name, email: user.email, password: '', isSuperAdmin: user.isSuperAdmin, studioId: firstStudio?.studio.id || '', studioRole: firstStudio?.role || 'TRAINER' })
+    setResetPassword(false)
+    setNewPassword('')
     setIsEditOpen(true)
   }
+
+  const handleStudioChange = (studioId: string) => {
+    if (!selectedUser) {
+      setFormData({ ...formData, studioId })
+      return
+    }
+    
+    // Find the role for this studio in the user's current studios
+    const studioAssignment = selectedUser.studios.find(s => s.studio.id === studioId)
+    const role = studioAssignment?.role || 'TRAINER'
+    
+    setFormData({ ...formData, studioId, studioRole: role })
+  }
+
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -146,23 +168,36 @@ export default function SuperAdminUsersPage() {
     try {
       const studioAssignments = formData.studioId ? [{ studioId: formData.studioId, role: formData.studioRole }] : []
       const body: any = { name: formData.name, email: formData.email, isSuperAdmin: formData.isSuperAdmin, studioAssignments }
-      if (formData.password) body.password = formData.password
+      if (resetPassword && newPassword) {
+        body.password = newPassword
+      }
       const res = await fetch(`/api/superadmin/users/${selectedUser.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
-      if (data.success) { setIsEditOpen(false); fetchUsers() }
+      if (data.success) { setIsEditOpen(false); resetForm(); fetchUsers() }
       else alert(data.error)
     } catch { alert('Erro ao atualizar') }
     finally { setSaving(false) }
   }
 
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Excluir este usuário?')) return
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return
     try {
       const res = await fetch(`/api/superadmin/users/${id}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.success) fetchUsers()
       else alert(data.error)
     } catch { alert('Erro ao excluir') }
+  }
+
+  const handleClientDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este aluno?')) return
+    try {
+      const res = await fetch(`/api/superadmin/clients/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) fetchClients()
+      else alert(data.error)
+    } catch { alert('Erro ao excluir aluno') }
   }
 
   const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
@@ -182,10 +217,25 @@ export default function SuperAdminUsersPage() {
             <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="bg-card border-border text-foreground" required />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label className="text-muted-foreground">Senha {isEdit ? '(deixe vazio para manter)' : '*'}</Label>
-          <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="bg-card border-border text-foreground" required={!isEdit} />
-        </div>
+        {!isEdit ? (
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Senha *</Label>
+            <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="bg-card border-border text-foreground" required />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="resetPassword" checked={resetPassword} onChange={(e) => setResetPassword(e.target.checked)} className="rounded border-border" />
+              <Label htmlFor="resetPassword" className="text-muted-foreground">Resetar senha do usuário</Label>
+            </div>
+            {resetPassword && (
+              <div className="space-y-2 mt-2">
+                <Label className="text-muted-foreground">Nova Senha *</Label>
+                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-card border-border text-foreground" required={resetPassword} placeholder="Digite a nova senha" />
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={(e) => setFormData({ ...formData, isSuperAdmin: e.target.checked })} className="rounded border-border" />
           <Label htmlFor="isSuperAdmin" className="text-muted-foreground">Super Administrador</Label>
@@ -193,13 +243,13 @@ export default function SuperAdminUsersPage() {
         <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
           <h4 className="font-medium text-amber-500">Vínculo com Studio</h4>
           <div className="grid grid-cols-2 gap-4">
-            <Select value={formData.studioId} onValueChange={(v) => setFormData({ ...formData, studioId: v })}>
+            <Select value={formData.studioId} onValueChange={handleStudioChange}>
               <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
               <SelectContent>{studios.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={formData.studioRole} onValueChange={(v) => setFormData({ ...formData, studioRole: v })}>
               <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="OWNER">Proprietário</SelectItem><SelectItem value="ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="STUDIO_ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
             </Select>
           </div>
         </div>
@@ -287,12 +337,12 @@ export default function SuperAdminUsersPage() {
                             <div className="font-medium">{u.name}</div>
                             <div className="text-xs text-muted-foreground">{u.email}</div>
                           </div>
-                          {u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-muted">Usuário</Badge>}
+                          {u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : u.studios && u.studios.length > 0 ? <Badge className="bg-amber-500/20 text-amber-400">Staff</Badge> : <Badge className="bg-muted">Usuário</Badge>}
                         </div>
                         <div className="text-sm mb-3">
                           <span className="text-muted-foreground">Studios:</span>{' '}
-                          {u.userStudios && u.userStudios.length > 0 ? (
-                            <span>{u.userStudios.map(us => us.studio.name).join(', ')}</span>
+                          {u.studios && u.studios.length > 0 ? (
+                            <span>{u.studios.map(us => `${us.studio.name} (${us.role === 'TRAINER' ? 'Personal' : 'Admin'})`).join(', ')}</span>
                           ) : (
                             <span className="text-muted-foreground">Nenhum</span>
                           )}
@@ -324,22 +374,27 @@ export default function SuperAdminUsersPage() {
                             <td data-label="Nome" className="font-medium text-foreground">{u.name}</td>
                             <td data-label="Email" className="text-muted-foreground">{u.email}</td>
                             <td data-label="Studios">
-                              <div className="flex flex-wrap gap-1">
-                                {u.userStudios && u.userStudios.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {u.studios && u.studios.length > 0 ? (
                                   <>
-                                    {u.userStudios.slice(0, 2).map((us) => (
-                                      <Badge key={us.studio.id} variant="outline" className="border-border text-muted-foreground text-xs">{us.studio.name} ({us.role})</Badge>
-                                    ))}
-                                    {u.userStudios.length > 2 && <Badge variant="outline" className="border-border text-muted-foreground text-xs">+{u.userStudios.length - 2}</Badge>}
+                                    {u.studios.map((us) => {
+                                      const roleLabel = us.role === 'TRAINER' ? 'Personal' : us.role === 'STUDIO_ADMIN' ? 'Admin' : us.role
+                                      const roleColor = us.role === 'TRAINER' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'
+                                      return (
+                                        <Badge key={us.studio.id} className={`${roleColor} text-xs`}>
+                                          {us.studio.name} ({roleLabel})
+                                        </Badge>
+                                      )
+                                    })}
                                   </>
                                 ) : (
                                   <span className="text-muted-foreground text-xs">Nenhum estúdio</span>
                                 )}
                               </div>
                             </td>
-                            <td data-label="Tipo">{u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : <Badge className="bg-muted">Usuário</Badge>}</td>
+                            <td data-label="Tipo">{u.isSuperAdmin ? <Badge className="bg-red-500">Super Admin</Badge> : u.studios && u.studios.length > 0 ? <Badge className="bg-amber-500/20 text-amber-400">Staff</Badge> : <Badge className="bg-muted">Usuário</Badge>}</td>
                             <td data-label="Ações">
-                              <div className="flex gap-1 justify-end">
+                              <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="hover:bg-muted"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} className="hover:bg-muted"><Trash2 className="h-4 w-4 text-red-500" /></Button>
                               </div>
@@ -390,9 +445,15 @@ export default function SuperAdminUsersPage() {
                           </div>
                           {c.studio && <Badge variant="outline" className="text-xs">{c.studio.name}</Badge>}
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                           <div><span className="text-muted-foreground">Responsável:</span> {c.trainer?.name || '-'}</div>
                           <div><span className="text-muted-foreground">Cadastro:</span> {new Date(c.createdAt).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => window.location.href = `/clients/${c.id}/edit`} className="flex-1">
+                            <Pencil className="h-4 w-4 mr-1" /> Editar
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleClientDelete(c.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </div>
                     ))}
@@ -407,6 +468,7 @@ export default function SuperAdminUsersPage() {
                           <th>Studio</th>
                           <th>Responsável</th>
                           <th>Data Cadastro</th>
+                          <th>Ações</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -423,6 +485,16 @@ export default function SuperAdminUsersPage() {
                             </td>
                             <td data-label="Responsável" className="text-muted-foreground">{c.trainer?.name || '-'}</td>
                             <td data-label="Data Cadastro" className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('pt-BR')}</td>
+                            <td data-label="Ações">
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => window.location.href = `/clients/${c.id}/edit`} className="hover:bg-muted" title="Editar">
+                                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleClientDelete(c.id)} className="hover:bg-muted" title="Excluir">
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

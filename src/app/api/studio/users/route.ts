@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - STUDIO USERS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - STUDIO USERS API
 // ============================================================================
 // GET /api/studio/users - List studio users (trainers)
 // POST /api/studio/users - Create/invite trainer

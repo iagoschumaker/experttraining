@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - PAYMENT CHECK MIDDLEWARE
+﻿// ============================================================================
+// EXPERT PRO TRAINING - PAYMENT CHECK MIDDLEWARE
 // ============================================================================
 // Verifica se o studio está com pagamento em dia
 // Bloqueia acesso apenas ao studio específico, não ao usuário global

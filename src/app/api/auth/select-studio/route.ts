@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SELECT STUDIO API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SELECT STUDIO API
 // ============================================================================
 // POST /api/auth/select-studio
 // Seleciona um studio e gera novo token com contexto

@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN STUDIOS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN STUDIOS API
 // ============================================================================
 // GET /api/superadmin/studios - Lista studios
 // POST /api/superadmin/studios - Cria studio

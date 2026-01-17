@@ -162,7 +162,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps = {}) {
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-muted transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     Sair

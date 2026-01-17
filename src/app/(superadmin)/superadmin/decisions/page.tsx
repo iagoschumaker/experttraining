@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN DECISIONS PAGE
+// EXPERT PRO TRAINING - SUPERADMIN DECISIONS PAGE
 // ============================================================================
-// Gerenciamento do Motor de Decisão do Método Expert Training
+// Gerenciamento do Motor de Decisão do Método EXPERT PRO TRAINING
 // - Análise de avaliação funcional
 // - Geração de recomendações
 // - Lógica de seleção de blocos
@@ -331,7 +331,7 @@ export default function SuperAdminDecisionsPage() {
                     <Input
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Motor Expert Training v2"
+                      placeholder="Motor EXPERT PRO TRAINING v2"
                       required
                     />
                   </div>

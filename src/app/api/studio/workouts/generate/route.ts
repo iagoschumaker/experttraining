@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - WORKOUT GENERATION API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - WORKOUT GENERATION API
 // ============================================================================
 // POST /api/studio/workouts/generate - Gerar treino baseado em avaliação
 // ============================================================================
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     const result = assessment.resultJson as any
 
     // ========================================================================
-    // 🧠 MÉTODO EXPERT TRAINING - GERAÇÃO DE CRONOGRAMA REAL
+    // 🧠 MÉTODO EXPERT PRO TRAINING - GERAÇÃO DE CRONOGRAMA REAL
     // ========================================================================
     // REGRAS ABSOLUTAS DO MÉTODO:
     // 1. BLOCO = 3 exercícios fixos (NÃO é categoria)
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     console.log(`🎯 FOCO PRINCIPAL: ${mainFocusLabel} (de: ${mainFocus})`)
 
     // ========================================================================
-    // BANCO DE EXERCÍCIOS EXPANDIDO (MÉTODO EXPERT TRAINING)
+    // BANCO DE EXERCÍCIOS EXPANDIDO (MÉTODO EXPERT PRO TRAINING)
     // ========================================================================
     // Exercícios diferentes para cada DIA DA SEMANA para evitar repetição
     // ========================================================================
@@ -459,7 +459,7 @@ export async function POST(request: NextRequest) {
       weeklyFrequency,
       phaseDuration,
       mainFocus: mainFocusLabel,
-      methodology: 'Método Expert Training',
+      methodology: 'Método EXPERT PRO TRAINING',
       structure: {
         preparation: 'Única por sessão (12 min)',
         blocks: '3 blocos obrigatórios (3 exercícios cada)',

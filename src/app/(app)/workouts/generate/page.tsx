@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// EXPERT TRAINING - GENERATE WORKOUT PAGE
+// EXPERT PRO TRAINING - GENERATE WORKOUT PAGE
 // ============================================================================
 // Página de geração de treino - Compartilhado entre Studio e Personal
 // ============================================================================

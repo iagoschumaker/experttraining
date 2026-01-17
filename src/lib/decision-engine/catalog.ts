@@ -1,7 +1,7 @@
-// ============================================================================
+﻿// ============================================================================
 // MOTOR DE DECISÃO — CATÁLOGO DE EXERCÍCIOS
 // ============================================================================
-// Catálogo base de exercícios funcionais do Método Expert Training
+// Catálogo base de exercícios funcionais do Método EXPERT PRO TRAINING
 // ============================================================================
 
 import { ExerciseCatalogEntry } from './types'

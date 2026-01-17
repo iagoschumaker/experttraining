@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN HIERARCHY PAGE
+// EXPERT PRO TRAINING - SUPERADMIN HIERARCHY PAGE
 // ============================================================================
-// Gerenciamento da hierarquia do Método Expert Training
+// Gerenciamento da hierarquia do Método EXPERT PRO TRAINING
 // - Níveis de progressão (Condicionamento → Iniciante → Intermediário → Avançado)
 // - Capacidades físicas e seus relacionamentos
 // - Padrões de movimento e suas dependências
@@ -324,7 +324,7 @@ export default function SuperAdminHierarchyPage() {
             Hierarquia do Método
           </h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie níveis, capacidades e padrões de movimento do Método Expert Training
+            Gerencie níveis, capacidades e padrões de movimento do Método EXPERT PRO TRAINING
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

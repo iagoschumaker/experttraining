@@ -12,7 +12,8 @@ import {
   ChevronDown, 
   LogOut, 
   Shield,
-  Menu
+  Menu,
+  RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { getInitials } from '@/lib/utils'
@@ -57,6 +58,10 @@ export function SuperAdminHeader({ onMenuClick }: SuperAdminHeaderProps = {}) {
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
+  }
+
+  function handleChangeStudio() {
+    router.push('/select-studio')
   }
 
   if (isLoading) {
@@ -125,8 +130,15 @@ export function SuperAdminHeader({ onMenuClick }: SuperAdminHeaderProps = {}) {
                 {/* Actions */}
                 <div className="py-1">
                   <button
+                    onClick={handleChangeStudio}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Trocar de Studio
+                  </button>
+                  <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-muted transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     Sair

@@ -1,7 +1,7 @@
-// ============================================================================
+﻿// ============================================================================
 // MOTOR DE DECISÃO — REGRAS IF/THEN
 // ============================================================================
-// Sistema de regras versionadas do Método Expert Training
+// Sistema de regras versionadas do Método EXPERT PRO TRAINING
 // Cada regra altera o contexto de decisão antes da geração do treino
 // ============================================================================
 

@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN BACKUP PAGE
+// EXPERT PRO TRAINING - SUPERADMIN BACKUP PAGE
 // ============================================================================
 // Gerenciamento completo de backups do sistema
 // ============================================================================

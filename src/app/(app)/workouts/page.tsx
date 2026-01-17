@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 import { Dumbbell, Plus, Search, Eye, FileText, Download, Trash2 } from 'lucide-react'
+import { generateWorkoutPDF } from '@/lib/pdf-generator'
 
 interface Workout {
   id: string
@@ -107,8 +108,26 @@ export default function WorkoutsPage() {
     }
   }
 
-  const handleDownloadPDF = (workoutId: string) => {
-    window.open(`/workouts/${workoutId}`, '_blank')
+  const handleDownloadPDF = async (workoutId: string) => {
+    try {
+      // Fetch workout data
+      const res = await fetch(`/api/studio/workouts/${workoutId}`)
+      const data = await res.json()
+      
+      if (!data.success) {
+        alert('Erro ao carregar treino')
+        return
+      }
+
+      const workout = data.data
+      const schedule = workout.scheduleJson
+      
+      // Generate and download PDF directly
+      await generateWorkoutPDF(workout, schedule)
+    } catch (error) {
+      console.error('Erro ao baixar PDF:', error)
+      alert('Erro ao baixar PDF')
+    }
   }
 
   return (

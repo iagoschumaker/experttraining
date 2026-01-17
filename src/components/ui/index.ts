@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - UI COMPONENTS BARREL EXPORT
+﻿// ============================================================================
+// EXPERT PRO TRAINING - UI COMPONENTS BARREL EXPORT
 // ============================================================================
 
 export { Button, buttonVariants } from './button'

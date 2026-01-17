@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import './print.css'
@@ -11,8 +11,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Expert Training',
-    template: '%s | Expert Training',
+    default: 'EXPERT PRO TRAINING',
+    template: '%s | EXPERT PRO TRAINING',
   },
   description: 'Sistema de treino funcional híbrido baseado em padrões de movimento e capacidades físicas',
   keywords: ['treino funcional', 'método expert', 'avaliação física', 'personal trainer'],

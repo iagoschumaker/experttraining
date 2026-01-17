@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN RULES PAGE (100% FIXED)
+// EXPERT PRO TRAINING - SUPERADMIN RULES PAGE (100% FIXED)
 // ============================================================================
 // Gerenciamento completo de regras do motor de decisão
 // - Condições IF (AND/OR)
@@ -483,7 +483,7 @@ export default function SuperAdminRulesPage() {
             <Settings className="h-6 w-6 text-amber-500" />
             Regras
           </h1>
-          <p className="text-sm text-muted-foreground">Configure o motor de decisão do Método Expert Training</p>
+          <p className="text-sm text-muted-foreground">Configure o motor de decisão do Método EXPERT PRO TRAINING</p>
         </div>
         <Button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
           <Plus className="h-4 w-4" /> Nova Regra

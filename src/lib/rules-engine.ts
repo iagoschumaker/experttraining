@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - RULES ENGINE
+﻿// ============================================================================
+// EXPERT PRO TRAINING - RULES ENGINE
 // ============================================================================
 // Motor de decisão IF → THEN para determinação de blocos de treino
 // Baseado em padrões de movimento e capacidades físicas

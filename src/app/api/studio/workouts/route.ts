@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - WORKOUTS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - WORKOUTS API
 // ============================================================================
 // GET  /api/studio/workouts - Listar treinos
 // POST /api/studio/workouts - Criar treino manual

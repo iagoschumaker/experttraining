@@ -1,7 +1,7 @@
-// ============================================================================
+﻿// ============================================================================
 // MOTOR DE DECISÃO — VALIDADORES
 // ============================================================================
-// Validadores que garantem a hierarquia e estrutura do Método Expert Training
+// Validadores que garantem a hierarquia e estrutura do Método EXPERT PRO TRAINING
 // ============================================================================
 
 import {

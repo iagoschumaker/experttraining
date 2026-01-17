@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN BLOCKS PAGE (DADOS PROTEGIDOS DO MÉTODO)
+// EXPERT PRO TRAINING - SUPERADMIN BLOCKS PAGE (DADOS PROTEGIDOS DO MÉTODO)
 // ============================================================================
-// ⚠️ Blocos são CORE DATA do Método Expert Training
+// ⚠️ Blocos são CORE DATA do Método EXPERT PRO TRAINING
 // - is_locked = true significa dado imutável do método
 // - Apenas SuperAdmin pode criar/alterar/excluir
 // ============================================================================
@@ -216,7 +216,7 @@ export default function SuperAdminBlocksPage() {
 
   const handleDelete = async (id: string, isLocked: boolean) => {
     if (isLocked) {
-      alert('⚠️ Este bloco é PROTEGIDO e faz parte do Método Expert Training.\n\nNão é recomendado excluí-lo.')
+      alert('⚠️ Este bloco é PROTEGIDO e faz parte do Método EXPERT PRO TRAINING.\n\nNão é recomendado excluí-lo.')
     }
     if (!confirm('Tem certeza que deseja excluir este bloco?')) return
     try {
@@ -245,7 +245,7 @@ export default function SuperAdminBlocksPage() {
             <Blocks className="h-6 w-6 text-amber-500" />
             Blocos do Método
           </h1>
-          <p className="text-sm text-muted-foreground">Gerencie os blocos funcionais do Método Expert Training</p>
+          <p className="text-sm text-muted-foreground">Gerencie os blocos funcionais do Método EXPERT PRO TRAINING</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
@@ -344,7 +344,7 @@ export default function SuperAdminBlocksPage() {
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-amber-500" />
             <div className="text-amber-400">
-              <span className="font-medium">Dados Protegidos do Método Expert Training</span>
+              <span className="font-medium">Dados Protegidos do Método EXPERT PRO TRAINING</span>
               <span className="ml-2 text-amber-400/70">
                 • {stats?.locked || 0} blocos com is_locked = true
               </span>

@@ -6,6 +6,12 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'puppeteer']
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig

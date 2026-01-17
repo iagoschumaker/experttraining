@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - JWT SERVICE (EDGE RUNTIME)
+﻿// ============================================================================
+// EXPERT PRO TRAINING - JWT SERVICE (EDGE RUNTIME)
 // ============================================================================
 // Versão compatível com Edge Runtime para uso no middleware
 // Usa a biblioteca 'jose' que funciona em Edge

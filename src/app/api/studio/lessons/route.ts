@@ -1,9 +1,9 @@
-// ============================================================================
-// EXPERT TRAINING - LESSONS API [DEPRECATED]
+﻿// ============================================================================
+// EXPERT PRO TRAINING - LESSONS API [DEPRECATED]
 // ============================================================================
 // ⚠️ FUNCIONALIDADE DESCONTINUADA
 // 
-// O controle por aulas foi removido do Método Expert Training.
+// O controle por aulas foi removido do Método EXPERT PRO TRAINING.
 // O sistema agora é gerenciado por Avaliações e Cronogramas.
 //
 // GET  /api/studio/lessons - Lista aulas (APENAS HISTÓRICO - READ-ONLY)
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Funcionalidade descontinuada. O controle por aulas foi removido do Método Expert Training. Use Avaliações e Cronogramas.',
+        error: 'Funcionalidade descontinuada. O controle por aulas foi removido do Método EXPERT PRO TRAINING. Use Avaliações e Cronogramas.',
         deprecated: true 
       },
       { status: 410 } // 410 Gone - recurso não mais disponível

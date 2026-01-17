@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN RULES API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN RULES API
 // ============================================================================
 // GET /api/superadmin/rules - Lista regras do motor de decisão
 // POST /api/superadmin/rules - Cria regra

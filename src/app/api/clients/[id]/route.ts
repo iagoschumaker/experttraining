@@ -51,18 +51,29 @@ export async function GET(
 
     const payload = verifyAccessToken(accessToken)
     
-    if (!payload || !hasStudioContext(payload)) {
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Token inválido' },
+        { status: 401 }
+      )
+    }
+
+    // SuperAdmin can access any client, others need studio context
+    const isSuperAdmin = payload.isSuperAdmin
+    if (!isSuperAdmin && !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
         { status: 401 }
       )
     }
 
+    const whereClause: any = { id: params.id }
+    if (!isSuperAdmin && hasStudioContext(payload)) {
+      whereClause.studioId = payload.studioId
+    }
+
     const client = await prisma.client.findFirst({
-      where: {
-        id: params.id,
-        studioId: payload.studioId,
-      },
+      where: whereClause,
       include: {
         trainer: {
           select: {
@@ -134,7 +145,16 @@ export async function PUT(
 
     const payload = verifyAccessToken(accessToken)
     
-    if (!payload || !hasStudioContext(payload)) {
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Token inválido' },
+        { status: 401 }
+      )
+    }
+
+    // SuperAdmin can access any client, others need studio context
+    const isSuperAdmin = payload.isSuperAdmin
+    if (!isSuperAdmin && !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
         { status: 401 }
@@ -142,11 +162,13 @@ export async function PUT(
     }
 
     // Check if client exists
+    const whereClause: any = { id: params.id }
+    if (!isSuperAdmin && hasStudioContext(payload)) {
+      whereClause.studioId = payload.studioId
+    }
+
     const existingClient = await prisma.client.findFirst({
-      where: {
-        id: params.id,
-        studioId: payload.studioId,
-      },
+      where: whereClause,
     })
 
     if (!existingClient) {
@@ -157,7 +179,8 @@ export async function PUT(
     }
 
     // Check access for trainers - only assigned trainer or admin can edit
-    if (payload.role === 'TRAINER' && existingClient.trainerId !== payload.userId) {
+    // SuperAdmin can edit any client
+    if (!isSuperAdmin && hasStudioContext(payload) && payload.role === 'TRAINER' && existingClient.trainerId !== payload.userId) {
       return NextResponse.json(
         { success: false, error: 'Apenas o trainer responsável pode editar este aluno' },
         { status: 403 }
@@ -207,7 +230,7 @@ export async function PUT(
     await prisma.auditLog.create({
       data: {
         userId: payload.userId,
-        studioId: payload.studioId,
+        studioId: hasStudioContext(payload) ? payload.studioId : null,
         action: 'UPDATE',
         entity: 'Client',
         entityId: client.id,
@@ -246,15 +269,24 @@ export async function DELETE(
 
     const payload = verifyAccessToken(accessToken)
     
-    if (!payload || !hasStudioContext(payload)) {
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Token inválido' },
+        { status: 401 }
+      )
+    }
+
+    // SuperAdmin can delete any client, others need studio context
+    const isSuperAdmin = payload.isSuperAdmin
+    if (!isSuperAdmin && !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
         { status: 401 }
       )
     }
 
-    // Only studio admins can delete clients (trainers cannot delete)
-    if (payload.role !== 'STUDIO_ADMIN') {
+    // Only studio admins and superadmins can delete clients (trainers cannot delete)
+    if (!isSuperAdmin && hasStudioContext(payload) && payload.role !== 'STUDIO_ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Apenas administradores do studio podem excluir alunos' },
         { status: 403 }
@@ -262,11 +294,13 @@ export async function DELETE(
     }
 
     // Check if client exists
+    const whereClause: any = { id: params.id }
+    if (!isSuperAdmin && hasStudioContext(payload)) {
+      whereClause.studioId = payload.studioId
+    }
+
     const existingClient = await prisma.client.findFirst({
-      where: {
-        id: params.id,
-        studioId: payload.studioId,
-      },
+      where: whereClause,
     })
 
     if (!existingClient) {

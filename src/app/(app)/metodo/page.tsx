@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { 
@@ -60,11 +60,11 @@ export default function MetodoPage() {
         <div className="flex items-center gap-3 mb-2">
           <BookOpen className="h-8 w-8 text-amber-500" />
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Método Expert Training
+            Método EXPERT PRO TRAINING
           </h1>
         </div>
         <p className="text-muted-foreground">
-          Estrutura completa do cronograma diário baseado na metodologia Expert Training
+          Estrutura completa do cronograma diário baseado na metodologia EXPERT PRO TRAINING
         </p>
       </div>
 

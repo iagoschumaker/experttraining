@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - STUDIO SETTINGS PAGE
+// EXPERT PRO TRAINING - STUDIO SETTINGS PAGE
 // ============================================================================
 // Área de configurações do Studio - Informações, Identidade Visual e Plano
 // ============================================================================
@@ -322,7 +322,7 @@ export default function StudioSettingsPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Expert Training Studio"
+                    placeholder="EXPERT PRO TRAINING Studio"
                   />
                 </div>
                 <div>

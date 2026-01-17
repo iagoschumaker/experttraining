@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - STUDIO DASHBOARD API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - STUDIO DASHBOARD API
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     })
 
     // ========================================================================
-    // ALERTAS DE REAVALIAÇÃO - MÉTODO EXPERT TRAINING
+    // ALERTAS DE REAVALIAÇÃO - MÉTODO EXPERT PRO TRAINING
     // ========================================================================
     // Buscar clientes com cronograma inativo (finalizado) que não têm
     // avaliação mais recente que o cronograma

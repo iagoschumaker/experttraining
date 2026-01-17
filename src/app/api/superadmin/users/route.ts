@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - SUPERADMIN USERS API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - SUPERADMIN USERS API
 // ============================================================================
 // GET /api/superadmin/users - Lista usuários
 // POST /api/superadmin/users - Cria usuário

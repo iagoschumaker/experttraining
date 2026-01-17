@@ -1,5 +1,5 @@
-// ============================================================================
-// EXPERT TRAINING - REFRESH TOKEN API
+﻿// ============================================================================
+// EXPERT PRO TRAINING - REFRESH TOKEN API
 // ============================================================================
 // POST /api/auth/refresh
 // Renova o access token usando o refresh token

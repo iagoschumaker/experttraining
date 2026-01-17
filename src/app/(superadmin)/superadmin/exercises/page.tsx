@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 // ============================================================================
-// EXPERT TRAINING - SUPERADMIN EXERCISES PAGE (100% IMPROVED)
+// EXPERT PRO TRAINING - SUPERADMIN EXERCISES PAGE (100% IMPROVED)
 // ============================================================================
-// Gerenciamento completo de exercícios do método Expert Training
+// Gerenciamento completo de exercícios do método EXPERT PRO TRAINING
 // - Prescrição padrão (sets, reps, time, rest)
 // - Notas técnicas do método
 // - Vinculação a blocos
@@ -481,7 +481,7 @@ export default function SuperAdminExercisesPage() {
           <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
             <p className="text-amber-400 text-sm flex items-center gap-2">
               <Target className="h-4 w-4" />
-              Valores padrão do Método Expert Training (podem ser ajustados pelo trainer)
+              Valores padrão do Método EXPERT PRO TRAINING (podem ser ajustados pelo trainer)
             </p>
           </div>
           
@@ -598,7 +598,7 @@ export default function SuperAdminExercisesPage() {
             Biblioteca de Exercícios
           </h1>
           <p className="text-sm text-muted-foreground">
-            Exercícios do Método Expert Training
+            Exercícios do Método EXPERT PRO TRAINING
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

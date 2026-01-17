@@ -301,6 +301,11 @@ Client {
 - **Gestão aprimorada de treinos** (Jan 2026)
 - **Edição full-screen de clientes** (Jan 2026)
 - **Indicadores visuais de evolução** (Jan 2026)
+- **Geração de PDF profissional com Puppeteer** (Jan 2026)
+  - Layout responsivo adaptativo (3-7 dias)
+  - Header e footer fixos com logo do studio
+  - Quebra de página inteligente (1 semana/página)
+  - Download direto sem navegação
 
 ### 🔄 Em Desenvolvimento
 - Sistema completo de aulas coletivas

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge, StatsCard, StatsGrid } from '@/components/ui'
@@ -97,7 +97,7 @@ export default function SuperAdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Visão geral do sistema Expert Training
+          Visão geral do sistema EXPERT PRO TRAINING
         </p>
       </div>
 
