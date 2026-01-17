@@ -4,6 +4,7 @@ import './globals.css'
 import './print.css'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
+import { ServiceWorkerRegister } from '@/components/service-worker-register'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -51,6 +52,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <PWAInstallPrompt />
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>
