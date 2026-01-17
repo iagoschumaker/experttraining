@@ -525,7 +525,7 @@ export default function TeamPage() {
                   <input
                     type="text"
                     value={createForm.name}
-                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder={emailExists && existingUser ? `Usar: ${existingUser.name}` : 'Digite o nome completo'}
                     disabled={emailExists && !!existingUser}
@@ -544,7 +544,7 @@ export default function TeamPage() {
                   <input
                     type="email"
                     value={createForm.email}
-                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     required
                   />
@@ -570,7 +570,7 @@ export default function TeamPage() {
                     <input
                       type="password"
                       value={createForm.password}
-                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
                       className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       minLength={6}
                       required
@@ -586,7 +586,7 @@ export default function TeamPage() {
                   <select
                     value={createForm.role}
                     onChange={(e) =>
-                      setCreateForm({ ...createForm, role: e.target.value as 'TRAINER' | 'STUDIO_ADMIN' })
+                      setCreateForm((prev) => ({ ...prev, role: e.target.value as 'TRAINER' | 'STUDIO_ADMIN' }))
                     }
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   >
@@ -663,7 +663,7 @@ export default function TeamPage() {
                   <select
                     value={editForm.role}
                     onChange={(e) =>
-                      setEditForm({ ...editForm, role: e.target.value as 'TRAINER' | 'STUDIO_ADMIN' })
+                      setEditForm((prev) => ({ ...prev, role: e.target.value as 'TRAINER' | 'STUDIO_ADMIN' }))
                     }
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   >
@@ -678,7 +678,7 @@ export default function TeamPage() {
                     <input
                       type="checkbox"
                       checked={editForm.isActive}
-                      onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, isActive: e.target.checked }))}
                       className="w-4 h-4 text-amber-500 border-border rounded focus:ring-amber-500"
                     />
                     <span className="text-sm font-medium text-foreground">Usuário ativo</span>
@@ -692,7 +692,7 @@ export default function TeamPage() {
                       type="checkbox"
                       checked={editForm.resetPassword}
                       onChange={(e) =>
-                        setEditForm({ ...editForm, resetPassword: e.target.checked, newPassword: '' })
+                        setEditForm((prev) => ({ ...prev, resetPassword: e.target.checked, newPassword: '' }))
                       }
                       className="w-4 h-4 text-amber-500 border-border rounded focus:ring-amber-500"
                     />
@@ -707,7 +707,7 @@ export default function TeamPage() {
                       <input
                         type="password"
                         value={editForm.newPassword}
-                        onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, newPassword: e.target.value }))}
                         className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         minLength={6}
                         required
