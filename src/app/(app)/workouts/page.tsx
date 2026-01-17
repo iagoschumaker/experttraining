@@ -211,42 +211,49 @@ export default function WorkoutsPage() {
                   key={workout.id}
                   className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <h3 className="font-medium text-foreground">{workout.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Cliente: {workout.client.name}
-                      </p>
-                      {workout.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {workout.description}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <h3 className="font-medium text-foreground truncate">{workout.name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">
+                          Cliente: {workout.client.name}
                         </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Criado em {formatDate(workout.createdAt)}
-                      </p>
+                        {workout.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {workout.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Criado em {formatDate(workout.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {workout.assessment?.completedAt ? (
+                          <span className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-1 rounded-full whitespace-nowrap">
+                            Avaliado
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2 py-1 rounded-full whitespace-nowrap">
+                            Pendente
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {workout.assessment?.completedAt ? (
-                        <span className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-1 rounded-full">
-                          Com Avaliação
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2 py-1 rounded-full">
-                          Pendente
-                        </span>
-                      )}
+                    <div className="flex items-center justify-end gap-1 border-t border-border pt-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDownloadPDF(workout.id)}
                         title="Baixar PDF"
+                        className="h-8 px-2"
                       >
                         <Download className="h-4 w-4 text-amber-500" />
+                        <span className="ml-1 text-xs hidden sm:inline">PDF</span>
                       </Button>
                       <Link href={`/workouts/${workout.id}`}>
-                        <Button variant="ghost" size="sm" title="Visualizar">
+                        <Button variant="ghost" size="sm" title="Visualizar" className="h-8 px-2">
                           <Eye className="h-4 w-4" />
+                          <span className="ml-1 text-xs hidden sm:inline">Ver</span>
                         </Button>
                       </Link>
                       <Button
@@ -255,6 +262,7 @@ export default function WorkoutsPage() {
                         onClick={() => handleDelete(workout.id)}
                         disabled={deleting === workout.id}
                         title="Excluir"
+                        className="h-8 px-2"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>

@@ -304,3 +304,90 @@
     }
   }
 }
+
+/* ============================================================================
+   MOBILE OPTIMIZATIONS
+   ============================================================================ */
+
+/* Escala base reduzida no mobile para parecer menos "zoomado" */
+@media (max-width: 767px) {
+  html {
+    font-size: 14px;
+  }
+  
+  /* Cards e containers mais compactos no mobile */
+  .space-y-6 {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+  }
+  
+  /* Padding reduzido em cards no mobile */
+  [class*="CardContent"] {
+    padding: 1rem;
+  }
+}
+
+/* Inputs ficarem visíveis acima do teclado no mobile */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    scroll-margin-bottom: 200px;
+  }
+}
+
+/* Android e outros browsers */
+input:focus,
+textarea:focus,
+select:focus {
+  scroll-margin-bottom: 150px;
+  scroll-padding-bottom: 150px;
+}
+
+/* Garantir que o body não fique fixo quando teclado abre */
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+html {
+  height: -webkit-fill-available;
+}
+
+/* Keyframes para animações */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-from-bottom 0.3s ease-out;
+}
