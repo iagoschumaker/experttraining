@@ -320,7 +320,7 @@ export async function DELETE(
     await prisma.auditLog.create({
       data: {
         userId: payload.userId,
-        studioId: payload.studioId,
+        studioId: (payload as any).studioId,
         action: 'DELETE',
         entity: 'Client',
         entityId: params.id,
