@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     // Set cookies directly on the response
     response.cookies.set(COOKIES.ACCESS_TOKEN, accessToken, {
       httpOnly: true,
-      secure: IS_PRODUCTION,
+      secure: false,
       sameSite: 'lax',
       path: '/',
       maxAge: 15 * 60, // 15 minutes
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set(COOKIES.REFRESH_TOKEN, refreshToken, {
       httpOnly: true,
-      secure: IS_PRODUCTION,
+      secure: false,
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60, // 7 days

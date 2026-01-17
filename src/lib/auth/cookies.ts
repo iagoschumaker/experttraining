@@ -12,7 +12,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 // Cookie options
 const BASE_OPTIONS = {
   httpOnly: true,
-  secure: IS_PRODUCTION,
+  secure: false,
   sameSite: 'lax' as const,
   path: '/',
 }
