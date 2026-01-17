@@ -29,8 +29,8 @@ export const metadata: Metadata = {
     title: 'Expert Training',
   },
   icons: {
-    icon: '/icon-192.svg',
-    apple: '/icon-192.svg',
+    icon: '/icon-192.png',
+    apple: '/icon-192.png',
   },
   themeColor: '#00C2D1',
 }
@@ -45,7 +45,7 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#00C2D1" />
-        <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>

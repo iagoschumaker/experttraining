@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerador de Ícones PWA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0F1215;
+            color: #fff;
+        }
+        canvas {
+            border: 2px solid #00C2D1;
+            margin: 10px;
+            border-radius: 8px;
+        }
+        button {
+            background: #00C2D1;
+            color: #0F1215;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #00A8B5;
+        }
+        .preview {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        h1 { color: #00C2D1; }
+        .instructions {
+            background: #1a1d21;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #00C2D1;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Gerador de Ícones PWA - Expert Training</h1>
+    
+    <div class="instructions">
+        <h3>📋 Instruções:</h3>
+        <ol>
+            <li>Clique nos botões abaixo para baixar os ícones</li>
+            <li>Salve os arquivos na pasta <code>public/</code></li>
+            <li>Os ícones serão automaticamente usados pelo PWA</li>
+        </ol>
+    </div>
+
+    <div class="preview">
+        <div>
+            <h3>192x192</h3>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="downloadIcon(192)">⬇️ Baixar icon-192.png</button>
+        </div>
+        <div>
+            <h3>512x512</h3>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="downloadIcon(512)">⬇️ Baixar icon-512.png</button>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const ctx = canvas.getContext('2d');
+            
+            // Background escuro com bordas arredondadas
+            ctx.fillStyle = '#0F1215';
+            roundRect(ctx, 0, 0, size, size, size * 0.15);
+            ctx.fill();
+            
+            // Gradiente cyan
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#00C2D1');
+            gradient.addColorStop(1, '#0099A8');
+            
+            // Container interno com gradiente
+            ctx.fillStyle = gradient;
+            roundRect(ctx, size * 0.08, size * 0.08, size * 0.84, size * 0.84, size * 0.12);
+            ctx.fill();
+            
+            // Texto "ET"
+            ctx.fillStyle = '#0F1215';
+            ctx.font = `900 ${size * 0.35}px Arial, Helvetica, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.letterSpacing = `${size * -0.02}px`;
+            ctx.fillText('ET', size / 2, size * 0.52);
+            
+            // Subtexto
+            ctx.font = `600 ${size * 0.08}px Arial, Helvetica, sans-serif`;
+            ctx.globalAlpha = 0.8;
+            ctx.fillText('EXPERT TRAINING', size / 2, size * 0.78);
+            ctx.globalAlpha = 1;
+        }
+        
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Desenhar ícones ao carregar
+        drawIcon(192);
+        drawIcon(512);
+    </script>
+</body>
+</html>
