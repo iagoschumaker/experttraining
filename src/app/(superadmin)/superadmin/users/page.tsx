@@ -4,7 +4,7 @@
 // EXPERT PRO TRAINING - SUPERADMIN USERS PAGE
 // ============================================================================
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -147,18 +147,19 @@ export default function SuperAdminUsersPage() {
     setIsEditOpen(true)
   }
 
-  const handleStudioChange = (studioId: string) => {
-    if (!selectedUser) {
-      setFormData((prev) => ({ ...prev, studioId }))
-      return
-    }
-    
-    // Find the role for this studio in the user's current studios
-    const studioAssignment = selectedUser.studios.find(s => s.studio.id === studioId)
-    const role = studioAssignment?.role || 'TRAINER'
-    
-    setFormData((prev) => ({ ...prev, studioId, studioRole: role }))
-  }
+  const handleStudioChange = useCallback((studioId: string) => {
+    setFormData((prev) => {
+      if (!selectedUser) {
+        return { ...prev, studioId }
+      }
+      
+      // Find the role for this studio in the user's current studios
+      const studioAssignment = selectedUser.studios.find(s => s.studio.id === studioId)
+      const role = studioAssignment?.role || 'TRAINER'
+      
+      return { ...prev, studioId, studioRole: role }
+    })
+  }, [selectedUser])
 
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -200,6 +201,26 @@ export default function SuperAdminUsersPage() {
     } catch { alert('Erro ao excluir aluno') }
   }
 
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, name: e.target.value }))
+  }, [])
+
+  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, email: e.target.value }))
+  }, [])
+
+  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, password: e.target.value }))
+  }, [])
+
+  const handleSuperAdminChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, isSuperAdmin: e.target.checked }))
+  }, [])
+
+  const handleStudioRoleChange = useCallback((v: string) => {
+    setFormData((prev) => ({ ...prev, studioRole: v }))
+  }, [])
+
   const FormContent = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) => (
     <form onSubmit={onSubmit}>
       <DialogHeader>
@@ -210,17 +231,17 @@ export default function SuperAdminUsersPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-muted-foreground">Nome *</Label>
-            <Input value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} className="bg-card border-border text-foreground" required />
+            <Input value={formData.name} onChange={handleNameChange} className="bg-card border-border text-foreground" required />
           </div>
           <div className="space-y-2">
             <Label className="text-muted-foreground">Email *</Label>
-            <Input type="email" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} className="bg-card border-border text-foreground" required />
+            <Input type="email" value={formData.email} onChange={handleEmailChange} className="bg-card border-border text-foreground" required />
           </div>
         </div>
         {!isEdit ? (
           <div className="space-y-2">
             <Label className="text-muted-foreground">Senha *</Label>
-            <Input type="password" value={formData.password} onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))} className="bg-card border-border text-foreground" required />
+            <Input type="password" value={formData.password} onChange={handlePasswordChange} className="bg-card border-border text-foreground" required />
           </div>
         ) : (
           <div className="space-y-2">
@@ -237,7 +258,7 @@ export default function SuperAdminUsersPage() {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={(e) => setFormData((prev) => ({ ...prev, isSuperAdmin: e.target.checked }))} className="rounded border-border" />
+          <input type="checkbox" id="isSuperAdmin" checked={formData.isSuperAdmin} onChange={handleSuperAdminChange} className="rounded border-border" />
           <Label htmlFor="isSuperAdmin" className="text-muted-foreground">Super Administrador</Label>
         </div>
         <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
@@ -247,7 +268,7 @@ export default function SuperAdminUsersPage() {
               <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione o studio" /></SelectTrigger>
               <SelectContent>{studios.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={formData.studioRole} onValueChange={(v) => setFormData((prev) => ({ ...prev, studioRole: v }))}>
+            <Select value={formData.studioRole} onValueChange={handleStudioRoleChange}>
               <SelectTrigger className="bg-background border-border text-foreground"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="STUDIO_ADMIN">Administrador</SelectItem><SelectItem value="TRAINER">Treinador</SelectItem></SelectContent>
             </Select>
