@@ -332,9 +332,6 @@ export default function SuperAdminUsersPage() {
           <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}><Plus className="h-4 w-4" /> Novo Usuário</Button>
-          </DialogTrigger>
           <DialogContent className="bg-card border-border max-w-lg">
             <UserFormContent 
               formData={formData}

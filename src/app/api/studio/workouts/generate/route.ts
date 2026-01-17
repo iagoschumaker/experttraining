@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = assessment.resultJson as any
+    const inputData = assessment.inputJson as any
 
     // ========================================================================
     // 🧠 MÉTODO EXPERT PRO TRAINING - GERAÇÃO DE CRONOGRAMA REAL
@@ -159,9 +160,14 @@ export async function POST(request: NextRequest) {
     // 1. BLOCO = 3 exercícios fixos (NÃO é categoria)
     // 2. Exercício 1 de TODO bloco = FOCO PRINCIPAL da avaliação
     // 3. PREPARAÇÃO = única por sessão (nunca vira bloco)
-    // 4. SEMPRE 3 blocos por sessão
+    // 4. BLOCOS POR NÍVEL: Iniciante = 2, Intermediário/Avançado = 3
     // 5. PROTOCOLO FINAL = separado (nunca substitui bloco)
     // ========================================================================
+
+    // Extrair nível do aluno da avaliação
+    const clientLevel = inputData?.level || 'BEGINNER'
+    const maxBlocksPerLevel = clientLevel === 'BEGINNER' ? 2 : 3
+    console.log(`📊 NÍVEL DO ALUNO: ${clientLevel} → ${maxBlocksPerLevel} blocos por sessão`)
 
     const allowedBlockCodes = result.allowedBlocks || []
     const blockedBlockCodes = result.blockedBlocks || []
@@ -371,7 +377,8 @@ export async function POST(request: NextRequest) {
     const generateBlocks = (weekIndex: number, sessionIndex: number) => {
       const blocks = []
       
-      for (let blockNum = 1; blockNum <= 3; blockNum++) {
+      // Número de blocos baseado no nível do aluno
+      for (let blockNum = 1; blockNum <= maxBlocksPerLevel; blockNum++) {
         const blockKey = `bloco${blockNum}` as 'bloco1' | 'bloco2' | 'bloco3'
         
         const focoOptions = exerciciosFoco[blockKey]

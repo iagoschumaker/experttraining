@@ -169,12 +169,6 @@ export default function AssessmentsPage() {
             Gerencie as avaliações funcionais dos alunos
           </p>
         </div>
-        <Link href="/assessments/new">
-          <Button className="gap-2 bg-amber-500 text-accent-foreground hover:bg-amber-600 hidden md:flex">
-            <Plus className="h-4 w-4" />
-            Nova Avaliação
-          </Button>
-        </Link>
       </div>
 
       {/* Stats */}

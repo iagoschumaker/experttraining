@@ -139,12 +139,6 @@ export default function ClientsPage() {
             Gerenciamento de alunos do estúdio
           </p>
         </div>
-        <Link href="/clients/new">
-          <Button className="gap-2 bg-amber-500 text-accent-foreground hover:bg-amber-600 w-full sm:w-auto hidden md:flex">
-            <Plus className="h-4 w-4" />
-            Novo Aluno
-          </Button>
-        </Link>
       </div>
 
       {/* Stats */}

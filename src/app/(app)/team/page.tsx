@@ -399,17 +399,6 @@ export default function TeamPage() {
               className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
-          <button
-            onClick={() => {
-              setShowCreateDialog(true)
-              setError(null)
-              setSuccess(null)
-            }}
-            className="hidden md:flex items-center gap-2 px-4 py-2 bg-amber-500 text-accent-foreground rounded-lg hover:bg-amber-600 transition-colors"
-          >
-            <Plus size={20} />
-            Adicionar Membro
-          </button>
         </div>
 
         {/* Trainers Table */}
