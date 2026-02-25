@@ -39,10 +39,24 @@ const updateAssessmentSchema = z.object({
     measurements: z.object({
       chest: z.number().optional(),
       waist: z.number().optional(),
+      abdomen: z.number().optional(),
       hip: z.number().optional(),
+      forearm_right: z.number().optional(),
+      forearm_left: z.number().optional(),
+      arm_right: z.number().optional(),
+      arm_left: z.number().optional(),
       arm: z.number().optional(),
+      thigh_right: z.number().optional(),
+      thigh_left: z.number().optional(),
       thigh: z.number().optional(),
+      calf_right: z.number().optional(),
+      calf_left: z.number().optional(),
       calf: z.number().optional(),
+    }).optional(),
+    skinfolds: z.object({
+      chest: z.number().optional(),
+      abdomen: z.number().optional(),
+      thigh: z.number().optional(),
     }).optional(),
     notes: z.string().optional(),
   }).optional(),
@@ -218,13 +232,18 @@ export async function PUT(
       if (bodyMetrics.height) {
         clientUpdateData.height = bodyMetrics.height
       }
+      if (bodyMetrics.bodyFat) {
+        clientUpdateData.bodyFat = bodyMetrics.bodyFat
+      }
       if (bodyMetrics.measurements) {
-        if (bodyMetrics.measurements.chest) clientUpdateData.chest = bodyMetrics.measurements.chest
-        if (bodyMetrics.measurements.waist) clientUpdateData.waist = bodyMetrics.measurements.waist
-        if (bodyMetrics.measurements.hip) clientUpdateData.hip = bodyMetrics.measurements.hip
-        if (bodyMetrics.measurements.arm) clientUpdateData.arm = bodyMetrics.measurements.arm
-        if (bodyMetrics.measurements.thigh) clientUpdateData.thigh = bodyMetrics.measurements.thigh
-        if (bodyMetrics.measurements.calf) clientUpdateData.calf = bodyMetrics.measurements.calf
+        const m = bodyMetrics.measurements
+        if (m.chest) clientUpdateData.chest = m.chest
+        if (m.waist) clientUpdateData.waist = m.waist
+        if (m.hip) clientUpdateData.hip = m.hip
+        // Bilateral: prioritize right side for the single-value client field
+        if (m.arm_right || m.arm) clientUpdateData.arm = m.arm_right || m.arm
+        if (m.thigh_right || m.thigh) clientUpdateData.thigh = m.thigh_right || m.thigh
+        if (m.calf_right || m.calf) clientUpdateData.calf = m.calf_right || m.calf
       }
 
       // Update client if there's data to update

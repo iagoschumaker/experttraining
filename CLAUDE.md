@@ -17,8 +17,9 @@
 8. [Motor de Decisão de Treino](#motor-de-decisão-de-treino)
 9. [SuperAdmin - Gestão Avançada](#superadmin---gestão-avançada)
 10. [Melhorias Recentes (Jan 2026)](#melhorias-recentes-jan-2026)
-11. [Fluxos do Sistema](#fluxos-do-sistema)
-12. [Padrões e Convenções](#padrões-e-convenções)
+11. [Método Expert Training — Juba Method (Fev 2026)](#método-expert-training--juba-method-fev-2026)
+12. [Fluxos do Sistema](#fluxos-do-sistema)
+13. [Padrões e Convenções](#padrões-e-convenções)
 
 ---
 
@@ -35,6 +36,8 @@ Database: PostgreSQL
 Auth: JWT (Access + Refresh Tokens)
 Validation: Zod
 State: Zustand + React Hooks
+Charts: Recharts
+Services: src/services/ (lógica de negócio desacoplada)
 ```
 
 ### Características Principais
@@ -1757,6 +1760,182 @@ next.config.js - Webpack externals para Puppeteer
 
 ---
 
+## 🆕 Método Expert Training — Juba Method (Fev 2026)
+
+### Visão Geral
+O Método Expert Training (internamente chamado "Método Juba") é o núcleo científico do sistema: calcula a composição corporal do aluno, determina o **ratio lean:fat** atual vs ideal, projeta o tempo necessário para atingir a estrutura corporal alvo e gera um dashboard visual completo com Recharts.
+
+### Dependências Adicionadas
+```bash
+npm i recharts   # Biblioteca de gráficos React
+```
+
+### Camada de Serviços (`src/services/`)
+
+Nova pasta `services/` criada para lógica de negócio desacoplada dos handlers HTTP.
+
+**`src/services/jubaMethod.ts`**
+```typescript
+// Funções exportadas:
+calculateBodyComposition(weight, bodyFatPercent)
+  → { fatKg, leanKg }
+
+calculateJubaMethod({ weight, bodyFatPercent, sex })
+  → JubaComputed {
+      weight, bodyFatPercent, fatKg, leanKg,
+      ratioCurrent, ratioTarget,      // homem=6, mulher=4
+      idealLeanKg, leanToGainKg,
+      monthsEstimate: { min, max, avg },
+      sex
+    }
+
+estimateMonths(leanToGainKg, sex)
+  → { minMonths, maxMonths, avgMonths }
+  // Homens: 0.7 kg/mês avg | Mulheres: 0.45 kg/mês avg | mínimo 6 meses
+
+computeFromAssessment(bodyMetricsJson, clientGender)
+  → JubaComputed | null   // Retorna null se sem dados suficientes
+
+normalizeSex(gender)
+  → 'M' | 'F' | null
+```
+
+### Mudanças no Schema Prisma (Migration: `20260225171227_add_juba_method_fields`)
+
+```prisma
+// Novo enum
+enum GoalType {
+  WEIGHT_LOSS
+  MUSCLE_GAIN
+  RECOMP
+  PERFORMANCE
+  HEALTH
+}
+
+// Model Client — novos campos
+model Client {
+  bodyFat    Decimal?    // % gordura corporal atual
+  goalType   GoalType?   // Objetivo principal
+  goalWeight Decimal?    // Peso-meta em kg
+}
+
+// Model Assessment — novos campos
+model Assessment {
+  computedJson    Json?   // JubaComputed calculado no processamento
+  performanceJson Json?   // Scores de capacidades físicas (futuro)
+  @@index([clientId, createdAt])  // Novo índice de performance
+}
+```
+
+### Medidas Corporais Bilaterais (bodyMetrics)
+
+O schema de `bodyMetrics` nas avaliações foi expandido:
+```typescript
+bodyMetrics: {
+  weight?: number
+  height?: number
+  bodyFat?: number
+  // Bilateral
+  arm_right?, arm_left?,
+  forearm_right?, forearm_left?,
+  thigh_right?, thigh_left?,
+  calf_right?, calf_left?,
+  abdomen?,
+  chest?, waist?, hip?,
+  // Dobras cutâneas
+  skinfolds?: {
+    chest?, abdomen?, thigh?, triceps?,
+    subscapular?, suprailiac?, midaxillary?
+  }
+}
+```
+
+### Novos Endpoints de API
+
+**`GET /api/clients/[id]/evolution`**
+```typescript
+// RBAC: STUDIO_ADMIN ou TRAINER (próprios alunos)
+Response: {
+  success: true,
+  data: {
+    client: { id, name, gender, goalType, goalWeight, currentWeight, currentHeight, currentBodyFat },
+    latestComputed: JubaComputed | null,
+    compositionTimeline: Array<{   // Uma linha por avaliação
+      date, weight, bodyFat, fatKg, leanKg, ratioCurrent, ratioTarget, leanToGainKg
+    }>,
+    measuresTimeline: Array<{      // Uma linha por avaliação
+      date, chest, waist, hip, arm_right, arm_left, thigh_right, thigh_left, ...
+    }>,
+    summary: {                     // Comparação início vs atual
+      totalAssessments, firstDate, lastDate, daysBetween,
+      first: { weight, bodyFat, leanKg, fatKg },
+      last: { weight, bodyFat, leanKg, fatKg },
+      deltas: { weight, bodyFat, leanKg, fatKg }
+    } | null,
+    performanceScores: Record<string, number> | null,
+    insights: string[]             // Textos gerados automaticamente
+  }
+}
+```
+
+**`PUT /api/clients/[id]/goals`**
+```typescript
+// RBAC: STUDIO_ADMIN ou TRAINER (responsável)
+Body: {
+  goalType?: 'WEIGHT_LOSS' | 'MUSCLE_GAIN' | 'RECOMP' | 'PERFORMANCE' | 'HEALTH' | null
+  goalWeight?: number | null
+}
+Response: { success: true, data: Client }
+// Cria audit log automaticamente
+```
+
+### Integração com Processamento de Avaliações
+
+`POST /api/assessments/[id]/process` foi atualizado para:
+1. Buscar `client.gender` junto com a avaliação
+2. Após o motor de decisão processar, calcula `computeFromAssessment(bodyMetrics, gender)`
+3. Salva `computedJson` na avaliação
+4. Atualiza `client.bodyFat` se disponível
+
+### Novos Componentes React
+
+**`src/components/clients/client-evolution.tsx`** (reescrito)
+- `'use client'` — busca `GET /api/clients/[id]/evolution`
+- Exibe 4 StatCards: Proporção Atual, Massa Magra, Gordura, Ganhar/Status
+- Card de Deltas (início vs atual)
+- LineChart: peso, leanKg, fatKg, % gordura ao longo do tempo
+- BarChart: Atual vs Ideal (lean mass + ratio)
+- LineChart com `<Select>` dropdown para selecionar medida
+- RadarChart: capacidades físicas (quando `performanceScores` disponível)
+- Seção de Insights automáticos
+- Paleta: cyan (#06b6d4), green (#10b981), red (#ef4444), amber (#f59e0b), purple (#8b5cf6)
+
+**`src/components/clients/client-goals-form.tsx`** (novo)
+- Formulário inline: `goalType` (Select) + `goalWeight` (Input number)
+- Chama `PUT /api/clients/[id]/goals`
+- Feedback visual de sucesso/erro sem toast externo
+- Renderizado em `src/app/(app)/clients/[id]/page.tsx` com `{canEdit && <ClientGoalsForm />}`
+
+### Fix: FloatingActionButton visível em Desktop
+
+**Arquivo:** `src/components/ui/floating-action-button.tsx`
+
+**Problema:** `className="fixed bottom-6 right-6 z-30 md:hidden"` — o FAB sumia em telas ≥ 768px, impossibilitando criar alunos, avaliações, treinos etc. no desktop.
+
+**Solução:** Removido `md:hidden` do wrapper e do overlay:
+```diff
+- <div className="fixed inset-0 z-20 md:hidden" onClick={...} />
+- <div className={cn("fixed bottom-6 right-6 z-30 md:hidden", className)}>
++ <div className="fixed inset-0 z-20" onClick={...} />
++ <div className={cn("fixed bottom-6 right-6 z-30", className)}>
+```
+
+**Impacto:** Afeta todas as páginas que usam FAB:
+- Studio: `/clients`, `/assessments`, `/workouts`, `/team`
+- SuperAdmin: `/studios`, `/users`, `/plans`, `/blocks`, `/rules`
+
+---
+
 ## 📚 Recursos Adicionais
 
 ### Documentação Relacionada
@@ -1764,6 +1943,7 @@ next.config.js - Webpack externals para Puppeteer
 - [Prisma Docs](https://www.prisma.io/docs)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Zod](https://zod.dev)
+- [Recharts](https://recharts.org)
 - [@hello-pangea/dnd](https://github.com/hello-pangea/dnd)
 
 ### Convenções do Projeto
@@ -1773,10 +1953,11 @@ next.config.js - Webpack externals para Puppeteer
 - Documentar mudanças no schema no Prisma
 - Usar TypeScript strict mode
 - Seguir padrões do shadcn/ui para componentes
+- Lógica de negócio complexa vai em `src/services/`, não em route handlers
 
 ---
 
-**Última Atualização:** Janeiro 2026  
-**Versão do Sistema:** 2.0.0 - SuperAdmin Enhanced  
+**Última Atualização:** Fevereiro 2026  
+**Versão do Sistema:** 3.0.0 - Método Expert Training (Juba Method)  
 **Status:** ✅ Todas as melhorias implementadas e testadas
 **Mantido por:** Time Expert Training

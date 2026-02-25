@@ -27,6 +27,7 @@ O Expert Training é um sistema completo de gerenciamento para studios de treino
 - **Estilização:** Tailwind CSS + shadcn/ui
 - **Validação:** Zod
 - **Estado:** React Hooks + Zustand
+- **Gráficos:** Recharts
 
 ## ✨ Features Implementadas
 
@@ -40,11 +41,21 @@ O Expert Training é um sistema completo de gerenciamento para studios de treino
 ### 👥 Gestão de Alunos
 - [x] CRUD completo de alunos
 - [x] Dados pessoais, físicos e medidas corporais
+- [x] Medidas **bilaterais**: braços, antesbraços, coxas, panturrilhas, abdômen
 - [x] Histórico médico e objetivos
-- [x] Meta principal (hipertrofia, força, etc.)
+- [x] **Meta principal**: goalType (WEIGHT_LOSS, MUSCLE_GAIN, RECOMP, PERFORMANCE, HEALTH) + peso-meta
 - [x] Atribuição de trainers responsáveis
 - [x] Visualização compartilhada entre trainers
 - [x] Restrições de edição e exclusão por role
+
+### 📊 Evolução & Método Expert Training (Juba)
+- [x] **Cálculo de composição corporal**: massa magra, gordura em kg e %
+- [x] **Ratio lean:fat** com alvo diferenciado (homem 6:1 / mulher 4:1)
+- [x] **Projeção de ganho**: meses estimados para atingir a estrutura ideal
+- [x] **Dashboard Recharts**: LineChart, BarChart, RadarChart, medidas ao longo do tempo
+- [x] **Card de deltas**: início vs atual (peso, % gordura, massa magra, gordura kg)
+- [x] **Insights automáticos** gerados pela API
+- [x] **Formulário de meta** integrado na página do aluno
 
 ### 📋 Avaliações Funcionais
 - [x] Formulário multi-etapas (queixas → dor → movimentos → nível)
@@ -209,14 +220,12 @@ npm run db:seed
 npm run dev
 ```
 
-## 📝 Credenciais de Teste (após seed)
+## 📝 Credenciais de Acesso
 
-| Tipo | Email | Senha |
-|------|-------|-------|
-| SuperAdmin | juba@experttraining.com.br | super123 |
-| Trainer | carlos@example.com | trainer123 |
-| Trainer | maria@example.com | trainer123 |
-| Trainer | joao@example.com | trainer123 |
+> ⚠️ **Segurança:** As credenciais de acesso ao sistema não são documentadas aqui por questões de segurança.
+> 
+> Para obter acesso ao ambiente de desenvolvimento/homologação, contate o administrador do sistema.
+> Em produção, utilize sempre senhas fortes e únicas — altere as senhas padrão imediatamente após o primeiro login.
 
 ## 🧠 Motor de Decisão
 
@@ -290,22 +299,23 @@ Client {
 ### ✅ Implementado
 - Sistema de autenticação completo
 - RBAC multi-tenant funcional
-- CRUD de alunos com medidas corporais
+- CRUD de alunos com medidas corporais bilaterais
 - Sistema de avaliação funcional
 - Motor de decisão de treino
 - Montagem de treinos com blocos
 - SuperAdmin dashboard
 - Sistema de auditoria
 - Auto-atualização de dados do cliente
-- **Sistema de evolução de clientes** (Jan 2026)
+- **Evolução de clientes** (Jan 2026)
 - **Gestão aprimorada de treinos** (Jan 2026)
 - **Edição full-screen de clientes** (Jan 2026)
 - **Indicadores visuais de evolução** (Jan 2026)
 - **Geração de PDF profissional com Puppeteer** (Jan 2026)
-  - Layout responsivo adaptativo (3-7 dias)
-  - Header e footer fixos com logo do studio
-  - Quebra de página inteligente (1 semana/página)
-  - Download direto sem navegação
+- **Método Expert Training (Juba)**: composição corporal + ratio lean:fat + projeções (Fev 2026)
+- **Dashboard Recharts**: linha, barra, radar, selector de medidas (Fev 2026)
+- **Medidas bilaterais**: braços, antesbraços, coxas, panturrilhas, abdômen (Fev 2026)
+- **Formulário de metas**: goalType + goalWeight por aluno (Fev 2026)
+- **Botao de ação flutuante (FAB)**: visível em smartphone E desktop (Fev 2026)
 
 ### 🔄 Em Desenvolvimento
 - Sistema completo de aulas coletivas

@@ -510,8 +510,5 @@ Sua aplicação Expert Training está rodando em produção!
 
 **Acesse:** https://seudominio.com
 
-**Credenciais padrão (seed):**
-- Superadmin: admin@experttraining.com / admin123
-- Studio: studio@example.com / studio123
-
-**⚠️ IMPORTANTE:** Altere as senhas padrão imediatamente após o primeiro login!
+**⚠️ IMPORTANTE:** Altere as senhas imediatamente após o primeiro login!
+> As credenciais de acesso não são documentadas aqui por razões de segurança. Contate o administrador do sistema.

@@ -62,10 +62,21 @@ interface BodyMetrics {
   measurements?: {
     chest?: number
     waist?: number
+    abdomen?: number
     hip?: number
-    arm?: number
+    forearm_right?: number
+    forearm_left?: number
+    arm_right?: number
+    arm_left?: number
+    thigh_right?: number
+    thigh_left?: number
+    calf_right?: number
+    calf_left?: number
+  }
+  skinfolds?: {
+    chest?: number
+    abdomen?: number
     thigh?: number
-    calf?: number
   }
   notes?: string
 }
@@ -195,6 +206,7 @@ export default function AssessmentInputPage() {
     height: undefined,
     bodyFat: undefined,
     measurements: {},
+    skinfolds: {},
     notes: '',
   })
 
@@ -312,12 +324,27 @@ export default function AssessmentInputPage() {
         const measurements: BodyMetrics['measurements'] = {}
         if (bodyMetrics.measurements.chest) measurements.chest = bodyMetrics.measurements.chest
         if (bodyMetrics.measurements.waist) measurements.waist = bodyMetrics.measurements.waist
+        if (bodyMetrics.measurements.abdomen) measurements.abdomen = bodyMetrics.measurements.abdomen
         if (bodyMetrics.measurements.hip) measurements.hip = bodyMetrics.measurements.hip
-        if (bodyMetrics.measurements.arm) measurements.arm = bodyMetrics.measurements.arm
-        if (bodyMetrics.measurements.thigh) measurements.thigh = bodyMetrics.measurements.thigh
-        if (bodyMetrics.measurements.calf) measurements.calf = bodyMetrics.measurements.calf
+        if (bodyMetrics.measurements.forearm_right) measurements.forearm_right = bodyMetrics.measurements.forearm_right
+        if (bodyMetrics.measurements.forearm_left) measurements.forearm_left = bodyMetrics.measurements.forearm_left
+        if (bodyMetrics.measurements.arm_right) measurements.arm_right = bodyMetrics.measurements.arm_right
+        if (bodyMetrics.measurements.arm_left) measurements.arm_left = bodyMetrics.measurements.arm_left
+        if (bodyMetrics.measurements.thigh_right) measurements.thigh_right = bodyMetrics.measurements.thigh_right
+        if (bodyMetrics.measurements.thigh_left) measurements.thigh_left = bodyMetrics.measurements.thigh_left
+        if (bodyMetrics.measurements.calf_right) measurements.calf_right = bodyMetrics.measurements.calf_right
+        if (bodyMetrics.measurements.calf_left) measurements.calf_left = bodyMetrics.measurements.calf_left
         if (Object.keys(measurements).length > 0) {
           cleanBodyMetrics.measurements = measurements
+        }
+      }
+      if (bodyMetrics.skinfolds) {
+        const skinfolds: BodyMetrics['skinfolds'] = {}
+        if (bodyMetrics.skinfolds.chest) skinfolds.chest = bodyMetrics.skinfolds.chest
+        if (bodyMetrics.skinfolds.abdomen) skinfolds.abdomen = bodyMetrics.skinfolds.abdomen
+        if (bodyMetrics.skinfolds.thigh) skinfolds.thigh = bodyMetrics.skinfolds.thigh
+        if (Object.keys(skinfolds).length > 0) {
+          cleanBodyMetrics.skinfolds = skinfolds
         }
       }
 
@@ -676,6 +703,7 @@ export default function AssessmentInputPage() {
             <div>
               <Label className="mb-3 block text-base font-medium">Circunferências (cm)</Label>
               <div className="grid gap-4 md:grid-cols-3">
+                {/* Peitoral */}
                 <div className="space-y-2">
                   <Label htmlFor="chest" className="text-sm">Peitoral</Label>
                   <Input
@@ -686,13 +714,11 @@ export default function AssessmentInputPage() {
                     value={bodyMetrics.measurements?.chest || ''}
                     onChange={(e) => setBodyMetrics({
                       ...bodyMetrics,
-                      measurements: {
-                        ...bodyMetrics.measurements,
-                        chest: e.target.value ? parseFloat(e.target.value) : undefined
-                      }
+                      measurements: { ...bodyMetrics.measurements, chest: e.target.value ? parseFloat(e.target.value) : undefined }
                     })}
                   />
                 </div>
+                {/* Cintura */}
                 <div className="space-y-2">
                   <Label htmlFor="waist" className="text-sm">Cintura</Label>
                   <Input
@@ -703,13 +729,26 @@ export default function AssessmentInputPage() {
                     value={bodyMetrics.measurements?.waist || ''}
                     onChange={(e) => setBodyMetrics({
                       ...bodyMetrics,
-                      measurements: {
-                        ...bodyMetrics.measurements,
-                        waist: e.target.value ? parseFloat(e.target.value) : undefined
-                      }
+                      measurements: { ...bodyMetrics.measurements, waist: e.target.value ? parseFloat(e.target.value) : undefined }
                     })}
                   />
                 </div>
+                {/* Abdômen */}
+                <div className="space-y-2">
+                  <Label htmlFor="abdomen" className="text-sm">Abdômen</Label>
+                  <Input
+                    id="abdomen"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 85"
+                    value={bodyMetrics.measurements?.abdomen || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: { ...bodyMetrics.measurements, abdomen: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                {/* Quadril */}
                 <div className="space-y-2">
                   <Label htmlFor="hip" className="text-sm">Quadril</Label>
                   <Input
@@ -720,65 +759,191 @@ export default function AssessmentInputPage() {
                     value={bodyMetrics.measurements?.hip || ''}
                     onChange={(e) => setBodyMetrics({
                       ...bodyMetrics,
-                      measurements: {
-                        ...bodyMetrics.measurements,
-                        hip: e.target.value ? parseFloat(e.target.value) : undefined
-                      }
+                      measurements: { ...bodyMetrics.measurements, hip: e.target.value ? parseFloat(e.target.value) : undefined }
                     })}
                   />
                 </div>
+                {/* Antebraço Direito */}
                 <div className="space-y-2">
-                  <Label htmlFor="arm" className="text-sm">Braço</Label>
+                  <Label htmlFor="forearm_right" className="text-sm">Antebraço Direito</Label>
                   <Input
-                    id="arm"
+                    id="forearm_right"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 30"
+                    value={bodyMetrics.measurements?.forearm_right || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: { ...bodyMetrics.measurements, forearm_right: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                {/* Antebraço Esquerdo */}
+                <div className="space-y-2">
+                  <Label htmlFor="forearm_left" className="text-sm">Antebraço Esquerdo</Label>
+                  <Input
+                    id="forearm_left"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 29"
+                    value={bodyMetrics.measurements?.forearm_left || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: { ...bodyMetrics.measurements, forearm_left: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                {/* Braço Direito */}
+                <div className="space-y-2">
+                  <Label htmlFor="arm_right" className="text-sm">Braço Direito</Label>
+                  <Input
+                    id="arm_right"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 36"
+                    value={bodyMetrics.measurements?.arm_right || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: { ...bodyMetrics.measurements, arm_right: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                {/* Braço Esquerdo */}
+                <div className="space-y-2">
+                  <Label htmlFor="arm_left" className="text-sm">Braço Esquerdo</Label>
+                  <Input
+                    id="arm_left"
                     type="number"
                     step="0.1"
                     placeholder="Ex: 35"
-                    value={bodyMetrics.measurements?.arm || ''}
+                    value={bodyMetrics.measurements?.arm_left || ''}
                     onChange={(e) => setBodyMetrics({
                       ...bodyMetrics,
-                      measurements: {
-                        ...bodyMetrics.measurements,
-                        arm: e.target.value ? parseFloat(e.target.value) : undefined
-                      }
+                      measurements: { ...bodyMetrics.measurements, arm_left: e.target.value ? parseFloat(e.target.value) : undefined }
                     })}
                   />
                 </div>
+                {/* Coxa Direita */}
                 <div className="space-y-2">
-                  <Label htmlFor="thigh" className="text-sm">Coxa</Label>
+                  <Label htmlFor="thigh_right" className="text-sm">Coxa Direita</Label>
                   <Input
-                    id="thigh"
+                    id="thigh_right"
                     type="number"
                     step="0.1"
-                    placeholder="Ex: 55"
-                    value={bodyMetrics.measurements?.thigh || ''}
+                    placeholder="Ex: 58"
+                    value={bodyMetrics.measurements?.thigh_right || ''}
                     onChange={(e) => setBodyMetrics({
                       ...bodyMetrics,
-                      measurements: {
-                        ...bodyMetrics.measurements,
-                        thigh: e.target.value ? parseFloat(e.target.value) : undefined
-                      }
+                      measurements: { ...bodyMetrics.measurements, thigh_right: e.target.value ? parseFloat(e.target.value) : undefined }
                     })}
                   />
                 </div>
+                {/* Coxa Esquerda */}
                 <div className="space-y-2">
-                  <Label htmlFor="calf" className="text-sm">Panturrilha</Label>
+                  <Label htmlFor="thigh_left" className="text-sm">Coxa Esquerda</Label>
                   <Input
-                    id="calf"
+                    id="thigh_left"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 57"
+                    value={bodyMetrics.measurements?.thigh_left || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: { ...bodyMetrics.measurements, thigh_left: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                {/* Panturrilha Direita */}
+                <div className="space-y-2">
+                  <Label htmlFor="calf_right" className="text-sm">Panturrilha Direita</Label>
+                  <Input
+                    id="calf_right"
                     type="number"
                     step="0.1"
                     placeholder="Ex: 38"
-                    value={bodyMetrics.measurements?.calf || ''}
+                    value={bodyMetrics.measurements?.calf_right || ''}
                     onChange={(e) => setBodyMetrics({
                       ...bodyMetrics,
-                      measurements: {
-                        ...bodyMetrics.measurements,
-                        calf: e.target.value ? parseFloat(e.target.value) : undefined
-                      }
+                      measurements: { ...bodyMetrics.measurements, calf_right: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                {/* Panturrilha Esquerda */}
+                <div className="space-y-2">
+                  <Label htmlFor="calf_left" className="text-sm">Panturrilha Esquerda</Label>
+                  <Input
+                    id="calf_left"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 37"
+                    value={bodyMetrics.measurements?.calf_left || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      measurements: { ...bodyMetrics.measurements, calf_left: e.target.value ? parseFloat(e.target.value) : undefined }
                     })}
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Skinfolds */}
+            <div>
+              <Label className="mb-3 block text-base font-medium">Dobras Cutâneas (mm)</Label>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="sf_chest" className="text-sm">Peito</Label>
+                  <Input
+                    id="sf_chest"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 15"
+                    value={bodyMetrics.skinfolds?.chest || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      skinfolds: { ...bodyMetrics.skinfolds, chest: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sf_abdomen" className="text-sm">Abdômen</Label>
+                  <Input
+                    id="sf_abdomen"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 20"
+                    value={bodyMetrics.skinfolds?.abdomen || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      skinfolds: { ...bodyMetrics.skinfolds, abdomen: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sf_thigh" className="text-sm">Coxa</Label>
+                  <Input
+                    id="sf_thigh"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 18"
+                    value={bodyMetrics.skinfolds?.thigh || ''}
+                    onChange={(e) => setBodyMetrics({
+                      ...bodyMetrics,
+                      skinfolds: { ...bodyMetrics.skinfolds, thigh: e.target.value ? parseFloat(e.target.value) : undefined }
+                    })}
+                  />
+                </div>
+              </div>
+              {/* Jackson-Pollock 3-point body fat estimate */}
+              {bodyMetrics.skinfolds?.chest && bodyMetrics.skinfolds?.abdomen && bodyMetrics.skinfolds?.thigh && (
+                <div className="mt-4 rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">Soma das 3 Dobras:</span>
+                    <span className="text-lg font-bold text-foreground">
+                      {(bodyMetrics.skinfolds.chest + bodyMetrics.skinfolds.abdomen + bodyMetrics.skinfolds.thigh).toFixed(1)} mm
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notes */}

@@ -198,10 +198,13 @@ model Client {
   gender        String?
   height        Decimal?       @db.Decimal(5, 2)
   weight        Decimal?       @db.Decimal(5, 2)
+  bodyFat       Decimal?       @map("body_fat") @db.Decimal(5, 2)
   history       String?
   objectives    String?
   notes         String?
   goal          String?
+  goalType      GoalType?      @map("goal_type")
+  goalWeight    Decimal?       @map("goal_weight") @db.Decimal(5, 2)
   status        ClientStatus   @default(ACTIVE)
   isActive      Boolean        @default(true) @map("is_active")
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -235,10 +238,13 @@ model Assessment {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   bodyMetricsJson Json?            @map("body_metrics_json")
+  computedJson    Json?            @map("computed_json")
+  performanceJson Json?            @map("performance_json")
   client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([assessorId])
+  @@index([clientId, createdAt])
   @@map("assessments")
 }
 
@@ -488,6 +494,14 @@ enum ClientStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum GoalType {
+  WEIGHT_LOSS
+  MUSCLE_GAIN
+  RECOMP
+  PERFORMANCE
+  HEALTH
 }
 
 enum PlanTier {

@@ -32,12 +32,12 @@ export function FloatingActionButton({ actions, className }: FloatingActionButto
       {/* Overlay para fechar quando expandido */}
       {isExpanded && (
         <div 
-          className="fixed inset-0 z-20 md:hidden" 
+          className="fixed inset-0 z-20" 
           onClick={() => setIsExpanded(false)}
         />
       )}
 
-      <div className={cn("fixed bottom-6 right-6 z-30 md:hidden", className)}>
+      <div className={cn("fixed bottom-6 right-6 z-30", className)}>
         {/* Ações expandidas */}
         {isExpanded && actions.length > 1 && (
           <div className="flex flex-col gap-3 mb-4 items-end">

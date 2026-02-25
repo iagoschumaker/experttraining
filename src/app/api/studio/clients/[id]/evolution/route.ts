@@ -19,14 +19,24 @@ interface BodyMetrics {
   measurements?: {
     chest?: number
     waist?: number
+    abdomen?: number
     hip?: number
     arm?: number
     arm_left?: number
     arm_right?: number
+    forearm_left?: number
+    forearm_right?: number
     thigh?: number
     thigh_left?: number
     thigh_right?: number
     calf?: number
+    calf_left?: number
+    calf_right?: number
+  }
+  skinfolds?: {
+    chest?: number
+    abdomen?: number
+    thigh?: number
   }
   bodyFat?: number
 }
@@ -87,13 +97,23 @@ function extractMetricsFromAssessment(assessment: any): BodyMetrics | null {
     weight: bodyMetrics.weight,
     height: bodyMetrics.height,
     bodyFat: bodyMetrics.bodyFat,
+    skinfolds: bodyMetrics.skinfolds,
     measurements: {
       chest: measurements.chest,
       waist: measurements.waist,
+      abdomen: measurements.abdomen,
       hip: measurements.hip,
-      arm: measurements.arm || measurements.arm_right || measurements.arm_left,
-      thigh: measurements.thigh || measurements.thigh_right || measurements.thigh_left,
-      calf: measurements.calf,
+      arm: measurements.arm_right || measurements.arm || measurements.arm_left,
+      arm_left: measurements.arm_left,
+      arm_right: measurements.arm_right,
+      forearm_left: measurements.forearm_left,
+      forearm_right: measurements.forearm_right,
+      thigh: measurements.thigh_right || measurements.thigh || measurements.thigh_left,
+      thigh_left: measurements.thigh_left,
+      thigh_right: measurements.thigh_right,
+      calf: measurements.calf_right || measurements.calf || measurements.calf_left,
+      calf_left: measurements.calf_left,
+      calf_right: measurements.calf_right,
     },
   }
 }

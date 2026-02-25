@@ -448,7 +448,8 @@ export default function AssessmentResultPage() {
                   Medidas Corporais
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
+                {/* Basic */}
                 <div className="grid gap-4 md:grid-cols-4">
                   {assessment.bodyMetricsJson.weight && (
                     <div className="rounded-lg border p-3">
@@ -477,6 +478,80 @@ export default function AssessmentResultPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Circumferences */}
+                {assessment.bodyMetricsJson.measurements && Object.keys(assessment.bodyMetricsJson.measurements).length > 0 && (() => {
+                  const m = assessment.bodyMetricsJson.measurements
+                  const items = [
+                    { key: 'chest', label: 'Peitoral' },
+                    { key: 'waist', label: 'Cintura' },
+                    { key: 'abdomen', label: 'Abdômen' },
+                    { key: 'hip', label: 'Quadril' },
+                    { key: 'forearm_right', label: 'Antebraço Dir.' },
+                    { key: 'forearm_left', label: 'Antebraço Esq.' },
+                    { key: 'arm_right', label: 'Braço Dir.' },
+                    { key: 'arm_left', label: 'Braço Esq.' },
+                    { key: 'thigh_right', label: 'Coxa Dir.' },
+                    { key: 'thigh_left', label: 'Coxa Esq.' },
+                    { key: 'calf_right', label: 'Panturrilha Dir.' },
+                    { key: 'calf_left', label: 'Panturrilha Esq.' },
+                  ].filter(({ key }) => m[key] != null)
+                  if (!items.length) return null
+                  return (
+                    <div>
+                      <h4 className="mb-3 text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Ruler className="h-4 w-4" />
+                        Circunferências (cm)
+                      </h4>
+                      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                        {items.map(({ key, label }) => (
+                          <div key={key} className="rounded-lg border p-2 text-center">
+                            <div className="text-xs text-muted-foreground">{label}</div>
+                            <div className="font-semibold">{m[key]} cm</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Skinfolds */}
+                {assessment.bodyMetricsJson.skinfolds && Object.keys(assessment.bodyMetricsJson.skinfolds).length > 0 && (() => {
+                  const s = assessment.bodyMetricsJson.skinfolds
+                  const items = [
+                    { key: 'chest', label: 'Peito' },
+                    { key: 'abdomen', label: 'Abdômen' },
+                    { key: 'thigh', label: 'Coxa' },
+                  ].filter(({ key }) => s[key] != null)
+                  if (!items.length) return null
+                  const soma = items.reduce((acc, { key }) => acc + (s[key] ?? 0), 0)
+                  return (
+                    <div>
+                      <h4 className="mb-3 text-sm font-medium text-muted-foreground">📏 Dobras Cutâneas (mm)</h4>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        {items.map(({ key, label }) => (
+                          <div key={key} className="rounded-lg border p-2 text-center">
+                            <div className="text-xs text-muted-foreground">{label}</div>
+                            <div className="font-semibold">{s[key]} mm</div>
+                          </div>
+                        ))}
+                      </div>
+                      {items.length === 3 && (
+                        <div className="mt-2 rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 flex items-center justify-between">
+                          <span className="text-sm font-medium">Soma das 3 Dobras:</span>
+                          <span className="font-bold">{soma.toFixed(1)} mm</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Notes */}
+                {assessment.bodyMetricsJson.notes && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">Obs: </span>{assessment.bodyMetricsJson.notes}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
+import { ClientGoalsForm } from '@/components/clients/client-goals-form'
 
 interface Assessment {
   id: string
@@ -68,6 +69,9 @@ interface Client {
   isActive: boolean
   createdAt: string
   trainerId: string | null
+  goalType: string | null
+  goalWeight: number | null
+  bodyFat: number | null
   trainer?: {
     id: string
     name: string
@@ -378,6 +382,15 @@ export default function ClientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Meta do Aluno */}
+      {canEdit && (
+        <ClientGoalsForm
+          clientId={client.id}
+          initialGoalType={client.goalType}
+          initialGoalWeight={client.goalWeight}
+        />
+      )}
 
       {/* Evolução do Cliente */}
       <ClientEvolution clientId={client.id} />

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAccessToken, hasStudioContext, getAccessTokenCookie } from '@/lib/auth'
 import { processAssessment } from '@/lib/rules-engine'
+import { computeFromAssessment } from '@/services/jubaMethod'
 import type { AssessmentInput } from '@/types'
 
 export async function POST(
@@ -45,6 +46,7 @@ export async function POST(
         client: {
           select: {
             trainerId: true,
+            gender: true,
           },
         },
       },
@@ -77,6 +79,10 @@ export async function POST(
     const inputData = assessment.inputJson as unknown as AssessmentInput
     const result = await processAssessment(inputData)
 
+    // Calculate Juba Method composição corporal (if bodyMetrics has weight + bodyFat)
+    const bodyMetrics = assessment.bodyMetricsJson as any
+    const computedJson = computeFromAssessment(bodyMetrics, assessment.client.gender)
+
     // Update assessment with results
     const updatedAssessment = await prisma.assessment.update({
       where: { id: params.id },
@@ -85,8 +91,17 @@ export async function POST(
         confidence: result.confidence,
         status: 'COMPLETED',
         completedAt: new Date(),
+        ...(computedJson ? { computedJson: computedJson as any } : {}),
       },
     })
+
+    // Auto-update client bodyFat if provided
+    if (bodyMetrics?.bodyFat) {
+      await prisma.client.update({
+        where: { id: assessment.clientId },
+        data: { bodyFat: bodyMetrics.bodyFat },
+      })
+    }
 
     // Log audit
     await prisma.auditLog.create({

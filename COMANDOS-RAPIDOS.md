@@ -266,19 +266,11 @@ which chromium-browser
 
 ---
 
-## 📋 CREDENCIAIS PADRÃO (SEED)
+## 📋 CREDENCIAIS DE ACESSO
 
-Após o seed, você pode fazer login com:
-
-**Superadmin:**
-- Email: admin@experttraining.com
-- Senha: admin123
-
-**Studio:**
-- Email: studio@example.com
-- Senha: studio123
-
-**⚠️ ALTERE AS SENHAS IMEDIATAMENTE!**
+> ⚠️ **Segurança:** As credenciais de acesso não são documentadas aqui.
+> Após o seed, altere todas as senhas imediatamente no primeiro login.
+> Contate o administrador do sistema para obter acesso inicial.
 
 ---
 
@@ -349,4 +341,4 @@ curl http://localhost:3000
 
 Acesse: **https://seudominio.com**
 
-Login: **admin@experttraining.com** / **admin123**
+> ⚠️ Use as credenciais configuradas no `.env` e altere-as imediatamente após o primeiro acesso.
