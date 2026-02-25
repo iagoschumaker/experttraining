@@ -39,6 +39,10 @@ import {
   Plus,
   MessageCircle,
   Award,
+  Ruler,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
@@ -50,6 +54,7 @@ interface Assessment {
   confidence: number | null
   createdAt: string
   completedAt: string | null
+  bodyMetricsJson: Record<string, number> | null
 }
 
 interface Workout {
@@ -72,6 +77,20 @@ interface Client {
   goalType: string | null
   goalWeight: number | null
   bodyFat: number | null
+  weight: number | null
+  height: number | null
+  chest: number | null
+  waist: number | null
+  hip: number | null
+  abdomen: number | null
+  armRight: number | null
+  armLeft: number | null
+  forearmRight: number | null
+  forearmLeft: number | null
+  thighRight: number | null
+  thighLeft: number | null
+  calfRight: number | null
+  calfLeft: number | null
   trainer?: {
     id: string
     name: string
@@ -90,6 +109,7 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showMeasureHistory, setShowMeasureHistory] = useState(false)
 
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
@@ -378,6 +398,162 @@ export default function ClientDetailPage() {
           ) : (
             <p className="py-4 text-center text-muted-foreground">
               Nenhuma avaliação realizada
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Medidas Corporais */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Ruler className="h-5 w-5" />
+            Medidas Corporais
+          </CardTitle>
+          {canEdit && (
+            <Link href={`/clients/${client.id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Pencil className="mr-1 h-4 w-4" />
+                Atualizar
+              </Button>
+            </Link>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Composição Atual */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Composição Atual</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <div className="text-lg font-bold text-amber-500">{client.weight ? `${Number(client.weight).toFixed(1)}` : '—'}</div>
+                <div className="text-xs text-muted-foreground">Peso (kg)</div>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <div className="text-lg font-bold text-amber-500">{client.height ? `${Number(client.height).toFixed(0)}` : '—'}</div>
+                <div className="text-xs text-muted-foreground">Altura (cm)</div>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <div className="text-lg font-bold text-amber-500">{client.bodyFat ? `${Number(client.bodyFat).toFixed(1)}%` : '—'}</div>
+                <div className="text-xs text-muted-foreground">Gordura</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tronco */}
+          {(client.chest || client.waist || client.hip || client.abdomen) && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tronco (cm)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Peitoral', val: client.chest },
+                  { label: 'Cintura', val: client.waist },
+                  { label: 'Quadril', val: client.hip },
+                  { label: 'Abdômen', val: client.abdomen },
+                ].map(({ label, val }) => (
+                  <div key={label} className="rounded-lg border p-2 text-center">
+                    <div className="text-sm font-semibold">{val ? Number(val).toFixed(1) : '—'}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Braços */}
+          {(client.armRight || client.armLeft || client.forearmRight || client.forearmLeft) && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Braços (cm)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Braço Dir.', val: client.armRight },
+                  { label: 'Braço Esq.', val: client.armLeft },
+                  { label: 'Antebraço Dir.', val: client.forearmRight },
+                  { label: 'Antebraço Esq.', val: client.forearmLeft },
+                ].map(({ label, val }) => (
+                  <div key={label} className="rounded-lg border p-2 text-center">
+                    <div className="text-sm font-semibold">{val ? Number(val).toFixed(1) : '—'}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pernas */}
+          {(client.thighRight || client.thighLeft || client.calfRight || client.calfLeft) && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Pernas (cm)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Coxa Dir.', val: client.thighRight },
+                  { label: 'Coxa Esq.', val: client.thighLeft },
+                  { label: 'Pant. Dir.', val: client.calfRight },
+                  { label: 'Pant. Esq.', val: client.calfLeft },
+                ].map(({ label, val }) => (
+                  <div key={label} className="rounded-lg border p-2 text-center">
+                    <div className="text-sm font-semibold">{val ? Number(val).toFixed(1) : '—'}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Histórico por Avaliação */}
+          {client.assessments.some(a => a.bodyMetricsJson) && (
+            <div>
+              <Separator className="my-2" />
+              <button
+                onClick={() => setShowMeasureHistory(prev => !prev)}
+                className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
+              >
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Histórico de Medidas ({client.assessments.filter(a => a.bodyMetricsJson).length} avaliações)
+                </span>
+                {showMeasureHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              {showMeasureHistory && (
+                <div className="mt-3 space-y-3">
+                  {client.assessments
+                    .filter(a => a.bodyMetricsJson)
+                    .map(assessment => {
+                      const m = assessment.bodyMetricsJson as Record<string, number>
+                      return (
+                        <div key={assessment.id} className="rounded-lg border p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">{formatDate(assessment.createdAt)}</span>
+                            <Link href={`/assessments/${assessment.id}`}>
+                              <Button variant="ghost" size="sm" className="h-6 text-xs px-2">Ver avaliação</Button>
+                            </Link>
+                          </div>
+                          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+                            {[
+                              { label: 'Peso', key: 'weight', unit: 'kg' },
+                              { label: '% Gord.', key: 'bodyFat', unit: '%' },
+                              { label: 'Cintura', key: 'waist', unit: 'cm' },
+                              { label: 'Peitoral', key: 'chest', unit: 'cm' },
+                              { label: 'Braço D', key: 'arm_right', unit: 'cm' },
+                              { label: 'Coxa D', key: 'thigh_right', unit: 'cm' },
+                            ].map(({ label, key, unit }) => m[key] != null ? (
+                              <div key={key} className="text-center bg-muted/30 rounded p-1">
+                                <div className="font-semibold">{Number(m[key]).toFixed(1)}{unit === '%' ? '%' : ''}</div>
+                                <div className="text-muted-foreground">{label}</div>
+                              </div>
+                            ) : null)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!client.chest && !client.waist && !client.weight && !client.armRight && !client.assessments.some(a => a.bodyMetricsJson) && (
+            <p className="text-center text-sm text-muted-foreground py-2">
+              Nenhuma medida registrada. <Link href={`/clients/${client.id}/edit`} className="text-amber-500 hover:underline">Adicionar medidas</Link>
             </p>
           )}
         </CardContent>

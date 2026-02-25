@@ -29,6 +29,22 @@ interface Client {
   height: number | null
   weight: number | null
   notes: string | null
+  goal: string | null
+  trainerId: string | null
+  studioId: string | null
+  bodyFat: number | null
+  chest: number | null
+  waist: number | null
+  hip: number | null
+  abdomen: number | null
+  armRight: number | null
+  armLeft: number | null
+  forearmRight: number | null
+  forearmLeft: number | null
+  thighRight: number | null
+  thighLeft: number | null
+  calfRight: number | null
+  calfLeft: number | null
 }
 
 export default function EditClientPage() {
@@ -111,9 +127,17 @@ export default function EditClientPage() {
     chest: '',
     waist: '',
     hip: '',
-    arm: '',
-    thigh: '',
-    calf: '',
+    abdomen: '',
+    bodyFat: '',
+    // Bilateral
+    armRight: '',
+    armLeft: '',
+    forearmRight: '',
+    forearmLeft: '',
+    thighRight: '',
+    thighLeft: '',
+    calfRight: '',
+    calfLeft: '',
   })
 
   // Fetch client data and trainers
@@ -149,9 +173,16 @@ export default function EditClientPage() {
             chest: client.chest ? String(client.chest) : '',
             waist: client.waist ? String(client.waist) : '',
             hip: client.hip ? String(client.hip) : '',
-            arm: client.arm ? String(client.arm) : '',
-            thigh: client.thigh ? String(client.thigh) : '',
-            calf: client.calf ? String(client.calf) : '',
+            abdomen: client.abdomen ? String(client.abdomen) : '',
+            bodyFat: client.bodyFat ? String(client.bodyFat) : '',
+            armRight: client.armRight ? String(client.armRight) : '',
+            armLeft: client.armLeft ? String(client.armLeft) : '',
+            forearmRight: client.forearmRight ? String(client.forearmRight) : '',
+            forearmLeft: client.forearmLeft ? String(client.forearmLeft) : '',
+            thighRight: client.thighRight ? String(client.thighRight) : '',
+            thighLeft: client.thighLeft ? String(client.thighLeft) : '',
+            calfRight: client.calfRight ? String(client.calfRight) : '',
+            calfLeft: client.calfLeft ? String(client.calfLeft) : '',
           })
 
           // Then fetch trainers from the client's studio
@@ -212,24 +243,19 @@ export default function EditClientPage() {
       if (formData.weight) {
         updateData.weight = parseFloat(formData.weight)
       }
-      if (formData.chest) {
-        updateData.chest = parseFloat(formData.chest)
-      }
-      if (formData.waist) {
-        updateData.waist = parseFloat(formData.waist)
-      }
-      if (formData.hip) {
-        updateData.hip = parseFloat(formData.hip)
-      }
-      if (formData.arm) {
-        updateData.arm = parseFloat(formData.arm)
-      }
-      if (formData.thigh) {
-        updateData.thigh = parseFloat(formData.thigh)
-      }
-      if (formData.calf) {
-        updateData.calf = parseFloat(formData.calf)
-      }
+      updateData.chest = formData.chest ? parseFloat(formData.chest) : null
+      updateData.waist = formData.waist ? parseFloat(formData.waist) : null
+      updateData.hip = formData.hip ? parseFloat(formData.hip) : null
+      updateData.abdomen = formData.abdomen ? parseFloat(formData.abdomen) : null
+      updateData.bodyFat = formData.bodyFat ? parseFloat(formData.bodyFat) : null
+      updateData.armRight = formData.armRight ? parseFloat(formData.armRight) : null
+      updateData.armLeft = formData.armLeft ? parseFloat(formData.armLeft) : null
+      updateData.forearmRight = formData.forearmRight ? parseFloat(formData.forearmRight) : null
+      updateData.forearmLeft = formData.forearmLeft ? parseFloat(formData.forearmLeft) : null
+      updateData.thighRight = formData.thighRight ? parseFloat(formData.thighRight) : null
+      updateData.thighLeft = formData.thighLeft ? parseFloat(formData.thighLeft) : null
+      updateData.calfRight = formData.calfRight ? parseFloat(formData.calfRight) : null
+      updateData.calfLeft = formData.calfLeft ? parseFloat(formData.calfLeft) : null
 
       const res = await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
@@ -392,7 +418,7 @@ export default function EditClientPage() {
             {/* Dados Físicos */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Dados Físicos</h3>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="height">Altura (cm)</Label>
                   <Input
@@ -417,21 +443,34 @@ export default function EditClientPage() {
                     }
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bodyFat">% Gordura Corporal</Label>
+                  <Input
+                    id="bodyFat"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={formData.bodyFat}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bodyFat: e.target.value })
+                    }
+                  />
+                </div>
               </div>
 
-              <div className="pt-4">
-                <h4 className="text-sm font-medium mb-3">Medidas Corporais (cm)</h4>
-                <div className="grid gap-4 md:grid-cols-3">
+              {/* Tronco */}
+              <div className="pt-2">
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Tronco (cm)</h4>
+                <div className="grid gap-4 md:grid-cols-4">
                   <div className="space-y-2">
                     <Label htmlFor="chest">Peitoral</Label>
                     <Input
                       id="chest"
                       type="number"
-                      step="0.01"
+                      step="0.1"
                       value={formData.chest}
-                      onChange={(e) =>
-                        setFormData({ ...formData, chest: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, chest: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -439,11 +478,9 @@ export default function EditClientPage() {
                     <Input
                       id="waist"
                       type="number"
-                      step="0.01"
+                      step="0.1"
                       value={formData.waist}
-                      onChange={(e) =>
-                        setFormData({ ...formData, waist: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, waist: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -451,47 +488,113 @@ export default function EditClientPage() {
                     <Input
                       id="hip"
                       type="number"
-                      step="0.01"
+                      step="0.1"
                       value={formData.hip}
-                      onChange={(e) =>
-                        setFormData({ ...formData, hip: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, hip: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="arm">Braço</Label>
+                    <Label htmlFor="abdomen">Abdômen</Label>
                     <Input
-                      id="arm"
+                      id="abdomen"
                       type="number"
-                      step="0.01"
-                      value={formData.arm}
-                      onChange={(e) =>
-                        setFormData({ ...formData, arm: e.target.value })
-                      }
+                      step="0.1"
+                      value={formData.abdomen}
+                      onChange={(e) => setFormData({ ...formData, abdomen: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Braços */}
+              <div className="pt-2">
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Braços (cm)</h4>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="armRight">Braço Dir.</Label>
+                    <Input
+                      id="armRight"
+                      type="number"
+                      step="0.1"
+                      value={formData.armRight}
+                      onChange={(e) => setFormData({ ...formData, armRight: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="thigh">Coxa</Label>
+                    <Label htmlFor="armLeft">Braço Esq.</Label>
                     <Input
-                      id="thigh"
+                      id="armLeft"
                       type="number"
-                      step="0.01"
-                      value={formData.thigh}
-                      onChange={(e) =>
-                        setFormData({ ...formData, thigh: e.target.value })
-                      }
+                      step="0.1"
+                      value={formData.armLeft}
+                      onChange={(e) => setFormData({ ...formData, armLeft: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="calf">Panturrilha</Label>
+                    <Label htmlFor="forearmRight">Antebraço Dir.</Label>
                     <Input
-                      id="calf"
+                      id="forearmRight"
                       type="number"
-                      step="0.01"
-                      value={formData.calf}
-                      onChange={(e) =>
-                        setFormData({ ...formData, calf: e.target.value })
-                      }
+                      step="0.1"
+                      value={formData.forearmRight}
+                      onChange={(e) => setFormData({ ...formData, forearmRight: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="forearmLeft">Antebraço Esq.</Label>
+                    <Input
+                      id="forearmLeft"
+                      type="number"
+                      step="0.1"
+                      value={formData.forearmLeft}
+                      onChange={(e) => setFormData({ ...formData, forearmLeft: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pernas */}
+              <div className="pt-2">
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Pernas (cm)</h4>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="thighRight">Coxa Dir.</Label>
+                    <Input
+                      id="thighRight"
+                      type="number"
+                      step="0.1"
+                      value={formData.thighRight}
+                      onChange={(e) => setFormData({ ...formData, thighRight: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="thighLeft">Coxa Esq.</Label>
+                    <Input
+                      id="thighLeft"
+                      type="number"
+                      step="0.1"
+                      value={formData.thighLeft}
+                      onChange={(e) => setFormData({ ...formData, thighLeft: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="calfRight">Panturrilha Dir.</Label>
+                    <Input
+                      id="calfRight"
+                      type="number"
+                      step="0.1"
+                      value={formData.calfRight}
+                      onChange={(e) => setFormData({ ...formData, calfRight: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="calfLeft">Panturrilha Esq.</Label>
+                    <Input
+                      id="calfLeft"
+                      type="number"
+                      step="0.1"
+                      value={formData.calfLeft}
+                      onChange={(e) => setFormData({ ...formData, calfLeft: e.target.value })}
                     />
                   </div>
                 </div>

@@ -48,9 +48,17 @@ export default function NewClientPage() {
     chest: '',
     waist: '',
     hip: '',
-    arm: '',
-    thigh: '',
-    calf: '',
+    abdomen: '',
+    bodyFat: '',
+    // Bilateral
+    armRight: '',
+    armLeft: '',
+    forearmRight: '',
+    forearmLeft: '',
+    thighRight: '',
+    thighLeft: '',
+    calfRight: '',
+    calfLeft: '',
   })
 
   useEffect(() => {
@@ -167,9 +175,16 @@ export default function NewClientPage() {
         chest: formData.chest ? parseFloat(formData.chest) : null,
         waist: formData.waist ? parseFloat(formData.waist) : null,
         hip: formData.hip ? parseFloat(formData.hip) : null,
-        arm: formData.arm ? parseFloat(formData.arm) : null,
-        thigh: formData.thigh ? parseFloat(formData.thigh) : null,
-        calf: formData.calf ? parseFloat(formData.calf) : null,
+        abdomen: formData.abdomen ? parseFloat(formData.abdomen) : null,
+        bodyFat: formData.bodyFat ? parseFloat(formData.bodyFat) : null,
+        armRight: formData.armRight ? parseFloat(formData.armRight) : null,
+        armLeft: formData.armLeft ? parseFloat(formData.armLeft) : null,
+        forearmRight: formData.forearmRight ? parseFloat(formData.forearmRight) : null,
+        forearmLeft: formData.forearmLeft ? parseFloat(formData.forearmLeft) : null,
+        thighRight: formData.thighRight ? parseFloat(formData.thighRight) : null,
+        thighLeft: formData.thighLeft ? parseFloat(formData.thighLeft) : null,
+        calfRight: formData.calfRight ? parseFloat(formData.calfRight) : null,
+        calfLeft: formData.calfLeft ? parseFloat(formData.calfLeft) : null,
       }
 
       const res = await fetch('/api/studio/clients', {
@@ -349,7 +364,7 @@ export default function NewClientPage() {
             <CardDescription>Medidas e composição corporal</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="height">Altura (cm)</Label>
                 <Input
@@ -373,80 +388,170 @@ export default function NewClientPage() {
                   placeholder="70"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bodyFat">% Gordura Corporal</Label>
+                <Input
+                  id="bodyFat"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={formData.bodyFat}
+                  onChange={(e) => handleChange('bodyFat', e.target.value)}
+                  placeholder="15"
+                />
+              </div>
             </div>
 
-            <div className="pt-4">
-              <h4 className="text-sm font-medium mb-3">Medidas Corporais (cm)</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Medidas de Tronco */}
+            <div className="pt-2">
+              <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Tronco (cm)</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="chest">Peitoral</Label>
                   <Input
                     id="chest"
                     type="number"
-                    step="0.01"
+                    step="0.1"
                     value={formData.chest}
                     onChange={(e) => handleChange('chest', e.target.value)}
                     placeholder="95"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="waist">Cintura</Label>
                   <Input
                     id="waist"
                     type="number"
-                    step="0.01"
+                    step="0.1"
                     value={formData.waist}
                     onChange={(e) => handleChange('waist', e.target.value)}
                     placeholder="80"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="hip">Quadril</Label>
                   <Input
                     id="hip"
                     type="number"
-                    step="0.01"
+                    step="0.1"
                     value={formData.hip}
                     onChange={(e) => handleChange('hip', e.target.value)}
                     placeholder="95"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="arm">Braço</Label>
+                  <Label htmlFor="abdomen">Abdômen</Label>
                   <Input
-                    id="arm"
+                    id="abdomen"
                     type="number"
-                    step="0.01"
-                    value={formData.arm}
-                    onChange={(e) => handleChange('arm', e.target.value)}
+                    step="0.1"
+                    value={formData.abdomen}
+                    onChange={(e) => handleChange('abdomen', e.target.value)}
+                    placeholder="82"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Braços */}
+            <div className="pt-2">
+              <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Braços (cm)</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="armRight">Braço Dir.</Label>
+                  <Input
+                    id="armRight"
+                    type="number"
+                    step="0.1"
+                    value={formData.armRight}
+                    onChange={(e) => handleChange('armRight', e.target.value)}
                     placeholder="35"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="thigh">Coxa</Label>
+                  <Label htmlFor="armLeft">Braço Esq.</Label>
                   <Input
-                    id="thigh"
+                    id="armLeft"
                     type="number"
-                    step="0.01"
-                    value={formData.thigh}
-                    onChange={(e) => handleChange('thigh', e.target.value)}
+                    step="0.1"
+                    value={formData.armLeft}
+                    onChange={(e) => handleChange('armLeft', e.target.value)}
+                    placeholder="34"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="forearmRight">Antebraço Dir.</Label>
+                  <Input
+                    id="forearmRight"
+                    type="number"
+                    step="0.1"
+                    value={formData.forearmRight}
+                    onChange={(e) => handleChange('forearmRight', e.target.value)}
+                    placeholder="28"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="forearmLeft">Antebraço Esq.</Label>
+                  <Input
+                    id="forearmLeft"
+                    type="number"
+                    step="0.1"
+                    value={formData.forearmLeft}
+                    onChange={(e) => handleChange('forearmLeft', e.target.value)}
+                    placeholder="27"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Pernas */}
+            <div className="pt-2">
+              <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Pernas (cm)</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="thighRight">Coxa Dir.</Label>
+                  <Input
+                    id="thighRight"
+                    type="number"
+                    step="0.1"
+                    value={formData.thighRight}
+                    onChange={(e) => handleChange('thighRight', e.target.value)}
                     placeholder="55"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="calf">Panturrilha</Label>
+                  <Label htmlFor="thighLeft">Coxa Esq.</Label>
                   <Input
-                    id="calf"
+                    id="thighLeft"
                     type="number"
-                    step="0.01"
-                    value={formData.calf}
-                    onChange={(e) => handleChange('calf', e.target.value)}
+                    step="0.1"
+                    value={formData.thighLeft}
+                    onChange={(e) => handleChange('thighLeft', e.target.value)}
+                    placeholder="54"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="calfRight">Panturrilha Dir.</Label>
+                  <Input
+                    id="calfRight"
+                    type="number"
+                    step="0.1"
+                    value={formData.calfRight}
+                    onChange={(e) => handleChange('calfRight', e.target.value)}
                     placeholder="38"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="calfLeft">Panturrilha Esq.</Label>
+                  <Input
+                    id="calfLeft"
+                    type="number"
+                    step="0.1"
+                    value={formData.calfLeft}
+                    onChange={(e) => handleChange('calfLeft', e.target.value)}
+                    placeholder="37"
                   />
                 </div>
               </div>

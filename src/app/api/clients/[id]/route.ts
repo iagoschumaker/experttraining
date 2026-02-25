@@ -32,6 +32,17 @@ const updateClientSchema = z.object({
   arm: z.number().positive().optional().nullable(),
   thigh: z.number().positive().optional().nullable(),
   calf: z.number().positive().optional().nullable(),
+  // Extended body measurements
+  bodyFat: z.number().min(0).max(100).optional().nullable(),
+  abdomen: z.number().positive().optional().nullable(),
+  armRight: z.number().positive().optional().nullable(),
+  armLeft: z.number().positive().optional().nullable(),
+  forearmRight: z.number().positive().optional().nullable(),
+  forearmLeft: z.number().positive().optional().nullable(),
+  thighRight: z.number().positive().optional().nullable(),
+  thighLeft: z.number().positive().optional().nullable(),
+  calfRight: z.number().positive().optional().nullable(),
+  calfLeft: z.number().positive().optional().nullable(),
 })
 
 // GET - Get aluno by ID
@@ -83,13 +94,14 @@ export async function GET(
         },
         assessments: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
+          take: 20,
           select: {
             id: true,
             status: true,
             confidence: true,
             createdAt: true,
             completedAt: true,
+            bodyMetricsJson: true,
           },
         },
         workouts: {
@@ -220,9 +232,20 @@ export async function PUT(
         chest: data.chest,
         waist: data.waist,
         hip: data.hip,
-        arm: data.arm,
-        thigh: data.thigh,
-        calf: data.calf,
+        arm: data.armRight ?? data.arm,
+        thigh: data.thighRight ?? data.thigh,
+        calf: data.calfRight ?? data.calf,
+        // Extended measurements
+        bodyFat: data.bodyFat,
+        abdomen: data.abdomen,
+        armRight: data.armRight,
+        armLeft: data.armLeft,
+        forearmRight: data.forearmRight,
+        forearmLeft: data.forearmLeft,
+        thighRight: data.thighRight,
+        thighLeft: data.thighLeft,
+        calfRight: data.calfRight,
+        calfLeft: data.calfLeft,
       },
     })
 
