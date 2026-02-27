@@ -479,10 +479,11 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
 
               {/* Tronco */}
               <div className="pt-2">
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Tronco (cm)</h4>
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Tronco</h4>
+                <p className="text-xs text-muted-foreground mb-3">Circunferências (cm) e dobras cutâneas (mm) para cálculo Pollock</p>
                 <div className="grid gap-4 md:grid-cols-4">
                   <div className="space-y-2">
-                    <Label htmlFor="chest">Peitoral</Label>
+                    <Label htmlFor="chest">Peitoral (cm)</Label>
                     <Input
                       id="chest"
                       type="number"
@@ -492,7 +493,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="waist">Cintura</Label>
+                    <Label htmlFor="waist">Cintura (cm)</Label>
                     <Input
                       id="waist"
                       type="number"
@@ -502,7 +503,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="hip">Quadril</Label>
+                    <Label htmlFor="hip">Quadril (cm)</Label>
                     <Input
                       id="hip"
                       type="number"
@@ -512,7 +513,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="abdomen">Abdômen</Label>
+                    <Label htmlFor="abdomen">Abdômen (cm)</Label>
                     <Input
                       id="abdomen"
                       type="number"
@@ -522,14 +523,41 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                 </div>
+                <div className="grid gap-4 md:grid-cols-5 mt-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="sfChest" className="text-amber-500">Dobra Peito (mm)</Label>
+                    <Input id="sfChest" type="number" step="0.1" placeholder="mm"
+                      value={formData.sfChest} onChange={(e) => setFormData({ ...formData, sfChest: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sfAbdomen" className="text-amber-500">Dobra Abdômen (mm)</Label>
+                    <Input id="sfAbdomen" type="number" step="0.1" placeholder="mm"
+                      value={formData.sfAbdomen} onChange={(e) => setFormData({ ...formData, sfAbdomen: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sfSubscapular" className="text-amber-500">Dobra Subescapular (mm)</Label>
+                    <Input id="sfSubscapular" type="number" step="0.1" placeholder="mm"
+                      value={formData.sfSubscapular} onChange={(e) => setFormData({ ...formData, sfSubscapular: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sfSuprailiac" className="text-amber-500">Dobra Suprailíaca (mm)</Label>
+                    <Input id="sfSuprailiac" type="number" step="0.1" placeholder="mm"
+                      value={formData.sfSuprailiac} onChange={(e) => setFormData({ ...formData, sfSuprailiac: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sfMidaxillary" className="text-amber-500">Dobra Axilar Médio (mm)</Label>
+                    <Input id="sfMidaxillary" type="number" step="0.1" placeholder="mm"
+                      value={formData.sfMidaxillary} onChange={(e) => setFormData({ ...formData, sfMidaxillary: e.target.value })} />
+                  </div>
+                </div>
               </div>
 
               {/* Braços */}
               <div className="pt-2">
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Braços (cm)</h4>
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Braços</h4>
                 <div className="grid gap-4 md:grid-cols-4">
                   <div className="space-y-2">
-                    <Label htmlFor="armRight">Braço Dir.</Label>
+                    <Label htmlFor="armRight">Braço Dir. (cm)</Label>
                     <Input
                       id="armRight"
                       type="number"
@@ -539,7 +567,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="armLeft">Braço Esq.</Label>
+                    <Label htmlFor="armLeft">Braço Esq. (cm)</Label>
                     <Input
                       id="armLeft"
                       type="number"
@@ -549,7 +577,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="forearmRight">Antebraço Dir.</Label>
+                    <Label htmlFor="forearmRight">Antebraço Dir. (cm)</Label>
                     <Input
                       id="forearmRight"
                       type="number"
@@ -559,7 +587,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="forearmLeft">Antebraço Esq.</Label>
+                    <Label htmlFor="forearmLeft">Antebraço Esq. (cm)</Label>
                     <Input
                       id="forearmLeft"
                       type="number"
@@ -569,14 +597,21 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                 </div>
+                <div className="grid gap-4 md:grid-cols-4 mt-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="sfTriceps" className="text-amber-500">Dobra Tríceps (mm)</Label>
+                    <Input id="sfTriceps" type="number" step="0.1" placeholder="mm"
+                      value={formData.sfTriceps} onChange={(e) => setFormData({ ...formData, sfTriceps: e.target.value })} />
+                  </div>
+                </div>
               </div>
 
               {/* Pernas */}
               <div className="pt-2">
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Pernas (cm)</h4>
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Pernas</h4>
                 <div className="grid gap-4 md:grid-cols-4">
                   <div className="space-y-2">
-                    <Label htmlFor="thighRight">Coxa Dir.</Label>
+                    <Label htmlFor="thighRight">Coxa Dir. (cm)</Label>
                     <Input
                       id="thighRight"
                       type="number"
@@ -586,7 +621,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="thighLeft">Coxa Esq.</Label>
+                    <Label htmlFor="thighLeft">Coxa Esq. (cm)</Label>
                     <Input
                       id="thighLeft"
                       type="number"
@@ -596,7 +631,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="calfRight">Panturrilha Dir.</Label>
+                    <Label htmlFor="calfRight">Panturrilha Dir. (cm)</Label>
                     <Input
                       id="calfRight"
                       type="number"
@@ -606,7 +641,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="calfLeft">Panturrilha Esq.</Label>
+                    <Label htmlFor="calfLeft">Panturrilha Esq. (cm)</Label>
                     <Input
                       id="calfLeft"
                       type="number"
@@ -616,99 +651,62 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Dobras Cutâneas — Cálculo Pollock */}
-              <div className="pt-2">
-                <h4 className="text-sm font-medium mb-1 text-muted-foreground uppercase tracking-wide">Dobras Cutâneas (mm)</h4>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Preencha para calcular % gordura automaticamente pelo método Pollock
-                </p>
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-4 mt-3">
                   <div className="space-y-2">
-                    <Label htmlFor="sfChest">Peito</Label>
-                    <Input id="sfChest" type="number" step="0.1" placeholder="mm"
-                      value={formData.sfChest} onChange={(e) => setFormData({ ...formData, sfChest: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sfAbdomen">Abdômen</Label>
-                    <Input id="sfAbdomen" type="number" step="0.1" placeholder="mm"
-                      value={formData.sfAbdomen} onChange={(e) => setFormData({ ...formData, sfAbdomen: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sfThigh">Coxa</Label>
+                    <Label htmlFor="sfThigh" className="text-amber-500">Dobra Coxa (mm)</Label>
                     <Input id="sfThigh" type="number" step="0.1" placeholder="mm"
                       value={formData.sfThigh} onChange={(e) => setFormData({ ...formData, sfThigh: e.target.value })} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sfTriceps">Tríceps</Label>
-                    <Input id="sfTriceps" type="number" step="0.1" placeholder="mm"
-                      value={formData.sfTriceps} onChange={(e) => setFormData({ ...formData, sfTriceps: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sfSuprailiac">Suprailíaca</Label>
-                    <Input id="sfSuprailiac" type="number" step="0.1" placeholder="mm"
-                      value={formData.sfSuprailiac} onChange={(e) => setFormData({ ...formData, sfSuprailiac: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sfSubscapular">Subescapular</Label>
-                    <Input id="sfSubscapular" type="number" step="0.1" placeholder="mm"
-                      value={formData.sfSubscapular} onChange={(e) => setFormData({ ...formData, sfSubscapular: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sfMidaxillary">Axilar Médio</Label>
-                    <Input id="sfMidaxillary" type="number" step="0.1" placeholder="mm"
-                      value={formData.sfMidaxillary} onChange={(e) => setFormData({ ...formData, sfMidaxillary: e.target.value })} />
-                  </div>
                 </div>
-                {/* Live Pollock result */}
-                {(() => {
-                  const sf: SkinfoldsInput = {
-                    chest: formData.sfChest ? parseFloat(formData.sfChest) : undefined,
-                    abdomen: formData.sfAbdomen ? parseFloat(formData.sfAbdomen) : undefined,
-                    thigh: formData.sfThigh ? parseFloat(formData.sfThigh) : undefined,
-                    triceps: formData.sfTriceps ? parseFloat(formData.sfTriceps) : undefined,
-                    suprailiac: formData.sfSuprailiac ? parseFloat(formData.sfSuprailiac) : undefined,
-                    subscapular: formData.sfSubscapular ? parseFloat(formData.sfSubscapular) : undefined,
-                    midaxillary: formData.sfMidaxillary ? parseFloat(formData.sfMidaxillary) : undefined,
-                  }
-                  const weight = formData.weight ? parseFloat(formData.weight) : null
-                  const gender = formData.gender as 'M' | 'F' | null
-                  const isoDate = convertDateToISO(formData.birthDate)
-                  if (!weight || (gender !== 'M' && gender !== 'F') || !isoDate) return null
-                  const age = ageFromBirthDate(isoDate)
-                  if (age <= 0) return null
-                  const result = computePollock(sf, age, weight, gender)
-                  if (!result) return null
-                  const methodNames: Record<string, string> = {
-                    '3pt_male': 'Pollock 3 Dobras (♂)', '3pt_female': 'Pollock 3 Dobras (♀)',
-                    '7pt_male': 'Pollock 7 Dobras (♂)', '7pt_female': 'Pollock 7 Dobras (♀)',
-                  }
-                  return (
-                    <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
-                        <Calculator className="h-4 w-4" />
-                        {methodNames[result.method]} — Cálculo Automático
-                      </div>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="text-center bg-background rounded-lg p-3">
-                          <div className="text-2xl font-bold text-emerald-500">{result.bodyFatPercent.toFixed(1)}%</div>
-                          <div className="text-xs text-muted-foreground">Gordura</div>
-                        </div>
-                        <div className="text-center bg-background rounded-lg p-3">
-                          <div className="text-2xl font-bold text-red-400">{result.fatKg.toFixed(1)} kg</div>
-                          <div className="text-xs text-muted-foreground">Massa Gorda</div>
-                        </div>
-                        <div className="text-center bg-background rounded-lg p-3">
-                          <div className="text-2xl font-bold text-cyan-400">{result.leanKg.toFixed(1)} kg</div>
-                          <div className="text-xs text-muted-foreground">Massa Magra</div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Soma: {result.sumSkinfolds.toFixed(1)} mm • % Gordura será atualizada ao salvar</p>
-                    </div>
-                  )
-                })()}
               </div>
+
+              {/* Live Pollock result */}
+              {(() => {
+                const sf: SkinfoldsInput = {
+                  chest: formData.sfChest ? parseFloat(formData.sfChest) : undefined,
+                  abdomen: formData.sfAbdomen ? parseFloat(formData.sfAbdomen) : undefined,
+                  thigh: formData.sfThigh ? parseFloat(formData.sfThigh) : undefined,
+                  triceps: formData.sfTriceps ? parseFloat(formData.sfTriceps) : undefined,
+                  suprailiac: formData.sfSuprailiac ? parseFloat(formData.sfSuprailiac) : undefined,
+                  subscapular: formData.sfSubscapular ? parseFloat(formData.sfSubscapular) : undefined,
+                  midaxillary: formData.sfMidaxillary ? parseFloat(formData.sfMidaxillary) : undefined,
+                }
+                const weight = formData.weight ? parseFloat(formData.weight) : null
+                const gender = formData.gender as 'M' | 'F' | null
+                const isoDate = convertDateToISO(formData.birthDate)
+                if (!weight || (gender !== 'M' && gender !== 'F') || !isoDate) return null
+                const age = ageFromBirthDate(isoDate)
+                if (age <= 0) return null
+                const result = computePollock(sf, age, weight, gender)
+                if (!result) return null
+                const methodNames: Record<string, string> = {
+                  '3pt_male': 'Pollock 3 Dobras (♂)', '3pt_female': 'Pollock 3 Dobras (♀)',
+                  '7pt_male': 'Pollock 7 Dobras (♂)', '7pt_female': 'Pollock 7 Dobras (♀)',
+                }
+                return (
+                  <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <Calculator className="h-4 w-4" />
+                      {methodNames[result.method]} — Cálculo Automático
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center bg-background rounded-lg p-3">
+                        <div className="text-2xl font-bold text-emerald-500">{result.bodyFatPercent.toFixed(1)}%</div>
+                        <div className="text-xs text-muted-foreground">Gordura</div>
+                      </div>
+                      <div className="text-center bg-background rounded-lg p-3">
+                        <div className="text-2xl font-bold text-red-400">{result.fatKg.toFixed(1)} kg</div>
+                        <div className="text-xs text-muted-foreground">Massa Gorda</div>
+                      </div>
+                      <div className="text-center bg-background rounded-lg p-3">
+                        <div className="text-2xl font-bold text-cyan-400">{result.leanKg.toFixed(1)} kg</div>
+                        <div className="text-xs text-muted-foreground">Massa Magra</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Soma: {result.sumSkinfolds.toFixed(1)} mm • % Gordura será atualizada ao salvar</p>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Objetivos e Histórico */}
