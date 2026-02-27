@@ -43,10 +43,12 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
+  Activity,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
+import { ClientBodyComposition } from '@/components/clients/client-body-composition'
 
 interface Assessment {
   id: string
@@ -72,6 +74,7 @@ interface Client {
   history: string | null
   goal: string | null
   isActive: boolean
+  gender: string | null
   createdAt: string
   trainerId: string | null
   goalType: string | null
@@ -403,6 +406,24 @@ export default function ClientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Composição Corporal — calculada automaticamente */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-amber-500" />
+            Composição Corporal
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ClientBodyComposition
+            weight={client.weight ? Number(client.weight) : null}
+            bodyFat={client.bodyFat ? Number(client.bodyFat) : null}
+            gender={client.gender}
+            height={client.height ? Number(client.height) : null}
+          />
+        </CardContent>
+      </Card>
+
       {/* Medidas Corporais */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -420,10 +441,10 @@ export default function ClientDetailPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Composição Atual */}
+          {/* Peso + Altura resumido */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Composição Atual</p>
-            <div className="grid grid-cols-3 gap-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Medidas Atuais</p>
+            <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-muted/50 p-3 text-center">
                 <div className="text-lg font-bold text-amber-500">{client.weight ? `${Number(client.weight).toFixed(1)}` : '—'}</div>
                 <div className="text-xs text-muted-foreground">Peso (kg)</div>
@@ -431,10 +452,6 @@ export default function ClientDetailPage() {
               <div className="rounded-lg bg-muted/50 p-3 text-center">
                 <div className="text-lg font-bold text-amber-500">{client.height ? `${Number(client.height).toFixed(0)}` : '—'}</div>
                 <div className="text-xs text-muted-foreground">Altura (cm)</div>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <div className="text-lg font-bold text-amber-500">{client.bodyFat ? `${Number(client.bodyFat).toFixed(1)}%` : '—'}</div>
-                <div className="text-xs text-muted-foreground">Gordura</div>
               </div>
             </div>
           </div>
