@@ -441,21 +441,6 @@ export default function ClientDetailPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Peso + Altura resumido */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Medidas Atuais</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <div className="text-lg font-bold text-amber-500">{client.weight ? `${Number(client.weight).toFixed(1)}` : '—'}</div>
-                <div className="text-xs text-muted-foreground">Peso (kg)</div>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <div className="text-lg font-bold text-amber-500">{client.height ? `${Number(client.height).toFixed(0)}` : '—'}</div>
-                <div className="text-xs text-muted-foreground">Altura (cm)</div>
-              </div>
-            </div>
-          </div>
-
           {/* Tronco */}
           {(client.chest || client.waist || client.hip || client.abdomen) && (
             <div>
