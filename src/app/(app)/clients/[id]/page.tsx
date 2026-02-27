@@ -418,7 +418,6 @@ export default function ClientDetailPage() {
           <ClientBodyComposition
             weight={client.weight ? Number(client.weight) : null}
             bodyFat={client.bodyFat ? Number(client.bodyFat) : null}
-            gender={client.gender}
             height={client.height ? Number(client.height) : null}
           />
         </CardContent>
