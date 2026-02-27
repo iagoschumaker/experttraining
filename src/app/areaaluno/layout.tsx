@@ -1,9 +1,14 @@
-﻿import { Metadata } from 'next'
+﻿import { Metadata, Viewport } from 'next'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export const metadata: Metadata = {
   title: 'Área do Aluno | EXPERT PRO TRAINING',
   description: 'Acesse seu treino personalizado',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 }
 
 export default function AreaAlunoLayout({

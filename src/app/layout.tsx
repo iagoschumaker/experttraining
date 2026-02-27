@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import './print.css'
@@ -11,6 +11,13 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#00C2D1',
+}
+
 export const metadata: Metadata = {
   title: {
     default: 'EXPERT PRO TRAINING',
@@ -18,11 +25,6 @@ export const metadata: Metadata = {
   },
   description: 'Sistema de treino funcional híbrido baseado em padrões de movimento e capacidades físicas',
   keywords: ['treino funcional', 'método expert', 'avaliação física', 'personal trainer'],
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -33,7 +35,6 @@ export const metadata: Metadata = {
     icon: '/icon-192.png',
     apple: '/icon-192.png',
   },
-  themeColor: '#00C2D1',
 }
 
 export default function RootLayout({
