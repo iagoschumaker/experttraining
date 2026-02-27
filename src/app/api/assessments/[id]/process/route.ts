@@ -9,6 +9,7 @@ import prisma from '@/lib/prisma'
 import { verifyAccessToken, hasStudioContext, getAccessTokenCookie } from '@/lib/auth'
 import { processAssessment } from '@/lib/rules-engine'
 import { computeFromAssessment } from '@/services/jubaMethod'
+import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { AssessmentInput } from '@/types'
 
 export async function POST(
@@ -47,6 +48,8 @@ export async function POST(
           select: {
             trainerId: true,
             gender: true,
+            birthDate: true,
+            weight: true,
           },
         },
       },
@@ -81,7 +84,27 @@ export async function POST(
 
     // Calculate Juba Method composição corporal (if bodyMetrics has weight + bodyFat)
     const bodyMetrics = assessment.bodyMetricsJson as any
-    const computedJson = computeFromAssessment(bodyMetrics, assessment.client.gender)
+    let computedJson = computeFromAssessment(bodyMetrics, assessment.client.gender)
+
+    // Calculate Pollock body fat from skinfolds (if available)
+    let pollockResult = null
+    if (bodyMetrics?.skinfolds && assessment.client.gender && assessment.client.birthDate) {
+      const weight = bodyMetrics.weight ?? Number(assessment.client.weight) ?? null
+      const age = ageFromBirthDate(assessment.client.birthDate)
+      const sex = (assessment.client.gender === 'M' || assessment.client.gender === 'F')
+        ? assessment.client.gender as 'M' | 'F'
+        : null
+      if (weight && age > 0 && sex) {
+        pollockResult = computePollock(bodyMetrics.skinfolds, age, weight, sex)
+        if (pollockResult) {
+          // Merge pollock into computedJson
+          computedJson = {
+            ...(computedJson ?? {}),
+            pollock: pollockResult,
+          } as any
+        }
+      }
+    }
 
     // Update assessment with results
     const updatedAssessment = await prisma.assessment.update({
@@ -95,11 +118,13 @@ export async function POST(
       },
     })
 
-    // Auto-update client bodyFat if provided
-    if (bodyMetrics?.bodyFat) {
+    // Auto-update client bodyFat
+    // Priority: Pollock calculation > manually entered bodyFat
+    const autoBodyFat = pollockResult?.bodyFatPercent ?? bodyMetrics?.bodyFat ?? null
+    if (autoBodyFat) {
       await prisma.client.update({
         where: { id: assessment.clientId },
-        data: { bodyFat: bodyMetrics.bodyFat },
+        data: { bodyFat: autoBodyFat },
       })
     }
 

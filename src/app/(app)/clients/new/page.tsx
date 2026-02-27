@@ -20,8 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Calculator } from 'lucide-react'
 import Link from 'next/link'
+import { computePollock, ageFromBirthDate } from '@/services/pollock'
+import type { SkinfoldsInput } from '@/services/pollock'
 
 export default function NewClientPage() {
   const router = useRouter()
@@ -59,6 +61,14 @@ export default function NewClientPage() {
     thighLeft: '',
     calfRight: '',
     calfLeft: '',
+    // Dobras cutâneas (mm) — para cálculo Pollock (não salvas diretamente)
+    sfChest: '',
+    sfAbdomen: '',
+    sfThigh: '',
+    sfTriceps: '',
+    sfSuprailiac: '',
+    sfSubscapular: '',
+    sfMidaxillary: '',
   })
 
   useEffect(() => {
@@ -176,7 +186,27 @@ export default function NewClientPage() {
         waist: formData.waist ? parseFloat(formData.waist) : null,
         hip: formData.hip ? parseFloat(formData.hip) : null,
         abdomen: formData.abdomen ? parseFloat(formData.abdomen) : null,
-        bodyFat: formData.bodyFat ? parseFloat(formData.bodyFat) : null,
+        bodyFat: (() => {
+          // Compute Pollock if skinfolds available, else use manual value
+          const sf: SkinfoldsInput = {
+            chest: formData.sfChest ? parseFloat(formData.sfChest) : undefined,
+            abdomen: formData.sfAbdomen ? parseFloat(formData.sfAbdomen) : undefined,
+            thigh: formData.sfThigh ? parseFloat(formData.sfThigh) : undefined,
+            triceps: formData.sfTriceps ? parseFloat(formData.sfTriceps) : undefined,
+            suprailiac: formData.sfSuprailiac ? parseFloat(formData.sfSuprailiac) : undefined,
+            subscapular: formData.sfSubscapular ? parseFloat(formData.sfSubscapular) : undefined,
+            midaxillary: formData.sfMidaxillary ? parseFloat(formData.sfMidaxillary) : undefined,
+          }
+          const weight = formData.weight ? parseFloat(formData.weight) : null
+          const gender = formData.gender as 'M' | 'F' | null
+          const isoDate = convertDateToISO(formData.birthDate)
+          if (weight && (gender === 'M' || gender === 'F') && isoDate) {
+            const age = ageFromBirthDate(isoDate)
+            const result = computePollock(sf, age, weight, gender)
+            if (result) return result.bodyFatPercent
+          }
+          return formData.bodyFat ? parseFloat(formData.bodyFat) : null
+        })(),
         armRight: formData.armRight ? parseFloat(formData.armRight) : null,
         armLeft: formData.armLeft ? parseFloat(formData.armLeft) : null,
         forearmRight: formData.forearmRight ? parseFloat(formData.forearmRight) : null,
@@ -555,6 +585,98 @@ export default function NewClientPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Dobras Cutâneas — Cálculo Pollock */}
+            <div className="pt-2">
+              <h4 className="text-sm font-medium mb-1 text-muted-foreground uppercase tracking-wide">Dobras Cutâneas (mm)</h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Preencha as dobras para cálculo automático de % gordura pelo método Pollock
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sfChest">Peito</Label>
+                  <Input id="sfChest" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfChest} onChange={(e) => handleChange('sfChest', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sfAbdomen">Abdômen</Label>
+                  <Input id="sfAbdomen" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfAbdomen} onChange={(e) => handleChange('sfAbdomen', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sfThigh">Coxa</Label>
+                  <Input id="sfThigh" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfThigh} onChange={(e) => handleChange('sfThigh', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sfTriceps">Tríceps</Label>
+                  <Input id="sfTriceps" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfTriceps} onChange={(e) => handleChange('sfTriceps', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sfSuprailiac">Suprailíaca</Label>
+                  <Input id="sfSuprailiac" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfSuprailiac} onChange={(e) => handleChange('sfSuprailiac', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sfSubscapular">Subescapular</Label>
+                  <Input id="sfSubscapular" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfSubscapular} onChange={(e) => handleChange('sfSubscapular', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sfMidaxillary">Axilar Médio</Label>
+                  <Input id="sfMidaxillary" type="number" step="0.1" placeholder="mm"
+                    value={formData.sfMidaxillary} onChange={(e) => handleChange('sfMidaxillary', e.target.value)} />
+                </div>
+              </div>
+              {/* Live Pollock result */}
+              {(() => {
+                const sf: SkinfoldsInput = {
+                  chest: formData.sfChest ? parseFloat(formData.sfChest) : undefined,
+                  abdomen: formData.sfAbdomen ? parseFloat(formData.sfAbdomen) : undefined,
+                  thigh: formData.sfThigh ? parseFloat(formData.sfThigh) : undefined,
+                  triceps: formData.sfTriceps ? parseFloat(formData.sfTriceps) : undefined,
+                  suprailiac: formData.sfSuprailiac ? parseFloat(formData.sfSuprailiac) : undefined,
+                  subscapular: formData.sfSubscapular ? parseFloat(formData.sfSubscapular) : undefined,
+                  midaxillary: formData.sfMidaxillary ? parseFloat(formData.sfMidaxillary) : undefined,
+                }
+                const weight = formData.weight ? parseFloat(formData.weight) : null
+                const gender = formData.gender as 'M' | 'F' | null
+                const isoDate = convertDateToISO(formData.birthDate)
+                if (!weight || (gender !== 'M' && gender !== 'F') || !isoDate) return null
+                const age = ageFromBirthDate(isoDate)
+                if (age <= 0) return null
+                const result = computePollock(sf, age, weight, gender)
+                if (!result) return null
+                const methodNames: Record<string, string> = {
+                  '3pt_male': 'Pollock 3 Dobras (♂)', '3pt_female': 'Pollock 3 Dobras (♀)',
+                  '7pt_male': 'Pollock 7 Dobras (♂)', '7pt_female': 'Pollock 7 Dobras (♀)',
+                }
+                return (
+                  <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <Calculator className="h-4 w-4" />
+                      {methodNames[result.method]} — Cálculo Automático
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center bg-background rounded-lg p-3">
+                        <div className="text-2xl font-bold text-emerald-500">{result.bodyFatPercent.toFixed(1)}%</div>
+                        <div className="text-xs text-muted-foreground">Gordura</div>
+                      </div>
+                      <div className="text-center bg-background rounded-lg p-3">
+                        <div className="text-2xl font-bold text-red-400">{result.fatKg.toFixed(1)} kg</div>
+                        <div className="text-xs text-muted-foreground">Massa Gorda</div>
+                      </div>
+                      <div className="text-center bg-background rounded-lg p-3">
+                        <div className="text-2xl font-bold text-cyan-400">{result.leanKg.toFixed(1)} kg</div>
+                        <div className="text-xs text-muted-foreground">Massa Magra</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Soma: {result.sumSkinfolds.toFixed(1)} mm • % Gordura será salva automaticamente</p>
+                  </div>
+                )
+              })()}
             </div>
           </CardContent>
         </Card>
