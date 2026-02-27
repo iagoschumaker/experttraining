@@ -56,9 +56,8 @@ export default function EditClientPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>>([])
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  
+const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>>([])
+
   function formatDate(value: string) {
     // Remove tudo que não é número
     const numbers = value.replace(/\D/g, '')
@@ -154,13 +153,6 @@ export default function EditClientPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Check if user is superadmin
-        const meRes = await fetch('/api/auth/me')
-        const meData = await meRes.json()
-        if (meData.success && meData.data?.user?.isSuperAdmin) {
-          setIsSuperAdmin(true)
-        }
-
         // First fetch client data
         const clientRes = await fetch(`/api/clients/${clientId}`)
         const clientData = await clientRes.json()
@@ -303,11 +295,7 @@ export default function EditClientPage() {
 
       if (data.success) {
         alert('Cliente atualizado com sucesso!')
-        if (isSuperAdmin) {
-          router.push('/superadmin/users')
-        } else {
-          router.push(`/clients/${clientId}`)
-        }
+        router.push(`/clients/${clientId}`)
       } else {
         alert(data.error || 'Erro ao atualizar cliente')
       }
@@ -332,13 +320,7 @@ export default function EditClientPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => {
-          if (isSuperAdmin) {
-            router.push('/superadmin/users')
-          } else {
-            router.push(`/clients/${clientId}`)
-          }
-        }}>
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/clients/${clientId}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
