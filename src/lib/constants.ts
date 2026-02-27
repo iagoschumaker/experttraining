@@ -12,7 +12,7 @@ export const ROUTES = {
   // Public
   LOGIN: '/login',
   SELECT_STUDIO: '/select-studio',
-  
+
   // App (Studios)
   APP: '/',
   APP_DASHBOARD: '/dashboard',
@@ -20,7 +20,7 @@ export const ROUTES = {
   APP_ASSESSMENTS: '/assessments',
   APP_RESULTS: '/results',
   APP_WORKOUTS: '/workouts',
-  
+
   // SuperAdmin
   SUPERADMIN: '/superadmin',
   SUPERADMIN_DASHBOARD: '/superadmin/dashboard',
@@ -208,3 +208,20 @@ export const COOKIES = {
 
 export const DEFAULT_PAGE_SIZE = 10
 export const MAX_PAGE_SIZE = 100
+
+// ============================================================================
+// TRAINING PILLARS (Pilares do Método)
+// ============================================================================
+
+export const TRAINING_PILLARS = {
+  LOWER: 'LOWER',
+  PUSH: 'PUSH',
+  PULL: 'PULL',
+} as const
+
+export const PILLAR_LABELS: Record<string, string> = {
+  LOWER: 'Perna & Quadril',
+  PUSH: 'Empurrada',
+  PULL: 'Puxada',
+}
+

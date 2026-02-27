@@ -166,7 +166,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
     if (!workout || !schedule) return
 
     console.log('📊 Schedule weeks:', schedule.weeks?.length, schedule.weeks)
-    
+
     const freq = workout.weeklyFrequency || 3
     const totalDays = schedule.weeks?.[0]?.sessions?.length || freq
     const studioName = workout.studio?.name || 'Studio'
@@ -213,12 +213,12 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
             <span class="time">${prep.totalTime || '12 min'}</span>
           </div>
           <div class="prep-content">
-            ${prep.exercises.slice(0, 4).map((ex: any) => 
-              `<div class="prep-item">
+            ${prep.exercises.slice(0, 4).map((ex: any) =>
+        `<div class="prep-item">
                 <span>${ex.name}</span>
                 <span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span>
               </div>`
-            ).join('')}
+      ).join('')}
           </div>
         </div>
       `
@@ -251,12 +251,17 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       `
     }
 
+    // Cores do pilar
+    const pillarColor = (p: string) => p === 'LOWER' ? '#f59e0b' : p === 'PUSH' ? '#3b82f6' : '#8b5cf6'
+    const pillarBg = (p: string) => p === 'LOWER' ? '#fef3c7' : p === 'PUSH' ? '#dbeafe' : '#ede9fe'
+
     // Gerar sessão/dia (card igual desktop)
     const genSession = (s: any) => `
       <div class="day-card">
         <div class="day-header">
           <div class="day-badge">${s.session}</div>
           <span class="day-title">Dia ${s.session}</span>
+          ${s.pillarLabel ? `<span class="pillar-badge" style="background:${pillarBg(s.pillar)};color:${pillarColor(s.pillar)};padding:1mm 2mm;border-radius:1mm;font-size:6.5pt;font-weight:700">${s.pillarLabel}</span>` : ''}
           <span class="day-duration">${s.estimatedDuration || 60} min</span>
         </div>
         <div class="day-content">
@@ -286,7 +291,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       </section>
     `
     }
-    
+
     // Calcular escala dinâmica baseada no número de dias
     // Layout inteligente baseado no número de dias
     const getLayout = (days: number) => {
@@ -472,8 +477,8 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
 
   // Função de fallback para gerar preparação quando não existe
   const generatePreparationFallback = (focus: string) => {
-    const focusLabel = focus?.includes('LOWER') ? 'membros inferiores' : 
-                       focus?.includes('UPPER') ? 'membros superiores' : 'geral'
+    const focusLabel = focus?.includes('LOWER') ? 'membros inferiores' :
+      focus?.includes('UPPER') ? 'membros superiores' : 'geral'
     return {
       title: 'Preparação do Movimento',
       totalTime: '12 minutos',
@@ -708,6 +713,14 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                                 {session.session}
                               </div>
                               <span className="font-semibold">Dia {session.session}</span>
+                              {session.pillarLabel && (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${session.pillar === 'LOWER' ? 'bg-amber-500/20 text-amber-600' :
+                                    session.pillar === 'PUSH' ? 'bg-blue-500/20 text-blue-500' :
+                                      'bg-purple-500/20 text-purple-500'
+                                  }`}>
+                                  {session.pillarLabel}
+                                </span>
+                              )}
                             </div>
                             <span className="text-xs text-muted-foreground font-mono">
                               {session.estimatedDuration} min
@@ -717,7 +730,7 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
 
                         {/* Conteúdo do Dia */}
                         <div className="p-4 space-y-3">
-                        
+
                           {/* Preparação do Movimento */}
                           {session.preparation && (
                             <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
@@ -766,13 +779,12 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                                   {b.exercises?.map((ex: any, exIdx: number) => (
                                     <div key={exIdx} className="flex items-center justify-between text-xs">
                                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
-                                          ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
-                                          ex.role === 'PUSH_PULL_INTEGRADO' ? 'bg-purple-500/20 text-purple-500' :
-                                          'bg-green-500/20 text-green-600'
-                                        }`}>
-                                          {ex.role === 'FOCO_PRINCIPAL' ? 'F' : 
-                                           ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'}
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
+                                            ex.role === 'PUSH_PULL_INTEGRADO' ? 'bg-purple-500/20 text-purple-500' :
+                                              'bg-green-500/20 text-green-600'
+                                          }`}>
+                                          {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
+                                            ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'}
                                         </span>
                                         <span className="truncate font-medium">{ex.name}</span>
                                       </div>
