@@ -621,6 +621,45 @@ export default function ClientDetailPage() {
 
 
 
+      {/* Histórico de Check-in */}
+      {(client as any).checkInHistory && (client as any).checkInHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-green-500" />
+              Histórico de Check-in
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {(client as any).checkInHistory.map((lesson: any) => {
+                const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+                const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
+                return (
+                  <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <div>
+                        <div className="text-sm font-medium capitalize">{dateStr}</div>
+                        {timeStr && <div className="text-xs text-muted-foreground">{timeStr}</div>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {lesson.focus && (
+                        <Badge variant="outline" className="text-xs">{lesson.focus}</Badge>
+                      )}
+                      {lesson.weekIndex && (
+                        <span className="text-xs text-muted-foreground">Sem. {lesson.weekIndex}</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Workouts */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

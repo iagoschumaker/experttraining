@@ -161,9 +161,33 @@ export async function GET(
       }
     }
 
+    // Get check-in history (all completed lessons for this client)
+    const workoutIds = client.workouts.map((w: any) => w.id)
+    const checkInHistory = workoutIds.length > 0
+      ? await prisma.lesson.findMany({
+        where: {
+          workoutId: { in: workoutIds },
+          status: 'COMPLETED',
+        },
+        orderBy: { date: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          date: true,
+          startedAt: true,
+          endedAt: true,
+          focus: true,
+          weekIndex: true,
+          dayIndex: true,
+          duration: true,
+          workoutId: true,
+        },
+      })
+      : []
+
     return NextResponse.json({
       success: true,
-      data: { ...client, trainer, attendanceStats },
+      data: { ...client, trainer, attendanceStats, checkInHistory },
     })
   } catch (error) {
     console.error('Get client error:', error)

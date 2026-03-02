@@ -14,13 +14,18 @@ import {
     WorkoutTemplate,
 } from '@/services/workoutTemplate'
 
-// Helpers para calcular início/fim do dia (UTC-3 / BRT)
+// Helpers para calcular início/fim do dia em horário de Brasília (UTC-3)
 function getTodayRange() {
-    const now = new Date()
-    const start = new Date(now)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(now)
-    end.setHours(23, 59, 59, 999)
+    // Obter data atual no fuso de Brasília
+    const nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const year = nowBRT.getFullYear()
+    const month = nowBRT.getMonth()
+    const day = nowBRT.getDate()
+
+    // Início e fim do dia em Brasília, convertido para UTC
+    // Brasília = UTC-3, então 00:00 BRT = 03:00 UTC
+    const start = new Date(Date.UTC(year, month, day, 3, 0, 0, 0))
+    const end = new Date(Date.UTC(year, month, day + 1, 2, 59, 59, 999))
     return { start, end }
 }
 
