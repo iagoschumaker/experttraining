@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
+import { calculateProgress } from '@/services/workoutTemplate'
 
 // ============================================================================
 // GET - Workout Details
@@ -71,7 +72,7 @@ export async function GET(
         settings: true,
       },
     })
-    
+
     const studioSettings = studioData?.settings as any || {}
     const studio = studioData ? {
       name: studioData.name,
@@ -123,7 +124,7 @@ export async function GET(
     // ========================================================================
     // MÉTODO EXPERT TRAINING - GERAR BLOCOS NO FORMATO CORRETO
     // ========================================================================
-    // Cada bloco tem 3 exercícios: FOCO_PRINCIPAL, PUSH_PULL_INTEGRADO, CORE
+    // Cada bloco tem 3 exercícios: FOCO_PRINCIPAL, SECUNDARIO, CORE
     // ========================================================================
     const generateExpertBlocks = (mainFocus: string) => {
       const focusLabel = mainFocus?.includes('LOWER') || mainFocus?.includes('SQUAT') || mainFocus?.includes('PERNA')
@@ -147,7 +148,7 @@ export async function GET(
           restAfterBlock: '90-120s',
           exercises: [
             exerciciosFoco.bloco1,
-            { name: 'Landmine Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
+            { name: 'Landmine Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
             { name: 'Prancha frontal', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
           ],
         },
@@ -158,7 +159,7 @@ export async function GET(
           restAfterBlock: '120-150s',
           exercises: [
             exerciciosFoco.bloco2,
-            { name: 'Remada com rotação', sets: 3, reps: '10 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
+            { name: 'Remada com rotação', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
             { name: 'Pallof Press', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
           ],
         },
@@ -169,7 +170,7 @@ export async function GET(
           restAfterBlock: '60-90s',
           exercises: [
             exerciciosFoco.bloco3,
-            { name: 'Turkish Get-up parcial', sets: 2, reps: '3 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
+            { name: 'Turkish Get-up parcial', sets: 2, reps: '3 cada', rest: '40-60s', role: 'SECUNDARIO' },
             { name: 'Ab Wheel / Rollout', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE' },
           ],
         },
@@ -191,15 +192,15 @@ export async function GET(
         ...week,
         sessions: week.sessions?.map((session: any) => {
           // Se já tem blocos no formato correto (com exercises que têm role), mantém
-          const hasCorrectFormat = session.blocks?.some((b: any) => 
+          const hasCorrectFormat = session.blocks?.some((b: any) =>
             b.exercises?.some((ex: any) => ex.role)
           )
-          
+
           if (hasCorrectFormat) return session
 
           // Gerar blocos no formato Método Expert Training
           const expertBlocks = generateExpertBlocks(mainFocus)
-          
+
           // Gerar preparação se não existir (com exercícios específicos baseados no foco)
           const sessionIdx = session.session ? session.session - 1 : 0
           const preparacaoExercicios = mainFocus.includes('PERNA') || mainFocus.includes('LOWER') ? [
@@ -253,7 +254,7 @@ export async function GET(
               { name: 'Bear Crawl', sets: 1, reps: '30s', duration: '2 min' },
             ],
           ]
-          
+
           const preparation = session.preparation?.exercises?.length > 0 ? session.preparation : {
             title: 'Preparação do Movimento',
             totalTime: '12 minutos',
@@ -283,16 +284,25 @@ export async function GET(
       })),
     } : null
 
+    // Calcular progresso do programa
+    const progress = calculateProgress(
+      workout.sessionsCompleted,
+      workout.sessionsPerWeek,
+      workout.targetWeeks,
+      workout.startDate,
+    )
+
     return NextResponse.json({
       success: true,
-      data: { 
-        ...workout, 
+      data: {
+        ...workout,
         scheduleJson: enrichedSchedule,
         weeklyFrequency,
         phaseDuration,
-        creator, 
+        creator,
         blocks,
-        studio
+        studio,
+        progress,
       },
     })
   } catch (error) {

@@ -362,21 +362,25 @@ model Rule {
 }
 
 model Workout {
-  id           String    @id @default(cuid())
-  clientId     String    @map("client_id")
-  studioId     String    @map("studio_id")
-  createdById  String    @map("created_by_id")
-  name         String?
-  blocksUsed   String[]  @map("blocks_used")
-  scheduleJson Json      @map("schedule_json")
-  startDate    DateTime? @map("start_date")
-  endDate      DateTime? @map("end_date")
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  studio       Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  lessons      Lesson[]  // Aulas derivadas deste treino
+  id                String    @id @default(cuid())
+  clientId          String    @map("client_id")
+  studioId          String    @map("studio_id")
+  createdById       String    @map("created_by_id")
+  name              String?
+  blocksUsed        String[]  @map("blocks_used")
+  scheduleJson      Json      @map("schedule_json")
+  templateJson      Json?     @map("template_json")
+  targetWeeks       Int       @default(8) @map("target_weeks")
+  sessionsPerWeek   Int       @default(3) @map("sessions_per_week")
+  sessionsCompleted Int       @default(0) @map("sessions_completed")
+  startDate         DateTime? @map("start_date")
+  endDate           DateTime? @map("end_date")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  studio            Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  lessons           Lesson[]  // Aulas derivadas deste treino
 
   @@index([clientId])
   @@index([studioId])
@@ -439,6 +443,7 @@ model Lesson {
   workoutId       String?        @map("workout_id") // Treino de origem
   weekIndex       Int?           @map("week_index") // Semana do cronograma (1-4)
   dayIndex        Int?           @map("day_index") // Dia do cronograma (1-7)
+  sessionIndex    Int?           @map("session_index") // Índice da sessão no template (0, 1, 2...)
   focus           String?        // Foco principal do treino (PERNA, SUPERIOR, etc.)
   
   notes           String?

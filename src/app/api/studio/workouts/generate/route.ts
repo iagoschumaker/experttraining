@@ -3,7 +3,7 @@
 // ============================================================================
 // POST /api/studio/workouts/generate - Gerar treino baseado em avaliação
 // ============================================================================
-// 🧠 CÉREBRO ÚNICO - Usado por Studio e Personal
+// 🧠 CÉREBRO ÚNICO - Template fixo + periodização dinâmica
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,10 +12,10 @@ import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
 import { generatePillarRotation, PILLAR_LABELS } from '@/services/pillarRotation'
 import {
-  getPreparationExercises,
-  generateBlocks,
-  generateFinalProtocol as generateFinalProtocolFn,
-} from '@/services/pillarExercises'
+  generateWorkoutTemplate,
+  expandTemplateToSchedule,
+  calculateProgress,
+} from '@/services/workoutTemplate'
 
 // ============================================================================
 // POST - Generate Workout from Assessment
@@ -23,7 +23,7 @@ import {
 const generateWorkoutSchema = z.object({
   assessmentId: z.string().cuid(),
   weeklyFrequency: z.number().min(2).max(6),
-  phaseDuration: z.number().min(1).max(12).default(4),
+  targetWeeks: z.number().min(6).max(8).default(8),
   notes: z.string().optional(),
 })
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { assessmentId, weeklyFrequency, phaseDuration, notes } = validation.data
+    const { assessmentId, weeklyFrequency, targetWeeks, notes } = validation.data
 
     // Buscar avaliação
     const where: any = { id: assessmentId }
@@ -103,22 +103,60 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // REGRA DO MÉTODO: Verificar se precisa de reavaliação
+    // REGRA: Verificar se workout ativo atingiu 85% antes de gerar novo
     // ========================================================================
-    // Se existe cronograma finalizado mais recente que a avaliação,
-    // bloquear geração e exigir nova avaliação
+    const activeWorkout = await prisma.workout.findFirst({
+      where: {
+        clientId: assessment.clientId,
+        studioId,
+        isActive: true,
+      },
+    })
+
+    if (activeWorkout) {
+      const progress = calculateProgress(
+        activeWorkout.sessionsCompleted,
+        activeWorkout.sessionsPerWeek,
+        activeWorkout.targetWeeks,
+        activeWorkout.startDate,
+      )
+
+      if (!progress.canReassess) {
+        const sessionsNeeded = Math.ceil(
+          progress.sessionsPerWeek * 6 * 0.85
+        ) - progress.sessionsCompleted
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Aluno precisa completar o programa atual antes de gerar novo cronograma. Frequência atual: ${progress.attendanceRateLabel}. Faltam ${Math.max(0, sessionsNeeded)} sessões para atingir 85%.`,
+            existingWorkoutId: activeWorkout.id,
+            progress,
+          },
+          { status: 400 }
+        )
+      }
+
+      // Se pode reavaliar, desativar treino anterior
+      await prisma.workout.update({
+        where: { id: activeWorkout.id },
+        data: { isActive: false, endDate: new Date() },
+      })
+    }
+
+    // ========================================================================
+    // REGRA: Verificar reavaliação obrigatória
     // ========================================================================
     const lastWorkout = await prisma.workout.findFirst({
       where: {
         clientId: assessment.clientId,
         studioId,
-        isActive: false, // Cronograma finalizado/inativo
+        isActive: false,
       },
       orderBy: { createdAt: 'desc' },
     })
 
     if (lastWorkout) {
-      // Verificar se a avaliação é mais recente que o último cronograma
       const assessmentDate = new Date(assessment.createdAt)
       const workoutDate = new Date(lastWorkout.createdAt)
 
@@ -136,34 +174,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Verificar se já existe cronograma ativo para este cliente
-    const activeWorkout = await prisma.workout.findFirst({
-      where: {
-        clientId: assessment.clientId,
-        studioId,
-        isActive: true,
-      },
-    })
-
-    if (activeWorkout) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Este aluno já possui um cronograma ativo. Finalize ou arquive o cronograma atual antes de gerar um novo.',
-          existingWorkoutId: activeWorkout.id,
-        },
-        { status: 400 }
-      )
-    }
-
     const result = assessment.resultJson as any
     const inputData = assessment.inputJson as any
 
     // ========================================================================
-    // 🧠 MÉTODO EXPERT PRO TRAINING — RODÍZIO POR PILARES
-    // ========================================================================
-    // PILARES: LOWER (Perna & Quadril) → PUSH (Empurrada) → PULL (Puxada)
-    // Rodízio circular contínuo, persistente por aluno
+    // 🧠 MÉTODO EXPERT PRO TRAINING — TEMPLATE FIXO + PERIODIZAÇÃO
     // ========================================================================
 
     // 1. Buscar estado do rodízio do aluno
@@ -173,118 +188,57 @@ export async function POST(request: NextRequest) {
     })
     const lastPillarIndex = clientData?.lastPillarIndex ?? 0
 
-    // 2. Gerar schedule de pilares
+    // 2. Gerar schedule de pilares (apenas 1 semana para template)
     const pillarSchedule = generatePillarRotation({
       trainingDaysPerWeek: weeklyFrequency,
-      totalWeeks: phaseDuration,
+      totalWeeks: 1, // Apenas 1 semana para o template
       lastPillarIndex,
     })
 
-    console.log(`🔄 RODÍZIO DE PILARES:`)
+    const weekPillars = pillarSchedule.schedule[0]
+
+    console.log(`🔄 TEMPLATE DE TREINO:`)
     console.log(`   - Último índice: ${lastPillarIndex}`)
     console.log(`   - Frequência: ${weeklyFrequency}x/semana`)
-    console.log(`   - Semanas: ${phaseDuration}`)
-    pillarSchedule.schedule.forEach((week, i) => {
-      console.log(`   - Semana ${i + 1}: [${week.join(', ')}]`)
-    })
+    console.log(`   - Semanas alvo: ${targetWeeks}`)
+    console.log(`   - Pilares do template: [${weekPillars.join(', ')}]`)
     console.log(`   - Próximo índice: ${pillarSchedule.lastIndexAfterProgram}`)
 
     // 3. Determinar objetivo do aluno
     const primaryGoal = result.primaryGoal || inputData?.primaryGoal || 'saude'
 
-    // 4. Montar cronograma completo
-    const weekDays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
-    const optimalDays = weeklyFrequency === 2 ? ['Segunda', 'Quinta'] :
-      weeklyFrequency === 3 ? ['Segunda', 'Quarta', 'Sexta'] :
-        weeklyFrequency === 4 ? ['Segunda', 'Terça', 'Quinta', 'Sexta'] :
-          weeklyFrequency === 5 ? ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'] :
-            weekDays.slice(0, weeklyFrequency)
-
-    const schedule: any = {
+    // 4. Gerar TEMPLATE (exercícios fixos, 1 semana)
+    const template = generateWorkoutTemplate(
+      weekPillars,
+      primaryGoal,
       weeklyFrequency,
-      phaseDuration,
-      methodology: 'Método EXPERT PRO TRAINING',
-      pillarSystem: 'LOWER → PUSH → PULL (rodízio circular)',
-      structure: {
-        preparation: 'Preparação do Movimento (12 min)',
-        blocks: '3 blocos obrigatórios (3 exercícios cada)',
-        protocol: 'Protocolo Final (6-8 min)',
-      },
-      weeks: [] as any[],
-    }
+      targetWeeks,
+    )
 
-    // Gerar cada semana
-    for (let week = 0; week < phaseDuration; week++) {
-      const weekPhase = week < Math.ceil(phaseDuration / 3) ? 'ADAPTATION' :
-        week < Math.ceil(phaseDuration * 2 / 3) ? 'DEVELOPMENT' : 'PEAK'
+    // 5. Expandir template em schedule completo (para compatibilidade UI/PDF)
+    const schedule = expandTemplateToSchedule(template, primaryGoal)
 
-      const weekSchedule: any = {
-        week: week + 1,
-        phase: weekPhase,
-        phaseLabel: weekPhase === 'ADAPTATION' ? 'Adaptação' :
-          weekPhase === 'DEVELOPMENT' ? 'Desenvolvimento' : 'Pico',
-        sessions: [] as any[],
-      }
+    console.log(`📅 Template EXPERT gerado:`)
+    console.log(`   - Metodologia: Template Fixo + Periodização Dinâmica`)
+    console.log(`   - Sessões no template: ${template.sessions.length}`)
+    console.log(`   - Semanas alvo: ${targetWeeks} (mín 6, máx 8)`)
+    console.log(`   - Regra 85%: ${Math.ceil(weeklyFrequency * 6 * 0.85)} sessões mínimas`)
 
-      // Gerar cada sessão da semana
-      const weekPillars = pillarSchedule.schedule[week]
-
-      for (let session = 0; session < weeklyFrequency; session++) {
-        const pillar = weekPillars[session]
-        const pillarLabel = PILLAR_LABELS[pillar]
-
-        // Preparação do Movimento
-        const prepExercises = getPreparationExercises(pillar, session)
-        const preparation = {
-          title: 'Preparação do Movimento',
-          totalTime: '12 minutos',
-          exercises: prepExercises,
-        }
-
-        // 3 Blocos obrigatórios (Ex1=pilar do dia, Ex2=pilar opositor, Ex3=core)
-        const blocks = generateBlocks(pillar, week, session, weekPhase)
-
-        // Protocolo Final
-        const finalProtocol = generateFinalProtocolFn(primaryGoal, weekPhase)
-
-        // Calcular duração total
-        const prepTime = 12
-        const blocksTime = 45 // ~15 min por bloco
-        const protocolTime = parseInt(finalProtocol.totalTime) || 6
-        const totalDuration = prepTime + blocksTime + protocolTime
-
-        weekSchedule.sessions.push({
-          session: session + 1,
-          day: optimalDays[session] || weekDays[session],
-          pillar,
-          pillarLabel,
-          focus: pillarLabel,
-          estimatedDuration: totalDuration,
-          preparation,
-          blocks,
-          finalProtocol,
-        })
-      }
-
-      schedule.weeks.push(weekSchedule)
-    }
-
-    console.log(`📅 Cronograma MÉTODO EXPERT gerado:`)
-    console.log(`   - Metodologia: Rodízio por Pilares`)
-    console.log(`   - Semanas: ${phaseDuration}`)
-    console.log(`   - Sessões/semana: ${weeklyFrequency}`)
-    console.log(`   - Estrutura: Preparação + 3 Blocos + Protocolo Final`)
-
-    // 5. Salvar treino + atualizar lastPillarIndex em transação
+    // 6. Salvar treino + atualizar lastPillarIndex
     const [workout] = await prisma.$transaction([
       prisma.workout.create({
         data: {
           clientId: assessment.clientId,
           studioId,
           createdById: userId,
-          name: `Programa ${PILLAR_LABELS[pillarSchedule.schedule[0][0]]} - ${assessment.client.name}`,
+          name: `Programa ${PILLAR_LABELS[weekPillars[0]]} - ${assessment.client.name}`,
           blocksUsed: result.allowedBlocks || [],
           scheduleJson: schedule,
+          templateJson: template as any,
+          targetWeeks,
+          sessionsPerWeek: weeklyFrequency,
+          sessionsCompleted: 0,
+          startDate: new Date(),
           isActive: true,
         },
         include: {
@@ -310,25 +264,29 @@ export async function POST(request: NextRequest) {
         newData: {
           assessmentId,
           weeklyFrequency,
-          phaseDuration,
+          targetWeeks,
           pillarRotation: {
             previousIndex: lastPillarIndex,
             newIndex: pillarSchedule.lastIndexAfterProgram,
-            schedule: pillarSchedule.schedule,
+            pillars: weekPillars,
           },
+          attendanceThreshold: '85%',
+          minWeeks: 6,
+          maxWeeks: 8,
         } as any,
       },
     })
+
+    // Calcular progresso inicial
+    const progress = calculateProgress(0, weeklyFrequency, targetWeeks)
 
     return NextResponse.json({
       success: true,
       data: {
         workout,
         schedule,
-        pillarRotation: {
-          pillars: pillarSchedule.schedule,
-          nextIndex: pillarSchedule.lastIndexAfterProgram,
-        },
+        template,
+        progress,
         recommendations: result.recommendations || [],
       },
     })
@@ -340,4 +298,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
