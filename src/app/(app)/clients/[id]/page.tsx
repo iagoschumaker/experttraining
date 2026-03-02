@@ -94,6 +94,14 @@ interface Client {
   thighLeft: number | null
   calfRight: number | null
   calfLeft: number | null
+  birthDate: string | null
+  sfChest: number | null
+  sfAbdomen: number | null
+  sfThigh: number | null
+  sfTriceps: number | null
+  sfSuprailiac: number | null
+  sfSubscapular: number | null
+  sfMidaxillary: number | null
   trainer?: {
     id: string
     name: string
@@ -454,7 +462,7 @@ export default function ClientDetailPage() {
 
 
 
-      {/* Medidas Corporais */}
+      {/* Composição Corporal & Medidas — COMPLETO */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -470,122 +478,233 @@ export default function ClientDetailPage() {
             </Link>
           )}
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Peso, Altura, Gordura, IMC */}
+        <CardContent className="space-y-5">
+          {/* ========== SEÇÃO 1: DADOS BASE ========== */}
           {(client.weight || client.height || client.bodyFat) && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Composição</p>
+            <div className="space-y-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados Base</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { label: 'Peso', val: client.weight, unit: 'kg' },
-                  { label: 'Altura', val: client.height, unit: 'cm' },
-                  { label: '% Gord.', val: client.bodyFat, unit: '%' },
-                  { label: 'IMC', val: (client.weight && client.height) ? (Number(client.weight) / Math.pow(Number(client.height) / 100, 2)).toFixed(1) : null, unit: '' },
-                ].map(({ label, val, unit }) => (
-                  <div key={label} className="rounded-lg border p-2 text-center">
-                    <div className="text-sm font-semibold">{val ? `${Number(val).toFixed ? Number(val).toFixed(1) : val}${unit}` : '—'}</div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
+                  { label: 'Peso', val: client.weight, unit: 'kg', color: 'text-blue-400' },
+                  { label: 'Altura', val: client.height, unit: 'cm', color: 'text-purple-400' },
+                  { label: '% Gordura', val: client.bodyFat, unit: '%', color: 'text-red-400' },
+                  { label: 'IMC', val: (client.weight && client.height) ? (Number(client.weight) / Math.pow(Number(client.height) / 100, 2)).toFixed(1) : null, unit: '', color: 'text-amber-400' },
+                ].map(({ label, val, unit, color }) => (
+                  <div key={label} className="rounded-xl border bg-card p-3 text-center">
+                    <div className={`text-lg font-bold ${color}`}>{val ? `${Number(val).toFixed ? Number(val).toFixed(1) : val}${unit}` : '—'}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{label}</div>
                   </div>
                 ))}
               </div>
+            </div>
+          )}
 
-              {/* Body Composition Visual Graph */}
-              {client.weight && client.bodyFat && (() => {
-                const w = Number(client.weight)
-                const bf = Number(client.bodyFat)
-                const fatKg = (w * bf / 100)
-                const leanKg = (w - fatKg)
-                const fatPct = bf
-                const leanPct = 100 - bf
-                const imc = client.height ? (w / Math.pow(Number(client.height) / 100, 2)) : 0
-                const imcLabel = imc < 18.5 ? 'Abaixo' : imc < 25 ? 'Normal' : imc < 30 ? 'Sobrepeso' : 'Obesidade'
-                const imcColor = imc < 18.5 ? 'text-blue-400' : imc < 25 ? 'text-green-500' : imc < 30 ? 'text-yellow-500' : 'text-red-500'
-                return (
-                  <div className="mt-3 space-y-3">
-                    {/* Visual bar */}
+          {/* ========== SEÇÃO 2: COMPOSIÇÃO CORPORAL GRÁFICO ========== */}
+          {client.weight && client.bodyFat && (() => {
+            const w = Number(client.weight)
+            const bf = Number(client.bodyFat)
+            const fatKg = w * bf / 100
+            const leanKg = w - fatKg
+            const fatPct = bf
+            const leanPct = 100 - bf
+            const imc = client.height ? w / Math.pow(Number(client.height) / 100, 2) : 0
+
+            // IMC Classification
+            const imcZones = [
+              { label: 'Abaixo', min: 0, max: 18.5, color: 'bg-blue-500' },
+              { label: 'Normal', min: 18.5, max: 24.9, color: 'bg-green-500' },
+              { label: 'Sobrepeso', min: 25, max: 29.9, color: 'bg-yellow-500' },
+              { label: 'Obeso I', min: 30, max: 34.9, color: 'bg-orange-500' },
+              { label: 'Obeso II', min: 35, max: 39.9, color: 'bg-red-500' },
+              { label: 'Obeso III', min: 40, max: 60, color: 'bg-red-700' },
+            ]
+            const currentZone = imcZones.find(z => imc >= z.min && imc <= z.max) || imcZones[5]
+
+            // Body Fat Classification by gender
+            const gender = client.gender
+            const bfClassification = gender === 'M'
+              ? (bf < 6 ? 'Essencial' : bf < 14 ? 'Atleta' : bf < 18 ? 'Bom' : bf < 25 ? 'Normal' : 'Acima')
+              : (bf < 14 ? 'Essencial' : bf < 21 ? 'Atleta' : bf < 25 ? 'Bom' : bf < 32 ? 'Normal' : 'Acima')
+            const bfColor = gender === 'M'
+              ? (bf < 6 ? 'text-blue-400' : bf < 14 ? 'text-green-400' : bf < 18 ? 'text-emerald-400' : bf < 25 ? 'text-yellow-400' : 'text-red-400')
+              : (bf < 14 ? 'text-blue-400' : bf < 21 ? 'text-green-400' : bf < 25 ? 'text-emerald-400' : bf < 32 ? 'text-yellow-400' : 'text-red-400')
+
+            // Ideal weight range by IMC 18.5-24.9
+            const heightM = client.height ? Number(client.height) / 100 : 0
+            const idealMin = heightM > 0 ? (18.5 * heightM * heightM).toFixed(0) : null
+            const idealMax = heightM > 0 ? (24.9 * heightM * heightM).toFixed(0) : null
+
+            // RCQ (Relação Cintura-Quadril)
+            const rcq = (client.waist && client.hip) ? (Number(client.waist) / Number(client.hip)) : null
+            const rcqRisk = rcq ? (gender === 'M' ? (rcq > 0.95 ? 'Alto' : rcq > 0.85 ? 'Moderado' : 'Baixo') : (rcq > 0.85 ? 'Alto' : rcq > 0.75 ? 'Moderado' : 'Baixo')) : null
+            const rcqColor = rcqRisk === 'Alto' ? 'text-red-400' : rcqRisk === 'Moderado' ? 'text-yellow-400' : 'text-green-400'
+
+            return (
+              <div className="space-y-4">
+                <Separator />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Análise Corporal</p>
+
+                {/* Fat vs Lean Mass - Enhanced */}
+                <div className="rounded-xl border bg-gradient-to-r from-cyan-500/5 to-red-500/5 p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-cyan-400 font-medium">Massa Magra {leanKg.toFixed(1)}kg ({leanPct.toFixed(0)}%)</span>
-                        <span className="text-red-400 font-medium">Massa Gorda {fatKg.toFixed(1)}kg ({fatPct.toFixed(0)}%)</span>
-                      </div>
-                      <div className="w-full h-4 rounded-full overflow-hidden flex">
-                        <div className="bg-cyan-500 h-full transition-all" style={{ width: `${leanPct}%` }} />
-                        <div className="bg-red-400 h-full transition-all" style={{ width: `${fatPct}%` }} />
-                      </div>
+                      <div className="text-2xl font-bold text-cyan-400">{leanKg.toFixed(1)}<span className="text-sm">kg</span></div>
+                      <div className="text-xs text-muted-foreground">Massa Magra ({leanPct.toFixed(0)}%)</div>
                     </div>
-                    {/* IMC classification */}
-                    {imc > 0 && (
+                    <div>
+                      <div className="text-2xl font-bold text-red-400">{fatKg.toFixed(1)}<span className="text-sm">kg</span></div>
+                      <div className="text-xs text-muted-foreground">Massa Gorda ({fatPct.toFixed(0)}%)</div>
+                    </div>
+                  </div>
+                  <div className="w-full h-5 rounded-full overflow-hidden flex shadow-inner bg-muted/30">
+                    <div className="bg-gradient-to-r from-cyan-400 to-cyan-500 h-full transition-all relative" style={{ width: `${leanPct}%` }}>
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{leanPct.toFixed(0)}%</span>
+                    </div>
+                    <div className="bg-gradient-to-r from-red-400 to-red-500 h-full transition-all relative" style={{ width: `${fatPct}%` }}>
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{fatPct.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                  {/* Body Fat Classification */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Classificação % Gordura ({gender === 'M' ? 'Masc.' : gender === 'F' ? 'Fem.' : '—'}):</span>
+                    <span className={`font-bold ${bfColor}`}>{bfClassification}</span>
+                  </div>
+                </div>
+
+                {/* IMC Gauge */}
+                {imc > 0 && (
+                  <div className="rounded-xl border p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Índice de Massa Corporal (IMC)</span>
+                      <span className="text-lg font-bold">{imc.toFixed(1)}</span>
+                    </div>
+                    <div className="w-full h-3 rounded-full overflow-hidden flex">
+                      {imcZones.map(z => (
+                        <div key={z.label} className={`${z.color} h-full flex-1 relative`}>
+                          {imc >= z.min && imc <= z.max && (
+                            <div className="absolute -top-1 w-3 h-5 bg-white border-2 border-foreground rounded-sm"
+                              style={{ left: `${((imc - z.min) / (z.max - z.min)) * 100}%`, transform: 'translateX(-50%)' }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                      {imcZones.map(z => <span key={z.label}>{z.label}</span>)}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs mt-1">
+                      <span className="text-muted-foreground">Classificação:</span>
+                      <Badge variant="outline" className="text-xs">{currentZone.label}</Badge>
+                    </div>
+                    {idealMin && idealMax && (
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted-foreground">IMC {imc.toFixed(1)}:</span>
-                        <span className={`font-bold ${imcColor}`}>{imcLabel}</span>
+                        <span className="text-muted-foreground">Peso ideal (IMC 18.5-24.9):</span>
+                        <span className="font-semibold text-green-400">{idealMin}kg — {idealMax}kg</span>
                       </div>
                     )}
                   </div>
-                )
-              })()}
-            </div>
-          )}
+                )}
 
-          {(client.chest || client.waist || client.hip || client.abdomen) && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tronco (cm)</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { label: 'Peitoral', val: client.chest },
-                  { label: 'Cintura', val: client.waist },
-                  { label: 'Quadril', val: client.hip },
-                  { label: 'Abdômen', val: client.abdomen },
-                ].map(({ label, val }) => (
-                  <div key={label} className="rounded-lg border p-2 text-center">
-                    <div className="text-sm font-semibold">{val ? Number(val).toFixed(1) : '—'}</div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
+                {/* RCQ */}
+                {rcq && (
+                  <div className="rounded-xl border p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium">RCQ — Relação Cintura-Quadril</span>
+                        <p className="text-xs text-muted-foreground">Cintura {Number(client.waist).toFixed(0)}cm ÷ Quadril {Number(client.hip).toFixed(0)}cm</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold">{rcq.toFixed(2)}</div>
+                        <div className={`text-xs font-semibold ${rcqColor}`}>Risco {rcqRisk}</div>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
-          {/* Braços */}
-          {(client.armRight || client.armLeft || client.forearmRight || client.forearmLeft) && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Braços (cm)</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { label: 'Braço Dir.', val: client.armRight },
-                  { label: 'Braço Esq.', val: client.armLeft },
-                  { label: 'Antebraço Dir.', val: client.forearmRight },
-                  { label: 'Antebraço Esq.', val: client.forearmLeft },
-                ].map(({ label, val }) => (
-                  <div key={label} className="rounded-lg border p-2 text-center">
-                    <div className="text-sm font-semibold">{val ? Number(val).toFixed(1) : '—'}</div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
-                  </div>
-                ))}
+          {/* ========== SEÇÃO 3: DOBRAS CUTÂNEAS (POLLOCK) ========== */}
+          {(client.sfChest || client.sfAbdomen || client.sfThigh || client.sfTriceps || client.sfSuprailiac || client.sfSubscapular || client.sfMidaxillary) && (() => {
+            const skinfolds = [
+              { label: 'Peitoral', val: client.sfChest, icon: '🫁' },
+              { label: 'Abdômen', val: client.sfAbdomen, icon: '🔵' },
+              { label: 'Coxa', val: client.sfThigh, icon: '🦵' },
+              { label: 'Tríceps', val: client.sfTriceps, icon: '💪' },
+              { label: 'Suprailíaca', val: client.sfSuprailiac, icon: '🔶' },
+              { label: 'Subescapular', val: client.sfSubscapular, icon: '🔷' },
+              { label: 'Axilar Médio', val: client.sfMidaxillary, icon: '⬡' },
+            ].filter(s => s.val)
+            const sumSf = skinfolds.reduce((acc, s) => acc + Number(s.val), 0)
+            const maxSf = Math.max(...skinfolds.map(s => Number(s.val)))
+            const methodUsed = skinfolds.length >= 7 ? 'Pollock 7 Dobras' : skinfolds.length >= 3 ? 'Pollock 3 Dobras' : 'Parcial'
+
+            return (
+              <div className="space-y-3">
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dobras Cutâneas (mm)</p>
+                  <Badge variant="outline" className="text-xs">{methodUsed}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {skinfolds.map(({ label, val, icon }) => (
+                    <div key={label} className="flex items-center gap-2">
+                      <span className="text-sm w-6">{icon}</span>
+                      <span className="text-xs w-28 text-muted-foreground">{label}</span>
+                      <div className="flex-1 h-3 rounded-full bg-muted/30 overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all"
+                          style={{ width: `${(Number(val) / maxSf) * 100}%` }} />
+                      </div>
+                      <span className="text-xs font-bold w-12 text-right">{Number(val).toFixed(1)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1 pt-1 border-t">
+                  <span className="text-muted-foreground">Soma das dobras</span>
+                  <span className="font-bold text-amber-400">{sumSf.toFixed(1)} mm</span>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
-          {/* Pernas */}
-          {(client.thighRight || client.thighLeft || client.calfRight || client.calfLeft) && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Pernas (cm)</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { label: 'Coxa Dir.', val: client.thighRight },
-                  { label: 'Coxa Esq.', val: client.thighLeft },
-                  { label: 'Pant. Dir.', val: client.calfRight },
-                  { label: 'Pant. Esq.', val: client.calfLeft },
-                ].map(({ label, val }) => (
-                  <div key={label} className="rounded-lg border p-2 text-center">
-                    <div className="text-sm font-semibold">{val ? Number(val).toFixed(1) : '—'}</div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
-                  </div>
-                ))}
+          {/* ========== SEÇÃO 4: CIRCUNFERÊNCIAS ========== */}
+          {(client.chest || client.waist || client.hip || client.abdomen || client.armRight || client.thighRight) && (() => {
+            const measurements = [
+              { label: 'Peitoral', val: client.chest, color: 'from-blue-400 to-blue-500' },
+              { label: 'Cintura', val: client.waist, color: 'from-purple-400 to-purple-500' },
+              { label: 'Quadril', val: client.hip, color: 'from-pink-400 to-pink-500' },
+              { label: 'Abdômen', val: client.abdomen, color: 'from-indigo-400 to-indigo-500' },
+              { label: 'Braço Dir.', val: client.armRight, color: 'from-cyan-400 to-cyan-500' },
+              { label: 'Braço Esq.', val: client.armLeft, color: 'from-cyan-400 to-cyan-500' },
+              { label: 'Antebraço Dir.', val: client.forearmRight, color: 'from-teal-400 to-teal-500' },
+              { label: 'Antebraço Esq.', val: client.forearmLeft, color: 'from-teal-400 to-teal-500' },
+              { label: 'Coxa Dir.', val: client.thighRight, color: 'from-emerald-400 to-emerald-500' },
+              { label: 'Coxa Esq.', val: client.thighLeft, color: 'from-emerald-400 to-emerald-500' },
+              { label: 'Pant. Dir.', val: client.calfRight, color: 'from-green-400 to-green-500' },
+              { label: 'Pant. Esq.', val: client.calfLeft, color: 'from-green-400 to-green-500' },
+            ].filter(m => m.val)
+            const maxVal = Math.max(...measurements.map(m => Number(m.val)))
+
+            return (
+              <div className="space-y-3">
+                <Separator />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Circunferências (cm)</p>
+                <div className="space-y-2">
+                  {measurements.map(({ label, val, color }) => (
+                    <div key={label} className="flex items-center gap-2">
+                      <span className="text-xs w-28 text-muted-foreground">{label}</span>
+                      <div className="flex-1 h-3 rounded-full bg-muted/30 overflow-hidden">
+                        <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all`}
+                          style={{ width: `${(Number(val) / maxVal) * 100}%` }} />
+                      </div>
+                      <span className="text-xs font-bold w-14 text-right">{Number(val).toFixed(1)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
-          {/* Histórico por Avaliação */}
+          {/* ========== SEÇÃO 5: HISTÓRICO AVALIAÇÕES ========== */}
           {client.assessments.some(a => a.bodyMetricsJson) && (
             <div>
               <Separator className="my-2" />
