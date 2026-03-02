@@ -194,8 +194,9 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
 
     // Gerar linha de exercício (igual ao desktop)
     const exRow = (ex: any) => {
-      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'
-      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'ex-p' : 'ex-c'
+      const isSecundario = ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO'
+      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : isSecundario ? 'S' : 'C'
+      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : isSecundario ? 'ex-p' : 'ex-c'
       return `<div class="ex-row">
         <span class="ex-badge ${cls}">${label}</span>
         <span class="ex-name">${ex.name}</span>
@@ -715,8 +716,8 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                               <span className="font-semibold">Dia {session.session}</span>
                               {session.pillarLabel && (
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${session.pillar === 'LOWER' ? 'bg-amber-500/20 text-amber-600' :
-                                    session.pillar === 'PUSH' ? 'bg-blue-500/20 text-blue-500' :
-                                      'bg-purple-500/20 text-purple-500'
+                                  session.pillar === 'PUSH' ? 'bg-blue-500/20 text-blue-500' :
+                                    'bg-purple-500/20 text-purple-500'
                                   }`}>
                                   {session.pillarLabel}
                                 </span>
@@ -780,11 +781,11 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                                     <div key={exIdx} className="flex items-center justify-between text-xs">
                                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
-                                            ex.role === 'PUSH_PULL_INTEGRADO' ? 'bg-purple-500/20 text-purple-500' :
-                                              'bg-green-500/20 text-green-600'
+                                          (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
+                                            'bg-green-500/20 text-green-600'
                                           }`}>
                                           {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
-                                            ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'}
+                                            (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
                                         </span>
                                         <span className="truncate font-medium">{ex.name}</span>
                                       </div>

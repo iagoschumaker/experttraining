@@ -113,8 +113,9 @@ export default function TreinoAlunoPage() {
 
     // Gerar linha de exercício (igual ao desktop)
     const exRow = (ex: any) => {
-      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'
-      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'ex-p' : 'ex-c'
+      const isSecundario = ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO'
+      const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : isSecundario ? 'S' : 'C'
+      const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : isSecundario ? 'ex-p' : 'ex-c'
       return `<div class="ex-row">
         <span class="ex-badge ${cls}">${label}</span>
         <span class="ex-name">${ex.name}</span>
@@ -132,12 +133,12 @@ export default function TreinoAlunoPage() {
             <span class="time">${prep.totalTime || '12 min'}</span>
           </div>
           <div class="prep-content">
-            ${prep.exercises.slice(0, 4).map((ex: any) => 
-              `<div class="prep-item">
+            ${prep.exercises.slice(0, 4).map((ex: any) =>
+        `<div class="prep-item">
                 <span>${ex.name}</span>
                 <span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span>
               </div>`
-            ).join('')}
+      ).join('')}
           </div>
         </div>
       `
@@ -202,7 +203,7 @@ export default function TreinoAlunoPage() {
         </div>
       </section>
     `
-    
+
     // Layout inteligente baseado no número de dias
     const getLayout = (days: number) => {
       if (days <= 3) return { cols: 3, scale: 1 }
@@ -462,7 +463,7 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
                     {(data.workout.startDate || data.workout.endDate) && (
                       <p className="text-xs text-zinc-400 mt-1 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {formatDate(data.workout.startDate)} 
+                        {formatDate(data.workout.startDate)}
                         {data.workout.endDate && ` → ${formatDate(data.workout.endDate)}`}
                       </p>
                     )}
@@ -581,13 +582,12 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
                                       {b.exercises?.map((ex: any, exIdx: number) => (
                                         <div key={exIdx} className="flex items-center justify-between text-xs">
                                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
-                                              ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-400' :
-                                              ex.role === 'PUSH_PULL_INTEGRADO' ? 'bg-purple-500/20 text-purple-400' :
-                                              'bg-green-500/20 text-green-400'
-                                            }`}>
-                                              {ex.role === 'FOCO_PRINCIPAL' ? 'F' : 
-                                               ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'}
+                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-400' :
+                                                (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-400' :
+                                                  'bg-green-500/20 text-green-400'
+                                              }`}>
+                                              {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
+                                                (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
                                             </span>
                                             <span className="truncate font-medium text-white">{ex.name}</span>
                                           </div>

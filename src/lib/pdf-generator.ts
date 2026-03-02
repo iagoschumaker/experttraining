@@ -28,8 +28,9 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
 
   // Gerar linha de exercício
   const exRow = (ex: any) => {
-    const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'P' : 'C'
-    const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : ex.role === 'PUSH_PULL_INTEGRADO' ? 'ex-p' : 'ex-c'
+    const isSecundario = ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO'
+    const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : isSecundario ? 'S' : 'C'
+    const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : isSecundario ? 'ex-p' : 'ex-c'
     return `<div class="ex-row">
       <span class="ex-badge ${cls}">${label}</span>
       <span class="ex-name">${ex.name}</span>
@@ -47,12 +48,12 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
           <span class="time">${prep.totalTime || '12 min'}</span>
         </div>
         <div class="prep-content">
-          ${prep.exercises.slice(0, 4).map((ex: any) => 
-            `<div class="prep-item">
+          ${prep.exercises.slice(0, 4).map((ex: any) =>
+      `<div class="prep-item">
               <span>${ex.name}</span>
               <span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span>
             </div>`
-          ).join('')}
+    ).join('')}
         </div>
       </div>
     `
@@ -245,11 +246,11 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
 
   // Download do PDF
   const blob = await res.blob()
-  
+
   // Criar link de download com tipo MIME correto
   const pdfBlob = new Blob([blob], { type: 'application/pdf' })
   const url = window.URL.createObjectURL(pdfBlob)
-  
+
   // Nome do arquivo sanitizado
   const fileName = `Treino_${workout.client.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
 
@@ -260,14 +261,14 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
   a.download = fileName
   a.type = 'application/pdf'
   document.body.appendChild(a)
-  
+
   // Tentar click, se falhar, abrir em nova aba
   try {
     a.click()
   } catch {
     window.open(url, '_blank')
   }
-  
+
   // Cleanup após delay
   setTimeout(() => {
     document.body.removeChild(a)

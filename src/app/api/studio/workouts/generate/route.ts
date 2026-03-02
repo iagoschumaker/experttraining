@@ -241,8 +241,8 @@ export async function POST(request: NextRequest) {
           exercises: prepExercises,
         }
 
-        // 3 Blocos obrigatórios
-        const blocks = generateBlocks(pillar, week, session)
+        // 3 Blocos obrigatórios (Ex1=pilar do dia, Ex2=pilar opositor, Ex3=core)
+        const blocks = generateBlocks(pillar, week, session, weekPhase)
 
         // Protocolo Final
         const finalProtocol = generateFinalProtocolFn(primaryGoal, weekPhase)

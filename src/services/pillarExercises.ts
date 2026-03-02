@@ -1,17 +1,23 @@
 // ============================================================================
 // MÉTODO EXPERT TRAINING — BANCO DE EXERCÍCIOS POR PILAR
 // ============================================================================
-// Exercícios organizados por Pilar (LOWER/PUSH/PULL) × Slot × Bloco
-// Variação determinística via índices rotativos
+// REGRA: Cada bloco tem 3 exercícios:
+//   Ex1 (Foco)       → Obrigatoriamente do PILAR DO DIA
+//   Ex2 (Secundário) → De um pilar DIFERENTE (opositor)
+//   Ex3 (Core)       → Exercício neutro de core/estabilidade
+//
+// Bloco 1 → Ex2 vem do opositor A (ex: PUSH)
+// Bloco 2 → Ex2 vem do opositor B (ex: PULL)
+// Bloco 3 → Ex2 alterna entre A e B para variação
 // ============================================================================
 
-import { Pillar } from './pillarRotation'
+import { Pillar, PILLARS } from './pillarRotation'
 
 // ============================================================================
 // TIPOS
 // ============================================================================
 
-export type ExerciseSlot = 'FOCO_PRINCIPAL' | 'PUSH_PULL_INTEGRADO' | 'CORE'
+export type ExerciseSlot = 'FOCO_PRINCIPAL' | 'SECUNDARIO' | 'CORE'
 
 export interface ExercisePrescription {
     name: string
@@ -60,6 +66,7 @@ export interface SessionPrescription {
 // ============================================================================
 // EXERCÍCIOS DE FOCO PRINCIPAL — POR PILAR × BLOCO
 // ============================================================================
+// Estes são SEMPRE o Ex1 do bloco — devem ser do PILAR DO DIA
 
 const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
     bloco1: [ // Padrão SQUAT
@@ -134,36 +141,79 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
 }
 
 // ============================================================================
-// EXERCÍCIOS COMPLEMENTARES (PUSH+PULL INTEGRADO) — POR BLOCO
+// EXERCÍCIOS SECUNDÁRIOS — POR PILAR OPOSITOR
 // ============================================================================
+// Quando o dia é LOWER, os exercícios secundários vêm de PUSH ou PULL
+// Quando o dia é PUSH, os exercícios secundários vêm de LOWER ou PULL
+// Quando o dia é PULL, os exercícios secundários vêm de LOWER ou PUSH
 
-const COMPLEMENTAR: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [
-        { name: 'Landmine Press Unilateral', sets: 3, reps: '10-12', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Push-up com Remada', sets: 3, reps: '8 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Thruster com Halteres', sets: 3, reps: '10-12', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Clean and Press', sets: 3, reps: '8-10', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Cable Push-Pull Alternado', sets: 3, reps: '10-12', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-    ],
-    bloco2: [
-        { name: 'Remada com Rotação', sets: 3, reps: '10 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Renegade Row', sets: 3, reps: '8 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Woodchop', sets: 3, reps: '10 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Single Arm Snatch', sets: 3, reps: '8 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Man Maker', sets: 3, reps: '6-8', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-    ],
-    bloco3: [ // Bloco 3: exercício INTEGRADO push+pull obrigatório
-        { name: 'Turkish Get-up', sets: 2, reps: '3 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Crawling com Push-up', sets: 3, reps: '8-10', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Kettlebell Windmill', sets: 3, reps: '6 cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Farmers Walk', sets: 3, reps: '30m', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-        { name: 'Suitcase Carry', sets: 3, reps: '30m cada', rest: '40-60s', role: 'PUSH_PULL_INTEGRADO' },
-    ],
+const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
+    // Dia LOWER → secundários vêm de PUSH ou PULL
+    LOWER: {
+        LOWER: [], // nunca usado (não pode repetir o pilar do dia)
+        PUSH: [
+            { name: 'Supino com Halteres', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Push-up com Controle', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Desenvolvimento de Ombros', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Arnold Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Landmine Press Unilateral', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Floor Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+        ],
+        PULL: [
+            { name: 'Remada Curvada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Unilateral', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Face Pull', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Pulldown Frontal', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Invertida', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Band Pull-apart', sets: 3, reps: '15', rest: '40-60s', role: 'SECUNDARIO' },
+        ],
+    },
+    // Dia PUSH → secundários vêm de LOWER ou PULL
+    PUSH: {
+        LOWER: [
+            { name: 'Agachamento Goblet', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Hip Thrust', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Avanço Reverso', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Levantamento Terra Romeno', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Step-up com Elevação', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Glute Bridge com Peso', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
+        ],
+        PUSH: [], // nunca usado
+        PULL: [
+            { name: 'Remada Curvada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Face Pull', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Unilateral', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Puxada na Barra (ou Assistida)', sets: 3, reps: '8-10', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Row', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Band Pull-apart', sets: 3, reps: '15', rest: '40-60s', role: 'SECUNDARIO' },
+        ],
+    },
+    // Dia PULL → secundários vêm de LOWER ou PUSH
+    PULL: {
+        LOWER: [
+            { name: 'Agachamento Goblet', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Hip Hinge com Kettlebell', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Avanço Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Hip Thrust', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Box Squat', sets: 3, reps: '8-10', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Avanço Reverso', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+        ],
+        PUSH: [
+            { name: 'Supino com Halteres', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Desenvolvimento de Ombros', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Push-up com Controle', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Landmine Press', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Dips (Paralela)', sets: 3, reps: '8-10', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Arnold Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+        ],
+        PULL: [], // nunca usado
+    },
 }
 
 // ============================================================================
 // EXERCÍCIOS DE CORE — POR BLOCO
 // ============================================================================
+// Core é neutro, serve qualquer pilar
 
 const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
     bloco1: [ // Core estável
@@ -180,7 +230,7 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
         { name: 'Half Kneeling Chop', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
         { name: 'Stir the Pot', sets: 3, reps: '8 cada', rest: '20-40s', role: 'CORE' },
     ],
-    bloco3: [ // Core desafiador (obrigatório no bloco 3)
+    bloco3: [ // Core desafiador
         { name: 'Ab Wheel Rollout', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE' },
         { name: 'Hollow Body Hold', sets: 3, reps: '20-30s', rest: '20-40s', role: 'CORE' },
         { name: 'Hanging Knee Raise', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
@@ -291,6 +341,14 @@ const PREP_MAP: Record<Pillar, PreparationExercise[][]> = {
 }
 
 /**
+ * Retorna os 2 pilares opositores (diferentes do pilar do dia)
+ */
+function getOpposingPillars(pillar: Pillar): [Pillar, Pillar] {
+    const others = PILLARS.filter(p => p !== pillar) as [Pillar, Pillar]
+    return others
+}
+
+/**
  * Seleciona exercício de foco do pilar com variação determinística
  */
 export function getFocoExercise(
@@ -305,15 +363,20 @@ export function getFocoExercise(
 }
 
 /**
- * Seleciona exercício complementar (push+pull integrado) com variação
+ * Seleciona exercício secundário de um pilar OPOSITOR ao pilar do dia
  */
-export function getComplementarExercise(
-    blockKey: 'bloco1' | 'bloco2' | 'bloco3',
+export function getSecundarioExercise(
+    dayPillar: Pillar,
+    opposingPillar: Pillar,
     sessionIndex: number,
     weekIndex: number,
     blockNum: number
 ): ExercisePrescription {
-    const options = COMPLEMENTAR[blockKey]
+    const options = SECUNDARIO[dayPillar][opposingPillar]
+    if (options.length === 0) {
+        // Fallback: nunca deveria acontecer se a lógica está correta
+        throw new Error(`Pilar opositor ${opposingPillar} é igual ao pilar do dia ${dayPillar}`)
+    }
     const idx = (sessionIndex + blockNum + weekIndex) % options.length
     return { ...options[idx] }
 }
@@ -413,28 +476,148 @@ export function generateFinalProtocol(
     }
 }
 
+// ============================================================================
+// PERIODIZAÇÃO — AJUSTES POR FASE
+// ============================================================================
+
+interface PeriodizationAdjust {
+    setsMultiplier: number
+    repsLabel: string
+    restLabel: string
+}
+
+function getPeriodizationAdjust(weekPhase: string): PeriodizationAdjust {
+    switch (weekPhase) {
+        case 'ADAPTATION':
+            return { setsMultiplier: 0.85, repsLabel: 'alta (12-15)', restLabel: 'amplo' }
+        case 'PEAK':
+            return { setsMultiplier: 1.15, repsLabel: 'baixa (6-8)', restLabel: 'reduzido' }
+        default: // DEVELOPMENT
+            return { setsMultiplier: 1, repsLabel: 'média (8-12)', restLabel: 'padrão' }
+    }
+}
+
+function applyPeriodization(exercise: ExercisePrescription, weekPhase: string): ExercisePrescription {
+    const adjust = getPeriodizationAdjust(weekPhase)
+    const adjusted = { ...exercise }
+
+    // Ajustar séries por fase
+    if (weekPhase === 'ADAPTATION') {
+        adjusted.sets = Math.max(2, adjusted.sets - 1)
+        // Aumentar reps na adaptação
+        adjusted.reps = adjustReps(adjusted.reps, 'up')
+        // Descanso mais longo
+        adjusted.rest = adjustRest(adjusted.rest, 'up')
+    } else if (weekPhase === 'PEAK') {
+        adjusted.sets = Math.min(4, adjusted.sets + 1)
+        // Diminuir reps no pico
+        adjusted.reps = adjustReps(adjusted.reps, 'down')
+        // Descanso mais curto
+        adjusted.rest = adjustRest(adjusted.rest, 'down')
+    }
+
+    return adjusted
+}
+
+function adjustReps(reps: string, direction: 'up' | 'down'): string {
+    // Para reps com formato "X-Y", ajustar
+    const match = reps.match(/^(\d+)-(\d+)$/)
+    if (match) {
+        const low = parseInt(match[1])
+        const high = parseInt(match[2])
+        if (direction === 'up') {
+            return `${low + 2}-${high + 2}`
+        } else {
+            return `${Math.max(4, low - 2)}-${Math.max(6, high - 2)}`
+        }
+    }
+    // Para reps com "X cada"
+    const matchEach = reps.match(/^(\d+)\s+cada$/)
+    if (matchEach) {
+        const val = parseInt(matchEach[1])
+        if (direction === 'up') return `${val + 2} cada`
+        return `${Math.max(4, val - 2)} cada`
+    }
+    // Para outros formatos (tempo, etc.), manter
+    return reps
+}
+
+function adjustRest(rest: string, direction: 'up' | 'down'): string {
+    // Para rests com formato "Xs-Ys"
+    const match = rest.match(/^(\d+)-(\d+)s$/)
+    if (match) {
+        const low = parseInt(match[1])
+        const high = parseInt(match[2])
+        if (direction === 'up') {
+            return `${low + 15}-${high + 15}s`
+        } else {
+            return `${Math.max(15, low - 15)}-${Math.max(30, high - 15)}s`
+        }
+    }
+    return rest
+}
+
+// ============================================================================
+// GERADOR PRINCIPAL DE BLOCOS
+// ============================================================================
+
 /**
- * Gera os 3 blocos de treino para uma sessão, respeitando o pilar do dia
+ * Gera os 3 blocos de treino para uma sessão, respeitando a regra:
+ *   Ex1 = FOCO do pilar do dia
+ *   Ex2 = SECUNDÁRIO de pilar OPOSITOR (alterna entre blocos)
+ *   Ex3 = CORE (neutro)
+ *
+ * Bloco 1 → Ex2 do opositor A (ex: PUSH quando dia=LOWER)
+ * Bloco 2 → Ex2 do opositor B (ex: PULL quando dia=LOWER)
+ * Bloco 3 → Ex2 alterna (baseado em sessão+semana para variação)
  */
 export function generateBlocks(
     pillar: Pillar,
     weekIndex: number,
-    sessionIndex: number
+    sessionIndex: number,
+    weekPhase: string = 'DEVELOPMENT'
 ): BlockPrescription[] {
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
+    const [opositorA, opositorB] = getOpposingPillars(pillar)
 
     return blockKeys.map((blockKey, idx) => {
         const blockNum = idx + 1
+
+        // Ex1: FOCO — sempre do pilar do dia
         const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex)
-        const complementar = getComplementarExercise(blockKey, sessionIndex, weekIndex, blockNum)
+
+        // Ex2: SECUNDÁRIO — de pilar opositor, alternando por bloco
+        let opposingPillar: Pillar
+        if (blockNum === 1) {
+            opposingPillar = opositorA
+        } else if (blockNum === 2) {
+            opposingPillar = opositorB
+        } else {
+            // Bloco 3: alterna baseado na semana+sessão para variação
+            opposingPillar = (sessionIndex + weekIndex) % 2 === 0 ? opositorA : opositorB
+        }
+        const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum)
+
+        // Ex3: CORE — neutro, diferentes por bloco
         const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum)
+
+        // Aplicar periodização
+        const focoAdjusted = applyPeriodization(foco, weekPhase)
+        const secundarioAdjusted = applyPeriodization(secundario, weekPhase)
+        const coreAdjusted = applyPeriodization(core, weekPhase)
+
+        const blockDescriptions: Record<number, string> = {
+            1: `Foco ${pillar} + ${opposingPillar} + Core Estável`,
+            2: `Foco ${pillar} + ${opposingPillar} + Core Anti-Rotação`,
+            3: `Foco ${pillar} + ${opposingPillar} + Core Desafiador`,
+        }
 
         return {
             blockIndex: blockNum,
             name: `Bloco ${blockNum}`,
-            description: blockNum === 1 ? 'Introdução' : blockNum === 2 ? 'Desenvolvimento' : 'Integração',
+            description: blockDescriptions[blockNum] || 'Integração',
             restAfterBlock: blockNum === 1 ? '90-120s' : blockNum === 2 ? '120-150s' : '60-90s',
-            exercises: [foco, complementar, core],
+            exercises: [focoAdjusted, secundarioAdjusted, coreAdjusted],
         }
     })
 }
