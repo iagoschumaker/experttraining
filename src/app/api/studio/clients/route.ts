@@ -209,6 +209,14 @@ const createClientSchema = z.object({
   thighLeft: z.number().positive().optional().nullable(),
   calfRight: z.number().positive().optional().nullable(),
   calfLeft: z.number().positive().optional().nullable(),
+  // Skinfolds (mm)
+  sfChest: z.number().positive().optional().nullable(),
+  sfAbdomen: z.number().positive().optional().nullable(),
+  sfThigh: z.number().positive().optional().nullable(),
+  sfTriceps: z.number().positive().optional().nullable(),
+  sfSuprailiac: z.number().positive().optional().nullable(),
+  sfSubscapular: z.number().positive().optional().nullable(),
+  sfMidaxillary: z.number().positive().optional().nullable(),
 })
 
 export async function POST(request: NextRequest) {
@@ -295,9 +303,47 @@ export async function POST(request: NextRequest) {
         thighLeft: data.thighLeft,
         calfRight: data.calfRight,
         calfLeft: data.calfLeft,
+        // Skinfolds
+        sfChest: data.sfChest,
+        sfAbdomen: data.sfAbdomen,
+        sfThigh: data.sfThigh,
+        sfTriceps: data.sfTriceps,
+        sfSuprailiac: data.sfSuprailiac,
+        sfSubscapular: data.sfSubscapular,
+        sfMidaxillary: data.sfMidaxillary,
         status: 'ACTIVE',
       },
     })
+
+    // Create initial body metrics snapshot as assessment for comparison history
+    const c = client as any
+    const snapshot: Record<string, number> = {}
+    if (c.weight) snapshot.weight = Number(c.weight)
+    if (c.height) snapshot.height = Number(c.height)
+    if (c.bodyFat) snapshot.bodyFat = Number(c.bodyFat)
+    if (c.chest) snapshot.chest = Number(c.chest)
+    if (c.waist) snapshot.waist = Number(c.waist)
+    if (c.hip) snapshot.hip = Number(c.hip)
+    if (c.sfChest) snapshot.sf_chest = Number(c.sfChest)
+    if (c.sfAbdomen) snapshot.sf_abdomen = Number(c.sfAbdomen)
+    if (c.sfThigh) snapshot.sf_thigh = Number(c.sfThigh)
+    if (c.sfTriceps) snapshot.sf_triceps = Number(c.sfTriceps)
+    if (c.sfSuprailiac) snapshot.sf_suprailiac = Number(c.sfSuprailiac)
+    if (c.sfSubscapular) snapshot.sf_subscapular = Number(c.sfSubscapular)
+    if (c.sfMidaxillary) snapshot.sf_midaxillary = Number(c.sfMidaxillary)
+
+    if (Object.keys(snapshot).length > 0) {
+      await prisma.assessment.create({
+        data: {
+          clientId: client.id,
+          assessorId: userId,
+          status: 'COMPLETED',
+          inputJson: {},
+          completedAt: new Date(),
+          bodyMetricsJson: snapshot,
+        },
+      })
+    }
 
     // Audit log
     await prisma.auditLog.create({

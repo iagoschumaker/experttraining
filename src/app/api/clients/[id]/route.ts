@@ -294,16 +294,40 @@ export async function PUT(
       if (c.sfMidaxillary) snapshot.sf_midaxillary = Number(c.sfMidaxillary)
 
       if (Object.keys(snapshot).length > 0) {
-        await prisma.assessment.create({
-          data: {
+        // Check if an assessment already exists for today — update it instead of creating a new one
+        const todayStart = new Date()
+        todayStart.setHours(0, 0, 0, 0)
+        const todayEnd = new Date()
+        todayEnd.setHours(23, 59, 59, 999)
+
+        const existingToday = await prisma.assessment.findFirst({
+          where: {
             clientId: params.id,
-            assessorId: payload.userId,
-            status: 'COMPLETED',
-            inputJson: {},
-            completedAt: new Date(),
-            bodyMetricsJson: snapshot,
+            createdAt: { gte: todayStart, lte: todayEnd },
           },
+          orderBy: { createdAt: 'desc' },
         })
+
+        if (existingToday) {
+          await prisma.assessment.update({
+            where: { id: existingToday.id },
+            data: {
+              bodyMetricsJson: snapshot,
+              completedAt: new Date(),
+            },
+          })
+        } else {
+          await prisma.assessment.create({
+            data: {
+              clientId: params.id,
+              assessorId: payload.userId,
+              status: 'COMPLETED',
+              inputJson: {},
+              completedAt: new Date(),
+              bodyMetricsJson: snapshot,
+            },
+          })
+        }
       }
     }
 

@@ -641,8 +641,8 @@ export default function ClientDetailPage() {
           })()}
 
           {/* ========== COMPARAÇÃO DE AVALIAÇÕES ========== */}
-          {client.assessments.filter(a => a.bodyMetricsJson).length >= 1 && (() => {
-            const evals = client.assessments.filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+          {(client.assessments || []).filter(a => a.bodyMetricsJson).length >= 1 && (() => {
+            const evals = (client.assessments || []).filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             // Current = latest client data
             const currentData: Record<string, number> = {}
             if (client.weight) currentData.weight = Number(client.weight)
@@ -740,7 +740,7 @@ export default function ClientDetailPage() {
             )
           })()}
 
-          {!client.chest && !client.waist && !client.weight && !client.armRight && !client.sfChest && !(client.assessments?.some(a => a.bodyMetricsJson)) && (
+          {!client.chest && !client.waist && !client.weight && !client.armRight && !client.sfChest && !(client.assessments || []).some(a => a.bodyMetricsJson) && (
             <p className="text-center text-sm text-muted-foreground py-2">
               Nenhuma medida registrada. <Link href={`/clients/${client.id}/edit`} className="text-amber-500 hover:underline">Adicionar medidas</Link>
             </p>
