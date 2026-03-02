@@ -57,7 +57,6 @@ function GenerateWorkoutPage() {
 
   const [formData, setFormData] = useState({
     weeklyFrequency: 3,
-    phaseDuration: 4,
     notes: '',
   })
 
@@ -125,7 +124,7 @@ function GenerateWorkoutPage() {
       const payload = {
         assessmentId: selectedAssessmentId,
         weeklyFrequency: formData.weeklyFrequency,
-        phaseDuration: formData.phaseDuration,
+        targetWeeks: 8,
         notes: formData.notes,
       }
 
@@ -214,7 +213,7 @@ function GenerateWorkoutPage() {
                     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                   const assessmentIndex = clientAssessments.findIndex(a => a.id === assess.id)
                   const assessmentCode = `${String(assessmentIndex + 1).padStart(2, '0')}/${String(clientAssessments.length).padStart(2, '0')}`
-                  
+
                   // Format date with time
                   const formattedDate = new Date(assess.createdAt).toLocaleDateString('pt-BR', {
                     day: '2-digit',
@@ -223,7 +222,7 @@ function GenerateWorkoutPage() {
                     hour: '2-digit',
                     minute: '2-digit',
                   })
-                  
+
                   return (
                     <div
                       key={assess.id}
@@ -364,10 +363,10 @@ function GenerateWorkoutPage() {
             <Calendar className="w-5 h-5" />
             Configuração do Treino
           </CardTitle>
-          <CardDescription>Defina a frequência e duração do programa</CardDescription>
+          <CardDescription>Defina a frequência semanal do aluno</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div>
             <div className="space-y-2">
               <Label htmlFor="frequency">
                 Frequência Semanal <span className="text-destructive">*</span>
@@ -375,34 +374,22 @@ function GenerateWorkoutPage() {
               <Input
                 id="frequency"
                 type="number"
-                min="1"
-                max="7"
+                min="2"
+                max="6"
                 value={formData.weeklyFrequency}
                 onChange={(e) =>
-                  setFormData({ ...formData, weeklyFrequency: parseInt(e.target.value) })
+                  setFormData({ ...formData, weeklyFrequency: Math.min(6, Math.max(2, parseInt(e.target.value) || 2)) })
                 }
               />
               <p className="text-sm text-muted-foreground">
-                Número de sessões por semana (1-7)
+                Número de sessões por semana (2-6)
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="duration">
-                Duração da Fase (semanas) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                max="4"
-                value={formData.phaseDuration}
-                onChange={(e) =>
-                  setFormData({ ...formData, phaseDuration: Math.min(4, parseInt(e.target.value)) })
-                }
-              />
-              <p className="text-sm text-muted-foreground">
-                Duração do ciclo de treino (1-4 semanas)
+            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <p className="text-sm text-amber-600 font-medium">⚡ Programa de 6-8 semanas</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Os exercícios serão fixos durante todo o programa. A periodização (séries/reps) evolui automaticamente por fase. O aluno precisa atingir 85% de frequência para liberar reavaliação.
               </p>
             </div>
           </div>

@@ -284,11 +284,11 @@ export async function GET(
       })),
     } : null
 
-    // Calcular progresso do programa
+    // Calcular progresso do programa (safe para treinos antigos)
     const progress = calculateProgress(
-      workout.sessionsCompleted,
-      workout.sessionsPerWeek,
-      workout.targetWeeks,
+      workout.sessionsCompleted ?? 0,
+      workout.sessionsPerWeek ?? 3,
+      workout.targetWeeks ?? 8,
       workout.startDate,
     )
 
