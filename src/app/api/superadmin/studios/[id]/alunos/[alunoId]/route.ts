@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
+import { calculateProgress } from '@/services/workoutTemplate'
 
 // Helper to extract level from resultJson
 interface ResultJson {
@@ -30,13 +31,13 @@ function extractLevel(resultJson: unknown): number | null {
 // Middleware to check superadmin
 async function verifySuperAdmin() {
   const accessToken = await getAccessTokenCookie()
-  
+
   if (!accessToken) {
     return { error: 'Não autenticado', status: 401 }
   }
 
   const payload = verifyAccessToken(accessToken)
-  
+
   if (!payload || !payload.isSuperAdmin) {
     return { error: 'Acesso negado', status: 403 }
   }
@@ -181,6 +182,7 @@ export async function GET(
           phone: client.phone,
           status: client.status,
           createdAt: client.createdAt,
+          level: (client as any).level || 'INICIANTE',
           // Note: objectives and history are NOT exposed to SuperAdmin (clinical data)
         },
         studio: client.studio,
@@ -208,15 +210,31 @@ export async function GET(
           trainer: lc.lesson.trainer,
           attended: lc.attended,
         })),
-        workouts: workouts.map((w) => ({
-          id: w.id,
-          name: w.name,
-          blocksUsed: w.blocksUsed,
-          startDate: w.startDate,
-          endDate: w.endDate,
-          isActive: w.isActive,
-          createdAt: w.createdAt,
-        })),
+        workouts: workouts.map((w) => {
+          const sessionsCompleted = (w as any).sessionsCompleted ?? 0
+          const sessionsPerWeek = (w as any).sessionsPerWeek ?? 3
+          const targetWeeks = (w as any).targetWeeks ?? 8
+          const progress = w.isActive ? calculateProgress(
+            sessionsCompleted,
+            sessionsPerWeek,
+            targetWeeks,
+            w.startDate,
+          ) : null
+
+          return {
+            id: w.id,
+            name: w.name,
+            blocksUsed: w.blocksUsed,
+            startDate: w.startDate,
+            endDate: w.endDate,
+            isActive: w.isActive,
+            createdAt: w.createdAt,
+            sessionsCompleted,
+            sessionsPerWeek,
+            targetWeeks,
+            progress,
+          }
+        }),
         evolution,
         metrics: {
           totalAssessments: assessments.length,

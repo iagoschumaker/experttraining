@@ -45,6 +45,7 @@ import {
   XCircle,
   Dumbbell,
   Eye,
+  Activity,
 } from 'lucide-react'
 
 interface AlunoData {
@@ -55,6 +56,7 @@ interface AlunoData {
     phone: string | null
     status: string
     createdAt: string
+    level?: string
   }
   studio: {
     id: string
@@ -99,6 +101,20 @@ interface AlunoData {
     endDate: string | null
     isActive: boolean
     createdAt: string
+    sessionsCompleted?: number
+    sessionsPerWeek?: number
+    targetWeeks?: number
+    progress?: {
+      attendanceRate: number
+      attendanceStatus: string
+      currentWeek: number
+      currentPhaseLabel: string
+      sessionsCompleted: number
+      sessionsExpectedByNow: number
+      canReassess: boolean
+      mustExtend: boolean
+      isComplete: boolean
+    } | null
   }>
   evolution: Array<{
     date: string
@@ -226,6 +242,11 @@ export default function AlunoDetailsPage() {
             <Badge className={data.client.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-500'}>
               {data.client.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
             </Badge>
+            {data.client.level && (
+              <Badge className="bg-amber-500">
+                {data.client.level === 'INICIANTE' ? 'Iniciante' : data.client.level === 'INTERMEDIARIO' ? 'Intermediário' : 'Avançado'}
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-gray-400">
             {data.client.email} • {data.studio.name}
@@ -336,6 +357,83 @@ export default function AlunoDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Active Workout Progress */}
+          {(() => {
+            const activeWorkout = data.workouts.find(w => w.isActive)
+            if (!activeWorkout?.progress) return null
+            const p = activeWorkout.progress
+            const pct = Math.round((p.attendanceRate ?? 0) * 100)
+            const statusColor = p.attendanceStatus === 'ON_TRACK' ? 'text-green-400'
+              : p.attendanceStatus === 'BELOW_TARGET' ? 'text-yellow-400'
+                : 'text-red-400'
+            const barColor = p.attendanceStatus === 'ON_TRACK' ? 'bg-green-500'
+              : p.attendanceStatus === 'BELOW_TARGET' ? 'bg-yellow-500'
+                : 'bg-red-500'
+
+            return (
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-amber-500" />
+                    Progresso do Treino Ativo
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    {activeWorkout.name || 'Treino sem nome'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="text-gray-400">Frequência</span>
+                      <span className={`font-bold ${statusColor}`}>{pct}%</span>
+                    </div>
+                    <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${barColor}`}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Meta: 85% para progressão</p>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700 text-center">
+                      <div className="text-2xl font-bold text-white">{p.sessionsCompleted}</div>
+                      <div className="text-xs text-gray-400">Sessões feitas</div>
+                    </div>
+                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700 text-center">
+                      <div className="text-2xl font-bold text-white">{p.sessionsExpectedByNow}</div>
+                      <div className="text-xs text-gray-400">Sessões esperadas</div>
+                    </div>
+                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700 text-center">
+                      <div className="text-2xl font-bold text-white">Sem. {p.currentWeek}</div>
+                      <div className="text-xs text-gray-400">Semana atual</div>
+                    </div>
+                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700 text-center">
+                      <div className="text-2xl font-bold text-amber-500">{p.currentPhaseLabel}</div>
+                      <div className="text-xs text-gray-400">Fase</div>
+                    </div>
+                  </div>
+
+                  {/* Status Messages */}
+                  <div className="flex flex-wrap gap-2">
+                    {p.mustExtend && (
+                      <Badge className="bg-yellow-600">⚠️ Programa prolongado (freq. abaixo de 85%)</Badge>
+                    )}
+                    {p.canReassess && !p.isComplete && (
+                      <Badge className="bg-green-600">✅ Apto a reavaliar</Badge>
+                    )}
+                    {p.isComplete && (
+                      <Badge className="bg-blue-600">🏆 Programa completo</Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })()}
 
           {/* Evolution (only weight/measurements - no clinical data) */}
           {data.evolution.length > 0 && (
@@ -472,8 +570,8 @@ export default function AlunoDetailsPage() {
                             {assessment.confidence ? (
                               <div className="flex items-center gap-2">
                                 <div className="w-16 bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-green-500 h-2 rounded-full" 
+                                  <div
+                                    className="bg-green-500 h-2 rounded-full"
                                     style={{ width: `${Math.round(assessment.confidence)}%` }}
                                   />
                                 </div>
@@ -756,13 +854,13 @@ export default function AlunoDetailsPage() {
                 <p className="text-sm text-gray-400 mb-4">
                   Visualização completa disponível para SuperAdmin para fins de auditoria contratual e licenciamento.
                 </p>
-                
+
                 {selectedAssessment.status === 'COMPLETED' ? (
                   <div className="space-y-4">
                     {/* Input JSON - Dados da Avaliação */}
                     <div className="bg-indigo-950 rounded-lg p-4 border border-indigo-800">
                       <div className="text-sm font-semibold text-indigo-300 mb-3">📋 Dados da Avaliação (Input)</div>
-                      
+
                       {selectedAssessment.inputJson ? (
                         <>
                           {/* Queixas */}
@@ -789,12 +887,11 @@ export default function AlunoDetailsPage() {
                                     <span className="text-xs text-gray-300 capitalize">{location.replace(/_/g, ' ')}</span>
                                     <div className="flex items-center gap-2">
                                       <div className="w-16 bg-gray-700 rounded-full h-2">
-                                        <div 
-                                          className={`h-2 rounded-full ${
-                                            intensity >= 7 ? 'bg-red-500' : 
-                                            intensity >= 4 ? 'bg-yellow-500' : 
-                                            'bg-green-500'
-                                          }`}
+                                        <div
+                                          className={`h-2 rounded-full ${intensity >= 7 ? 'bg-red-500' :
+                                              intensity >= 4 ? 'bg-yellow-500' :
+                                                'bg-green-500'
+                                            }`}
                                           style={{ width: `${(intensity / 10) * 100}%` }}
                                         />
                                       </div>
@@ -816,9 +913,9 @@ export default function AlunoDetailsPage() {
                                     <div className="flex items-center justify-between mb-1">
                                       <span className="text-xs font-medium text-white capitalize">{test.replace(/_/g, ' ')}</span>
                                       <Badge className={
-                                        data.score >= 3 ? 'bg-green-600' : 
-                                        data.score === 2 ? 'bg-yellow-600' : 
-                                        'bg-red-600'
+                                        data.score >= 3 ? 'bg-green-600' :
+                                          data.score === 2 ? 'bg-yellow-600' :
+                                            'bg-red-600'
                                       }>
                                         Score: {data.score}
                                       </Badge>
@@ -869,8 +966,8 @@ export default function AlunoDetailsPage() {
                               <div className="text-xs text-gray-500 mb-1">Confiança da Avaliação</div>
                               <div className="flex items-center gap-2">
                                 <div className="w-full bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-green-500 h-2 rounded-full" 
+                                  <div
+                                    className="bg-green-500 h-2 rounded-full"
                                     style={{ width: `${selectedAssessment.resultJson.confidence}%` }}
                                   />
                                 </div>
@@ -953,7 +1050,7 @@ export default function AlunoDetailsPage() {
                         )}
                       </div>
                     )}
-                    
+
                     {/* Body Metrics JSON */}
                     {selectedAssessment.bodyMetricsJson && (
                       <div className="bg-gray-950 rounded-lg p-4">
@@ -972,7 +1069,7 @@ export default function AlunoDetailsPage() {
                 ) : (
                   <p className="text-sm text-gray-500">Avaliação ainda não concluída</p>
                 )}
-                
+
                 <p className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-800">
                   ID da avaliação: <span className="font-mono">{selectedAssessment.id}</span>
                 </p>
