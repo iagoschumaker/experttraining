@@ -43,6 +43,14 @@ const updateClientSchema = z.object({
   thighLeft: z.number().positive().optional().nullable(),
   calfRight: z.number().positive().optional().nullable(),
   calfLeft: z.number().positive().optional().nullable(),
+  // Skinfolds (mm)
+  sfChest: z.number().positive().optional().nullable(),
+  sfAbdomen: z.number().positive().optional().nullable(),
+  sfThigh: z.number().positive().optional().nullable(),
+  sfTriceps: z.number().positive().optional().nullable(),
+  sfSuprailiac: z.number().positive().optional().nullable(),
+  sfSubscapular: z.number().positive().optional().nullable(),
+  sfMidaxillary: z.number().positive().optional().nullable(),
 })
 
 // GET - Get aluno by ID
@@ -52,7 +60,7 @@ export async function GET(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -61,7 +69,7 @@ export async function GET(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Token inválido' },
@@ -147,7 +155,7 @@ export async function PUT(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -156,7 +164,7 @@ export async function PUT(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Token inválido' },
@@ -202,7 +210,7 @@ export async function PUT(
     // Parse and validate body
     const body = await request.json()
     const validation = updateClientSchema.safeParse(body)
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { success: false, error: validation.error.errors[0].message },
@@ -246,8 +254,58 @@ export async function PUT(
         thighLeft: data.thighLeft,
         calfRight: data.calfRight,
         calfLeft: data.calfLeft,
+        // Skinfolds
+        sfChest: data.sfChest,
+        sfAbdomen: data.sfAbdomen,
+        sfThigh: data.sfThigh,
+        sfTriceps: data.sfTriceps,
+        sfSuprailiac: data.sfSuprailiac,
+        sfSubscapular: data.sfSubscapular,
+        sfMidaxillary: data.sfMidaxillary,
       },
     })
+
+    // Auto-create bodyMetricsJson snapshot when body data changes
+    const bodyFields = ['weight', 'height', 'chest', 'waist', 'hip', 'bodyFat', 'sfChest', 'sfAbdomen', 'sfThigh', 'sfTriceps', 'sfSuprailiac', 'sfSubscapular', 'sfMidaxillary'] as const
+    const hasBodyChange = bodyFields.some(f => body[f] !== undefined && body[f] !== null)
+
+    if (hasBodyChange) {
+      const c = client as any
+      const snapshot: Record<string, number> = {}
+      if (c.weight) snapshot.weight = Number(c.weight)
+      if (c.height) snapshot.height = Number(c.height)
+      if (c.bodyFat) snapshot.bodyFat = Number(c.bodyFat)
+      if (c.chest) snapshot.chest = Number(c.chest)
+      if (c.waist) snapshot.waist = Number(c.waist)
+      if (c.hip) snapshot.hip = Number(c.hip)
+      if (c.abdomen) snapshot.abdomen = Number(c.abdomen)
+      if (c.armRight) snapshot.arm_right = Number(c.armRight)
+      if (c.armLeft) snapshot.arm_left = Number(c.armLeft)
+      if (c.thighRight) snapshot.thigh_right = Number(c.thighRight)
+      if (c.thighLeft) snapshot.thigh_left = Number(c.thighLeft)
+      if (c.calfRight) snapshot.calf_right = Number(c.calfRight)
+      if (c.calfLeft) snapshot.calf_left = Number(c.calfLeft)
+      if (c.sfChest) snapshot.sf_chest = Number(c.sfChest)
+      if (c.sfAbdomen) snapshot.sf_abdomen = Number(c.sfAbdomen)
+      if (c.sfThigh) snapshot.sf_thigh = Number(c.sfThigh)
+      if (c.sfTriceps) snapshot.sf_triceps = Number(c.sfTriceps)
+      if (c.sfSuprailiac) snapshot.sf_suprailiac = Number(c.sfSuprailiac)
+      if (c.sfSubscapular) snapshot.sf_subscapular = Number(c.sfSubscapular)
+      if (c.sfMidaxillary) snapshot.sf_midaxillary = Number(c.sfMidaxillary)
+
+      if (Object.keys(snapshot).length > 0) {
+        await prisma.assessment.create({
+          data: {
+            clientId: params.id,
+            assessorId: payload.userId,
+            status: 'COMPLETED',
+            inputJson: {},
+            completedAt: new Date(),
+            bodyMetricsJson: snapshot,
+          },
+        })
+      }
+    }
 
     // Log audit
     await prisma.auditLog.create({
@@ -282,7 +340,7 @@ export async function DELETE(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -291,7 +349,7 @@ export async function DELETE(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Token inválido' },
