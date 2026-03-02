@@ -157,8 +157,8 @@ export async function PUT(
     // ========================================================================
     if (existing.status === 'COMPLETED') {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Avaliações finalizadas são imutáveis e não podem ser editadas. Isso garante a integridade do histórico de evolução do aluno.',
           immutable: true,
         },
@@ -223,17 +223,26 @@ export async function DELETE(
     }
 
     // ========================================================================
-    // REGRA DE IMUTABILIDADE: Avaliações COMPLETADAS não podem ser excluídas
+    // REGRA DE IMUTABILIDADE: Avaliações COMPLETADAS só podem ser excluídas
+    // se não houver treinos vinculados (ou se os treinos já foram excluídos)
     // ========================================================================
     if (existing.status === 'COMPLETED') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Avaliações finalizadas não podem ser excluídas. O histórico de evolução do aluno deve ser preservado para auditoria.',
-          immutable: true,
+      const linkedWorkouts = await prisma.workout.count({
+        where: {
+          clientId: existing.clientId,
         },
-        { status: 403 }
-      )
+      })
+
+      if (linkedWorkouts > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Avaliações finalizadas com treinos vinculados não podem ser excluídas. Exclua os treinos primeiro ou preserve o histórico para auditoria.',
+            immutable: true,
+          },
+          { status: 403 }
+        )
+      }
     }
 
     // Excluir avaliação (apenas PENDING)
@@ -253,9 +262,9 @@ export async function DELETE(
       },
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Avaliação excluída com sucesso' 
+    return NextResponse.json({
+      success: true,
+      message: 'Avaliação excluída com sucesso'
     })
   } catch (error) {
     console.error('Delete assessment error:', error)

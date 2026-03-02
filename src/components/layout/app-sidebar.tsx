@@ -3,17 +3,18 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
-  LayoutDashboard, 
-  Users, 
-  ClipboardList, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  BarChart3,
   Dumbbell,
   UserCog,
   ChevronLeft,
   Menu,
   Calendar,
-  Settings
+  Settings,
+  UserCheck
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -30,6 +31,11 @@ const sidebarLinks: SidebarLink[] = [
     href: '/dashboard',
     label: 'Dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
+  },
+  {
+    href: '/presenca',
+    label: 'Presença',
+    icon: <UserCheck className="w-5 h-5" />,
   },
   {
     href: '/clients',
@@ -76,7 +82,7 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [internalMobileOpen, setInternalMobileOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
-  
+
   const isMobileOpen = externalMobileOpen ?? internalMobileOpen
   const setIsMobileOpen = onMobileOpenChange ?? setInternalMobileOpen
 
@@ -102,8 +108,8 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
     <>
       {/* Mobile overlay */}
       {isMobileOpen && (
-        <div 
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden" 
+        <div
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -119,88 +125,88 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
           isMobileOpen ? 'translate-x-0 md:translate-x-0' : '-translate-x-full md:translate-x-0'
         )}
       >
-      {/* Header */}
-      <div className="flex items-center justify-between h-16 px-4 relative z-50">
-        {!isCollapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
-              <span className="text-accent-foreground font-bold text-sm">ET</span>
-            </div>
-            <span className="font-semibold text-foreground">EXPERT PRO TRAINING</span>
-          </Link>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn('text-muted-foreground hover:text-foreground hover:bg-muted hidden md:flex', isCollapsed && 'mx-auto')}
-        >
-          {isCollapsed ? (
-            <Menu className="w-5 h-5" />
-          ) : (
-            <ChevronLeft className="w-5 h-5" />
+        {/* Header */}
+        <div className="flex items-center justify-between h-16 px-4 relative z-50">
+          {!isCollapsed && (
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
+                <span className="text-accent-foreground font-bold text-sm">ET</span>
+              </div>
+              <span className="font-semibold text-foreground">EXPERT PRO TRAINING</span>
+            </Link>
           )}
-        </Button>
-        {/* Mobile close button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsMobileOpen(false)}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted md:hidden"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-      </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn('text-muted-foreground hover:text-foreground hover:bg-muted hidden md:flex', isCollapsed && 'mx-auto')}
+          >
+            {isCollapsed ? (
+              <Menu className="w-5 h-5" />
+            ) : (
+              <ChevronLeft className="w-5 h-5" />
+            )}
+          </Button>
+          {/* Mobile close button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMobileOpen(false)}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted md:hidden"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+        </div>
 
-      {/* Navigation */}
-      <nav className="p-2 space-y-1">
-        {sidebarLinks
-          .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
-          .map((link) => {
-          const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
-          
-          return (
+        {/* Navigation */}
+        <nav className="p-2 space-y-1">
+          {sidebarLinks
+            .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
+            .map((link) => {
+              const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
+                    isActive
+                      ? 'bg-amber-500 text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
+                  )}
+                  style={{ transition: 'none' }}
+                  title={isCollapsed ? link.label : undefined}
+                  onClick={() => setIsMobileOpen(false)}
+                >
+                  {link.icon}
+                  {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
+                </Link>
+              )
+            })}
+
+          {/* Settings */}
+          {userRole === 'STUDIO_ADMIN' && (
             <Link
-              key={link.href}
-              href={link.href}
+              href="/settings/studio"
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
-                isActive
+                pathname === '/settings/studio' || pathname.startsWith('/settings/studio/')
                   ? 'bg-amber-500 text-accent-foreground'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
               )}
               style={{ transition: 'none' }}
-              title={isCollapsed ? link.label : undefined}
+              title={isCollapsed ? 'Configurações' : undefined}
               onClick={() => setIsMobileOpen(false)}
             >
-              {link.icon}
-              {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
+              <Settings className="w-5 h-5" />
+              {(!isCollapsed || isMobileOpen) && <span className="font-medium">Configurações</span>}
             </Link>
-          )
-        })}
-        
-        {/* Settings */}
-        {userRole === 'STUDIO_ADMIN' && (
-          <Link
-            href="/settings/studio"
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
-              pathname === '/settings/studio' || pathname.startsWith('/settings/studio/')
-                ? 'bg-amber-500 text-accent-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
-            )}
-            style={{ transition: 'none' }}
-            title={isCollapsed ? 'Configurações' : undefined}
-            onClick={() => setIsMobileOpen(false)}
-          >
-            <Settings className="w-5 h-5" />
-            {(!isCollapsed || isMobileOpen) && <span className="font-medium">Configurações</span>}
-          </Link>
-        )}
-      </nav>
-    </aside>
+          )}
+        </nav>
+      </aside>
     </>
   )
 }
