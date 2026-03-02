@@ -377,7 +377,7 @@ export async function PUT(
 }
 
 // ============================================================================
-// DELETE - Inactivate Client
+// DELETE - Hard Delete Client (exclusão permanente)
 // ============================================================================
 export async function DELETE(
   request: NextRequest,
@@ -407,16 +407,7 @@ export async function DELETE(
       )
     }
 
-    // Soft delete - set as inactive
-    await prisma.client.update({
-      where: { id: clientId },
-      data: {
-        status: 'INACTIVE',
-        isActive: false,
-      },
-    })
-
-    // Audit log
+    // Audit log (criar ANTES de excluir)
     await prisma.auditLog.create({
       data: {
         userId,
@@ -428,14 +419,49 @@ export async function DELETE(
       },
     })
 
+    // Hard delete — remover tudo relacionado ao cliente
+    // 1. Remover vínculos aula-aluno
+    await prisma.lessonClient.deleteMany({
+      where: { clientId },
+    })
+
+    // 2. Buscar treinos do cliente
+    const workouts = await prisma.workout.findMany({
+      where: { clientId },
+      select: { id: true },
+    })
+    const workoutIds = workouts.map((w: any) => w.id)
+
+    // 3. Remover aulas dos treinos
+    if (workoutIds.length > 0) {
+      await prisma.lesson.deleteMany({
+        where: { workoutId: { in: workoutIds } },
+      })
+    }
+
+    // 4. Remover treinos
+    await prisma.workout.deleteMany({
+      where: { clientId },
+    })
+
+    // 5. Remover avaliações
+    await prisma.assessment.deleteMany({
+      where: { clientId },
+    })
+
+    // 6. Remover o cliente
+    await prisma.client.delete({
+      where: { id: clientId },
+    })
+
     return NextResponse.json({
       success: true,
-      message: 'Cliente inativado com sucesso',
+      message: 'Cliente excluído permanentemente',
     })
   } catch (error) {
     console.error('Delete client error:', error)
     return NextResponse.json(
-      { success: false, error: 'Erro ao inativar cliente' },
+      { success: false, error: 'Erro ao excluir cliente' },
       { status: 500 }
     )
   }
