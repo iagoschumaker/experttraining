@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
       recentAssessments,
       clientsByGoal,
     ] = await Promise.all([
-      prisma.client.count({ where: { studioId } }),
       prisma.client.count({ where: { studioId, status: 'ACTIVE' } }),
-      prisma.assessment.count({ where: { client: { studioId } } }),
-      prisma.workout.count({ where: { client: { studioId } } }),
+      prisma.client.count({ where: { studioId, status: 'ACTIVE' } }),
+      prisma.assessment.count({ where: { client: { studioId, status: 'ACTIVE' } } }),
+      prisma.workout.count({ where: { client: { studioId, status: 'ACTIVE' } } }),
       prisma.client.findMany({
-        where: { studioId },
+        where: { studioId, status: 'ACTIVE' },
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: { id: true, name: true, status: true, createdAt: true },
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.client.groupBy({
         by: ['goal'],
-        where: { studioId },
+        where: { studioId, status: 'ACTIVE' },
         _count: { goal: true },
       }),
     ])
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     // Get pending workouts (no end date or end date in the future)
     const activeWorkouts = await prisma.workout.count({
       where: {
-        client: { studioId },
+        client: { studioId, status: 'ACTIVE' },
         OR: [
           { endDate: null },
           { endDate: { gte: new Date() } },
@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
       .filter(client => {
         if (!client.workouts[0]) return false
         const lastWorkoutDate = new Date(client.workouts[0].createdAt)
-        const lastAssessmentDate = client.assessments[0] 
-          ? new Date(client.assessments[0].createdAt) 
+        const lastAssessmentDate = client.assessments[0]
+          ? new Date(client.assessments[0].createdAt)
           : new Date(0)
         return lastAssessmentDate < lastWorkoutDate
       })
