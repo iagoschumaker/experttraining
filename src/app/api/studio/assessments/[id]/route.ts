@@ -224,9 +224,12 @@ export async function DELETE(
 
     // ========================================================================
     // REGRA DE IMUTABILIDADE: Avaliações COMPLETADAS só podem ser excluídas
-    // se não houver treinos vinculados (ou se os treinos já foram excluídos)
+    // se não houver treinos vinculados. Exceção: snapshots de medidas
+    // corporais (bodyMetricsJson com inputJson vazio) podem ser excluídos.
     // ========================================================================
-    if (existing.status === 'COMPLETED') {
+    const isBodySnapshot = existing.bodyMetricsJson && (!existing.inputJson || Object.keys(existing.inputJson as object).length === 0)
+
+    if (existing.status === 'COMPLETED' && !isBodySnapshot) {
       const linkedWorkouts = await prisma.workout.count({
         where: {
           clientId: existing.clientId,

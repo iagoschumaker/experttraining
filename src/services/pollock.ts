@@ -120,76 +120,11 @@ export function pollock7Female(
 }
 
 /**
- * Slaughter — Equação para jovens (7-17 anos)
- * Usa tríceps + panturrilha (mais validado) ou tríceps + subescapular
- */
-export function slaughterYouth(
-  skinfolds: SkinfoldsInput,
-  age: number,
-  weight: number,
-  sex: 'M' | 'F'
-): PollockResult | null {
-  const { triceps, subscapular, thigh } = skinfolds
-  // Para jovens, usar tríceps + coxa como aproximação se panturrilha não disponível
-  // A equação original usa tríceps + panturrilha, mas adaptamos com o que temos
-  if (!triceps || !weight) return null
-
-  let pct: number
-  const method = sex === 'M' ? '3pt_male' : '3pt_female'
-
-  if (sex === 'M') {
-    if (subscapular) {
-      // Slaughter masculino: tríceps + subescapular
-      const S = triceps + subscapular
-      if (S <= 35) {
-        pct = 1.21 * S - 0.008 * S * S - 1.7
-      } else {
-        pct = 0.783 * S + 1.6
-      }
-    } else if (thigh) {
-      // Fallback: usar tríceps + coxa com fórmula adaptada Jackson-Pollock
-      const S = triceps + thigh
-      pct = 0.735 * S + 1.0
-    } else {
-      return null
-    }
-  } else {
-    // Feminino
-    if (subscapular) {
-      // Slaughter feminino: tríceps + subescapular
-      const S = triceps + subscapular
-      if (S <= 35) {
-        pct = 1.33 * S - 0.013 * S * S - 2.5
-      } else {
-        pct = 0.546 * S + 9.7
-      }
-    } else if (thigh) {
-      // Fallback feminino: tríceps + coxa
-      const S = triceps + thigh
-      pct = 0.610 * S + 5.1
-    } else {
-      return null
-    }
-  }
-
-  pct = Math.max(3, Math.min(50, pct))
-  const sumSf = triceps + (subscapular || thigh || 0)
-
-  return {
-    method: method as PollockResult['method'],
-    bodyFatPercent: round2(pct),
-    fatKg: round2(weight * pct / 100),
-    leanKg: round2(weight * (1 - pct / 100)),
-    density: round2(1.0 - pct / 100), // approximate
-    sumSkinfolds: sumSf,
-  }
-}
-
-/**
- * Computa automaticamente: 
- * - Jovens (<18): Slaughter
- * - Adultos (≥18): Jackson-Pollock 7pt > 3pt conforme sexo
- * Retorna null se não houver dobras suficientes.
+ * Computa Pollock 3 dobras automaticamente conforme sexo.
+ * - Masculino: peito + abdômen + coxa
+ * - Feminino: tríceps + suprailíaca + coxa
+ * Funciona para todas as idades (a equação já usa a idade como variável).
+ * Retorna null se não houver as 3 dobras necessárias.
  */
 export function computePollock(
   skinfolds: SkinfoldsInput,
@@ -199,20 +134,10 @@ export function computePollock(
 ): PollockResult | null {
   if (!weight || age < 0) return null
 
-  // Para jovens (< 18 anos), usar Slaughter
-  if (age < 18) {
-    return slaughterYouth(skinfolds, age, weight, sex) ?? null
-  }
-
-  // Adultos: Jackson-Pollock
   if (sex === 'M') {
-    return pollock7Male(skinfolds, age, weight)
-      ?? pollock3Male(skinfolds, age, weight)
-      ?? null
+    return pollock3Male(skinfolds, age, weight)
   } else {
-    return pollock7Female(skinfolds, age, weight)
-      ?? pollock3Female(skinfolds, age, weight)
-      ?? null
+    return pollock3Female(skinfolds, age, weight)
   }
 }
 
