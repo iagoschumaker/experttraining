@@ -154,10 +154,10 @@ export function ageFromBirthDate(birthDate: string | Date): number {
 /** Rótulo legível do método */
 export function methodLabel(method: PollockResult['method']): string {
   const labels: Record<PollockResult['method'], string> = {
-    '3pt_male': 'Pollock 3 Dobras (♂)',
-    '3pt_female': 'Pollock 3 Dobras (♀)',
-    '7pt_male': 'Pollock 7 Dobras (♂)',
-    '7pt_female': 'Pollock 7 Dobras (♀)',
+    '3pt_male': 'Pollock 3 Dobras — Masculino',
+    '3pt_female': 'Pollock 3 Dobras — Feminino',
+    '7pt_male': 'Pollock 7 Dobras — Masculino',
+    '7pt_female': 'Pollock 7 Dobras — Feminino',
   }
   return labels[method]
 }

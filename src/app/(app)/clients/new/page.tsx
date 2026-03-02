@@ -82,7 +82,7 @@ export default function NewClientPage() {
       const data = await res.json()
       if (data.success && data.data?.currentStudio) {
         setUserRole(data.data.currentStudio.role)
-        
+
         // Só carregar trainers se for STUDIO_ADMIN
         if (data.data.currentStudio.role === 'STUDIO_ADMIN') {
           loadTrainers()
@@ -114,7 +114,7 @@ export default function NewClientPage() {
   function formatDate(value: string) {
     // Remove tudo que não é número
     const numbers = value.replace(/\D/g, '')
-    
+
     // Aplica a máscara
     if (numbers.length <= 2) {
       return numbers
@@ -132,19 +132,19 @@ export default function NewClientPage() {
 
   function convertDateToISO(dateStr: string): string | null {
     if (!dateStr) return null
-    
+
     // Se já está no formato ISO (YYYY-MM-DD)
     if (dateStr.includes('-') && dateStr.length === 10) {
       return dateStr
     }
-    
+
     // Converte de DD/MM/AAAA para YYYY-MM-DD
     const parts = dateStr.split('/')
     if (parts.length === 3 && parts[2].length === 4) {
       const [day, month, year] = parts
       return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
     }
-    
+
     return null
   }
 
@@ -577,8 +577,8 @@ export default function NewClientPage() {
               const result = computePollock(sf, age, weight, gender)
               if (!result) return null
               const methodNames: Record<string, string> = {
-                '3pt_male': 'Pollock 3 Dobras (♂)', '3pt_female': 'Pollock 3 Dobras (♀)',
-                '7pt_male': 'Pollock 7 Dobras (♂)', '7pt_female': 'Pollock 7 Dobras (♀)',
+                '3pt_male': 'Pollock 3 Dobras — Masculino', '3pt_female': 'Pollock 3 Dobras — Feminino',
+                '7pt_male': 'Pollock 7 Dobras — Masculino', '7pt_female': 'Pollock 7 Dobras — Feminino',
               }
               return (
                 <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-3">
