@@ -234,7 +234,11 @@ export async function POST(
                     studioId: auth.studioId,
                     trainerId: auth.userId,
                     type: 'INDIVIDUAL',
-                    date: new Date(),
+                    date: (() => {
+                        // Usar data no horário de Brasília (UTC-3) para evitar offset de dia
+                        const nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+                        return new Date(nowBRT.getFullYear(), nowBRT.getMonth(), nowBRT.getDate(), 12, 0, 0)
+                    })(),
                     startedAt: new Date(),
                     workoutId: workout.id,
                     weekIndex: currentWeek,

@@ -759,44 +759,103 @@ export default function ClientDetailPage() {
 
 
 
-      {/* Histórico de Check-in */}
-      {(client as any).checkInHistory && (client as any).checkInHistory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-green-500" />
-              Histórico de Check-in
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {(client as any).checkInHistory.map((lesson: any) => {
-                const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
-                const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
-                return (
-                  <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <div>
-                        <div className="text-sm font-medium capitalize">{dateStr}</div>
-                        {timeStr && <div className="text-xs text-muted-foreground">{timeStr}</div>}
-                      </div>
+      {/* Presença & Check-in */}
+      {(() => {
+        const stats = (client as any).attendanceStats
+        const history = (client as any).checkInHistory || []
+        if (!stats && history.length === 0) return null
+
+        const pct = stats ? Math.round(stats.attendanceRate * 100) : 0
+        const barColor = pct >= 85 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+        const statusText = pct >= 85 ? 'No alvo ✓' : pct >= 60 ? 'Abaixo' : 'Crítico'
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-green-500" />
+                Presença & Check-in
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Attendance Stats */}
+              {stats && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-2xl font-bold text-green-400">{stats.sessionsCompleted}</div>
+                      <div className="text-xs text-muted-foreground">Sessões feitas</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {lesson.focus && (
-                        <Badge variant="outline" className="text-xs">{lesson.focus}</Badge>
-                      )}
-                      {lesson.weekIndex && (
-                        <span className="text-xs text-muted-foreground">Sem. {lesson.weekIndex}</span>
-                      )}
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-2xl font-bold text-amber-400">{stats.remaining}</div>
+                      <div className="text-xs text-muted-foreground">Restantes</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-2xl font-bold text-blue-400">{stats.sessionsPerWeek}x</div>
+                      <div className="text-xs text-muted-foreground">/semana</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className={`text-2xl font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{pct}%</div>
+                      <div className="text-xs text-muted-foreground">Frequência</div>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Progresso: {stats.sessionsCompleted}/{stats.totalExpected}</span>
+                      <span className={`font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{statusText}</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                    </div>
+                  </div>
+                  {stats.workoutId && (
+                    <Link href={`/workouts/${stats.workoutId}`}>
+                      <Button variant="outline" size="sm" className="w-full text-xs">
+                        Ver treino ativo{stats.workoutName ? `: ${stats.workoutName}` : ''}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              {/* Check-in History */}
+              {history.length > 0 && (
+                <div className="space-y-2">
+                  <Separator />
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Últimos check-ins ({history.length})
+                  </p>
+                  <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                    {history.map((lesson: any) => {
+                      const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+                      const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
+                      return (
+                        <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <div>
+                              <div className="text-xs font-medium capitalize">{dateStr}</div>
+                              {timeStr && <div className="text-[10px] text-muted-foreground">{timeStr}</div>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {lesson.focus && (
+                              <Badge variant="outline" className="text-[10px]">{lesson.focus}</Badge>
+                            )}
+                            {lesson.weekIndex && (
+                              <span className="text-[10px] text-muted-foreground">Sem.{lesson.weekIndex}</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Workouts */}
       <Card>

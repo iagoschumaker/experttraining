@@ -27,6 +27,7 @@ import {
   CheckCircle,
   Trash2,
   Download,
+  Weight,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -79,6 +80,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
   const [error, setError] = useState<string | null>(null)
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [savingWeight, setSavingWeight] = useState<string | null>(null) // key like 'w0-s1-b2-e3'
   const [registeringAttendance, setRegisteringAttendance] = useState(false)
   const [attendanceSuccess, setAttendanceSuccess] = useState(false)
 
@@ -108,6 +110,31 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       setError('Erro ao carregar treino')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Save exercise weight
+  const saveWeight = async (weekIdx: number, sessionIdx: number, blockIdx: number, exerciseIdx: number, weight: string) => {
+    const key = `w${weekIdx}-s${sessionIdx}-b${blockIdx}-e${exerciseIdx}`
+    setSavingWeight(key)
+    try {
+      await fetch(`/api/studio/workouts/${params.id}/exercise-weight`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekIdx, sessionIdx, blockIdx, exerciseIdx, weight: weight || null }),
+      })
+      // Update local state
+      if (workout) {
+        const s = JSON.parse(JSON.stringify(workout.scheduleJson)) as any
+        if (s?.weeks?.[weekIdx]?.sessions?.[sessionIdx]?.blocks?.[blockIdx]?.exercises?.[exerciseIdx]) {
+          s.weeks[weekIdx].sessions[sessionIdx].blocks[blockIdx].exercises[exerciseIdx].weight = weight || null
+          setWorkout({ ...workout, scheduleJson: s })
+        }
+      }
+    } catch (err) {
+      console.error('Error saving weight:', err)
+    } finally {
+      setSavingWeight(null)
     }
   }
 
@@ -962,24 +989,53 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                                   </span>
                                 </div>
                                 <div className="space-y-1">
-                                  {b.exercises?.map((ex: any, exIdx: number) => (
-                                    <div key={exIdx} className="flex items-center justify-between text-xs">
-                                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
-                                          (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
-                                            'bg-green-500/20 text-green-600'
-                                          }`}>
-                                          {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
-                                            (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
-                                        </span>
-                                        <span className="truncate font-medium">{ex.name}</span>
+                                  {b.exercises?.map((ex: any, exIdx: number) => {
+                                    const wKey = `w${schedule.weeks.indexOf(week)}-s${week.sessions.indexOf(session)}-b${idx}-e${exIdx}`
+                                    const wIdx = schedule.weeks.indexOf(week)
+                                    const sIdx = week.sessions.indexOf(session)
+                                    return (
+                                      <div key={exIdx} className="flex items-center justify-between text-xs gap-1">
+                                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
+                                            (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
+                                              'bg-green-500/20 text-green-600'
+                                            }`}>
+                                            {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
+                                              (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
+                                          </span>
+                                          <span className="truncate font-medium">{ex.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0 ml-1">
+                                          {ex.sets && ex.reps && <span className="text-[10px] text-muted-foreground">{ex.sets}×{ex.reps}</span>}
+                                          <span className="text-[10px] text-amber-500 font-mono">{ex.rest}</span>
+                                          {/* Weight Input */}
+                                          <div className="flex items-center gap-0.5">
+                                            <Weight className="w-3 h-3 text-muted-foreground" />
+                                            <input
+                                              type="text"
+                                              inputMode="decimal"
+                                              placeholder="—"
+                                              defaultValue={ex.weight || ''}
+                                              className={`w-12 text-[10px] text-center rounded border bg-background px-0.5 py-0.5 focus:ring-1 focus:ring-primary outline-none ${savingWeight === wKey ? 'border-green-400 bg-green-500/10' : 'border-border'
+                                                }`}
+                                              onBlur={(e) => {
+                                                const val = e.target.value.trim()
+                                                if (val !== (ex.weight || '')) {
+                                                  saveWeight(wIdx, sIdx, idx, exIdx, val)
+                                                }
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  (e.target as HTMLInputElement).blur()
+                                                }
+                                              }}
+                                            />
+                                            <span className="text-[9px] text-muted-foreground">kg</span>
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0 ml-2">
-                                        {ex.sets && ex.reps && <span>{ex.sets}×{ex.reps}</span>}
-                                        <span className="text-amber-500 font-mono">{ex.rest}</span>
-                                      </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               </div>
                             ))}
