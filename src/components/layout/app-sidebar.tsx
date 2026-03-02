@@ -47,11 +47,7 @@ const sidebarLinks: SidebarLink[] = [
     label: 'Avaliações',
     icon: <ClipboardList className="w-5 h-5" />,
   },
-  {
-    href: '/results',
-    label: 'Resultados',
-    icon: <BarChart3 className="w-5 h-5" />,
-  },
+  // REMOVED: Resultados tab
   {
     href: '/workouts',
     label: 'Treinos',

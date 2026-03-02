@@ -93,6 +93,8 @@ export async function GET(
             status: true,
             createdAt: true,
             completedAt: true,
+            confidence: true,
+            bodyMetricsJson: true,
           },
         },
         workouts: {
@@ -103,6 +105,10 @@ export async function GET(
             name: true,
             isActive: true,
             createdAt: true,
+            sessionsCompleted: true,
+            sessionsPerWeek: true,
+            targetWeeks: true,
+            startDate: true,
           },
         },
         _count: {
@@ -130,9 +136,34 @@ export async function GET(
       })
     }
 
+    // Get attendance stats for active workout
+    const activeWorkout = client.workouts.find((w: any) => w.isActive)
+    let attendanceStats = null
+    if (activeWorkout) {
+      const totalLessons = await prisma.lesson.count({
+        where: { workoutId: activeWorkout.id, status: 'COMPLETED' },
+      })
+      const sessionsPerWeek = (activeWorkout as any).sessionsPerWeek || 3
+      const targetWeeks = (activeWorkout as any).targetWeeks || 8
+      const totalExpected = sessionsPerWeek * targetWeeks
+      const sessionsCompleted = (activeWorkout as any).sessionsCompleted || totalLessons
+
+      attendanceStats = {
+        workoutId: activeWorkout.id,
+        workoutName: activeWorkout.name,
+        sessionsCompleted,
+        sessionsPerWeek,
+        targetWeeks,
+        totalExpected,
+        remaining: Math.max(0, totalExpected - sessionsCompleted),
+        attendanceRate: totalExpected > 0 ? sessionsCompleted / totalExpected : 0,
+        lessonsCount: totalLessons,
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: { ...client, trainer },
+      data: { ...client, trainer, attendanceStats },
     })
   } catch (error) {
     console.error('Get client error:', error)
