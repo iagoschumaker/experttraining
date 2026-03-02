@@ -267,12 +267,11 @@ export async function PUT(
       },
     })
 
-    // Server-side Pollock computation — uses saved + existing client data
+    // Server-side Pollock computation — uses the updated client data
     const c = client as any
-    // Use the updated client's data, fall back to existingClient for fields not in this update
-    const pollockGender = c.gender || (existingClient as any).gender
-    const pollockBirthDate = c.birthDate || (existingClient as any).birthDate
-    const pollockWeight = c.weight ? Number(c.weight) : (existingClient.weight ? Number(existingClient.weight) : null)
+    const pollockGender = c.gender
+    const pollockBirthDate = c.birthDate
+    const pollockWeight = c.weight ? Number(c.weight) : null
 
     console.log('[POLLOCK DEBUG] gender:', pollockGender, 'birthDate:', pollockBirthDate, 'weight:', pollockWeight)
     console.log('[POLLOCK DEBUG] sfTriceps:', c.sfTriceps?.toString(), 'sfSuprailiac:', c.sfSuprailiac?.toString(), 'sfThigh:', c.sfThigh?.toString())
