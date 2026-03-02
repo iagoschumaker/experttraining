@@ -22,6 +22,7 @@ export async function GET(
             where: {
                 clientId: params.id,
                 studioId: auth.studioId,
+                isActive: true,
             },
             orderBy: { createdAt: 'desc' },
             select: {
