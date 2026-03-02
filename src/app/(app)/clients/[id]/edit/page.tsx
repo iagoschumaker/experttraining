@@ -56,12 +56,12 @@ export default function EditClientPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>>([])
+  const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>>([])
 
   function formatDate(value: string) {
     // Remove tudo que não é número
     const numbers = value.replace(/\D/g, '')
-    
+
     // Aplica a máscara
     if (numbers.length <= 2) {
       return numbers
@@ -79,35 +79,35 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
 
   function convertDateToISO(dateStr: string): string | null {
     if (!dateStr) return null
-    
+
     // Se já está no formato ISO (YYYY-MM-DD)
     if (dateStr.includes('-') && dateStr.length === 10) {
       return dateStr
     }
-    
+
     // Converte de DD/MM/AAAA para YYYY-MM-DD
     const parts = dateStr.split('/')
     if (parts.length === 3 && parts[2].length === 4) {
       const [day, month, year] = parts
       return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
     }
-    
+
     return null
   }
 
   function convertISOToBR(dateStr: string): string {
     if (!dateStr) return ''
-    
+
     // Se já está no formato brasileiro
     if (dateStr.includes('/')) return dateStr
-    
+
     // Converte de YYYY-MM-DD para DD/MM/AAAA
     const parts = dateStr.split('T')[0].split('-')
     if (parts.length === 3) {
       const [year, month, day] = parts
       return `${day}/${month}/${year}`
     }
-    
+
     return dateStr
   }
 
@@ -199,7 +199,7 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
           if (client.studioId) {
             const trainersRes = await fetch(`/api/superadmin/studios/${client.studioId}/trainers`)
             const trainersData = await trainersRes.json()
-            
+
             if (trainersData.success) {
               // Map trainers to the format expected by the select (userId and name)
               const trainersFormatted = trainersData.data.items.map((t: any) => ({
@@ -680,8 +680,8 @@ const [trainers, setTrainers] = useState<Array<{ userId: string; name: string }>
                 const result = computePollock(sf, age, weight, gender)
                 if (!result) return null
                 const methodNames: Record<string, string> = {
-                  '3pt_male': 'Pollock 3 Dobras (♂)', '3pt_female': 'Pollock 3 Dobras (♀)',
-                  '7pt_male': 'Pollock 7 Dobras (♂)', '7pt_female': 'Pollock 7 Dobras (♀)',
+                  '3pt_male': 'Pollock 3 Dobras — Masculino', '3pt_female': 'Pollock 3 Dobras — Feminino',
+                  '7pt_male': 'Pollock 7 Dobras — Masculino', '7pt_female': 'Pollock 7 Dobras — Feminino',
                 }
                 return (
                   <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-3">

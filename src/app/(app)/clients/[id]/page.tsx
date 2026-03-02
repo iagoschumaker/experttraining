@@ -475,7 +475,7 @@ export default function ClientDetailPage() {
           {(client.weight || client.height || client.bodyFat) && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Composição</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { label: 'Peso', val: client.weight, unit: 'kg' },
                   { label: 'Altura', val: client.height, unit: 'cm' },
@@ -488,13 +488,48 @@ export default function ClientDetailPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Body Composition Visual Graph */}
+              {client.weight && client.bodyFat && (() => {
+                const w = Number(client.weight)
+                const bf = Number(client.bodyFat)
+                const fatKg = (w * bf / 100)
+                const leanKg = (w - fatKg)
+                const fatPct = bf
+                const leanPct = 100 - bf
+                const imc = client.height ? (w / Math.pow(Number(client.height) / 100, 2)) : 0
+                const imcLabel = imc < 18.5 ? 'Abaixo' : imc < 25 ? 'Normal' : imc < 30 ? 'Sobrepeso' : 'Obesidade'
+                const imcColor = imc < 18.5 ? 'text-blue-400' : imc < 25 ? 'text-green-500' : imc < 30 ? 'text-yellow-500' : 'text-red-500'
+                return (
+                  <div className="mt-3 space-y-3">
+                    {/* Visual bar */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-cyan-400 font-medium">Massa Magra {leanKg.toFixed(1)}kg ({leanPct.toFixed(0)}%)</span>
+                        <span className="text-red-400 font-medium">Massa Gorda {fatKg.toFixed(1)}kg ({fatPct.toFixed(0)}%)</span>
+                      </div>
+                      <div className="w-full h-4 rounded-full overflow-hidden flex">
+                        <div className="bg-cyan-500 h-full transition-all" style={{ width: `${leanPct}%` }} />
+                        <div className="bg-red-400 h-full transition-all" style={{ width: `${fatPct}%` }} />
+                      </div>
+                    </div>
+                    {/* IMC classification */}
+                    {imc > 0 && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">IMC {imc.toFixed(1)}:</span>
+                        <span className={`font-bold ${imcColor}`}>{imcLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           )}
 
           {(client.chest || client.waist || client.hip || client.abdomen) && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tronco (cm)</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { label: 'Peitoral', val: client.chest },
                   { label: 'Cintura', val: client.waist },
@@ -514,7 +549,7 @@ export default function ClientDetailPage() {
           {(client.armRight || client.armLeft || client.forearmRight || client.forearmLeft) && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Braços (cm)</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { label: 'Braço Dir.', val: client.armRight },
                   { label: 'Braço Esq.', val: client.armLeft },
@@ -534,7 +569,7 @@ export default function ClientDetailPage() {
           {(client.thighRight || client.thighLeft || client.calfRight || client.calfLeft) && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Pernas (cm)</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { label: 'Coxa Dir.', val: client.thighRight },
                   { label: 'Coxa Esq.', val: client.thighLeft },
