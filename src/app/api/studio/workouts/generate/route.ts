@@ -25,6 +25,7 @@ const generateWorkoutSchema = z.object({
   weeklyFrequency: z.number().min(2).max(6),
   targetWeeks: z.number().min(6).max(8).default(8),
   notes: z.string().optional(),
+  levelUp: z.boolean().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { assessmentId, weeklyFrequency, targetWeeks, notes } = validation.data
+    const { assessmentId, weeklyFrequency, targetWeeks, notes, levelUp } = validation.data
 
     // Buscar avaliação
     const where: any = { id: assessmentId }
@@ -184,9 +185,19 @@ export async function POST(request: NextRequest) {
     // 1. Buscar estado do rodízio do aluno
     const clientData = await prisma.client.findUnique({
       where: { id: assessment.clientId },
-      select: { lastPillarIndex: true },
+      select: { lastPillarIndex: true, level: true },
     })
     const lastPillarIndex = clientData?.lastPillarIndex ?? 0
+    const currentLevel = clientData?.level || 'INICIANTE'
+
+    // Calcular novo nível se levelUp=true
+    const LEVELS = ['INICIANTE', 'INTERMEDIARIO', 'AVANCADO']
+    let newLevel = currentLevel
+    if (levelUp && currentLevel !== 'AVANCADO') {
+      const currentIdx = LEVELS.indexOf(currentLevel)
+      newLevel = LEVELS[Math.min(currentIdx + 1, LEVELS.length - 1)]
+      console.log(`⬆️ PROGRESSÃO DE NÍVEL: ${currentLevel} → ${newLevel}`)
+    }
 
     // 2. Gerar schedule de pilares (apenas 1 semana para template)
     const pillarSchedule = generatePillarRotation({
@@ -250,6 +261,7 @@ export async function POST(request: NextRequest) {
         data: {
           lastPillarIndex: pillarSchedule.lastIndexAfterProgram,
           trainingDaysPerWeek: weeklyFrequency,
+          level: newLevel,
         },
       }),
     ])
@@ -287,6 +299,8 @@ export async function POST(request: NextRequest) {
         schedule,
         template,
         progress,
+        level: newLevel,
+        previousLevel: currentLevel,
         recommendations: result.recommendations || [],
       },
     })

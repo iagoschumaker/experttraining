@@ -79,6 +79,8 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
   const [error, setError] = useState<string | null>(null)
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [registeringAttendance, setRegisteringAttendance] = useState(false)
+  const [attendanceSuccess, setAttendanceSuccess] = useState(false)
 
   useEffect(() => {
     loadWorkout()
@@ -156,6 +158,34 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       alert('Erro de conexão')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  async function handleRegisterAttendance() {
+    setRegisteringAttendance(true)
+    setAttendanceSuccess(false)
+
+    try {
+      const res = await fetch(`/api/studio/workouts/${params.id}/next-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setAttendanceSuccess(true)
+        // Recarregar dados do treino para atualizar progresso
+        loadWorkout()
+        setTimeout(() => setAttendanceSuccess(false), 3000)
+      } else {
+        alert(data.error || 'Erro ao registrar presença')
+      }
+    } catch (err) {
+      console.error('Attendance error:', err)
+      alert('Erro de conexão')
+    } finally {
+      setRegisteringAttendance(false)
     }
   }
 
@@ -570,6 +600,106 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
           </div>
         </div>
       </div>
+
+      {/* Attendance / Progress Card */}
+      {workout.status === 'ACTIVE' && (
+        <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="w-5 h-5 text-amber-500" />
+              Progresso do Programa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(() => {
+              const p = (workout as any).progress
+              if (!p) return <p className="text-sm text-muted-foreground">Dados de progresso não disponíveis</p>
+
+              const pct = Math.round((p.attendanceRate ?? 0) * 100)
+              const statusColor = p.attendanceStatus === 'ON_TRACK' ? 'text-green-500'
+                : p.attendanceStatus === 'BELOW_TARGET' ? 'text-yellow-500'
+                  : 'text-red-500'
+              const barColor = p.attendanceStatus === 'ON_TRACK' ? 'bg-green-500'
+                : p.attendanceStatus === 'BELOW_TARGET' ? 'bg-yellow-500'
+                  : 'bg-red-500'
+
+              return (
+                <>
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">Frequência</span>
+                      <span className={`font-bold ${statusColor}`}>{pct}%</span>
+                    </div>
+                    <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Meta: 85% para progressão</p>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-card rounded-lg p-3 border text-center">
+                      <div className="text-2xl font-bold text-foreground">{p.sessionsCompleted ?? 0}</div>
+                      <div className="text-xs text-muted-foreground">Sessões feitas</div>
+                    </div>
+                    <div className="bg-card rounded-lg p-3 border text-center">
+                      <div className="text-2xl font-bold text-foreground">{p.sessionsExpectedByNow ?? 0}</div>
+                      <div className="text-xs text-muted-foreground">Sessões esperadas</div>
+                    </div>
+                    <div className="bg-card rounded-lg p-3 border text-center">
+                      <div className="text-2xl font-bold text-foreground">Sem. {p.currentWeek ?? 1}</div>
+                      <div className="text-xs text-muted-foreground">Semana atual</div>
+                    </div>
+                    <div className="bg-card rounded-lg p-3 border text-center">
+                      <div className="text-2xl font-bold text-amber-500">{p.currentPhaseLabel ?? 'Adaptação'}</div>
+                      <div className="text-xs text-muted-foreground">Fase</div>
+                    </div>
+                  </div>
+
+                  {/* Register Attendance Button */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      onClick={handleRegisterAttendance}
+                      disabled={registeringAttendance || p.isComplete}
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white flex-1 md:flex-none"
+                    >
+                      {registeringAttendance ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                      )}
+                      {p.isComplete ? 'Programa Completo' : 'Registrar Presença'}
+                    </Button>
+
+                    {attendanceSuccess && (
+                      <span className="text-sm text-green-500 font-medium animate-pulse">
+                        ✅ Presença registrada!
+                      </span>
+                    )}
+
+                    {p.mustExtend && (
+                      <span className="text-sm text-yellow-500">
+                        ⚠️ Frequência abaixo de 85% — programa prolongado
+                      </span>
+                    )}
+
+                    {p.canReassess && !p.isComplete && (
+                      <span className="text-sm text-green-500">
+                        ✅ Apto a reavaliar e gerar novo treino
+                      </span>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info Cards */}
       <div className="grid gap-4 md:grid-cols-4">

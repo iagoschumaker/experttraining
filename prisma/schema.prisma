@@ -209,6 +209,7 @@ model Client {
   isActive            Boolean        @default(true) @map("is_active")
   lastPillarIndex     Int            @default(0) @map("last_pillar_index")
   trainingDaysPerWeek Int?           @map("training_days_per_week")
+  level               String         @default("INICIANTE")
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
   arm           Decimal?       @db.Decimal(5, 2)

@@ -23,6 +23,7 @@ import {
   Activity,
   CheckCircle,
   XCircle,
+  TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -59,6 +60,11 @@ function GenerateWorkoutPage() {
     weeklyFrequency: 3,
     notes: '',
   })
+
+  // Level progression modal
+  const [showLevelModal, setShowLevelModal] = useState(false)
+  const [clientLevel, setClientLevel] = useState<string>('INICIANTE')
+  const [canLevelUp, setCanLevelUp] = useState(false)
 
   useEffect(() => {
     if (assessmentId) {
@@ -111,12 +117,50 @@ function GenerateWorkoutPage() {
     }
   }
 
-  async function handleGenerate() {
+  // Verificar se pode subir de nível antes de gerar
+  async function handleBeforeGenerate() {
+    if (!selectedAssessmentId || !assessment) {
+      setError('Selecione uma avaliação primeiro')
+      return
+    }
+
+    // Buscar progresso do cliente
+    try {
+      const res = await fetch(`/api/studio/clients/${assessment.client.id}/progress`)
+      const data = await res.json()
+
+      if (data.success && data.data.hasActiveProgram) {
+        const { progress } = data.data
+        // Se pode reavaliar e não é avançado, perguntar
+        if (progress.canReassess) {
+          const levelRes = await fetch(`/api/clients/${assessment.client.id}`)
+          const levelData = await levelRes.json()
+          const level = levelData.data?.level || 'INICIANTE'
+          setClientLevel(level)
+
+          if (level !== 'AVANCADO') {
+            setCanLevelUp(true)
+            setShowLevelModal(true)
+            return
+          }
+        }
+      }
+    } catch (err) {
+      // Se der erro, gera normalmente
+      console.error('Erro ao buscar progresso:', err)
+    }
+
+    // Gera direto (sem level up)
+    handleGenerate(false)
+  }
+
+  async function handleGenerate(levelUp: boolean) {
     if (!selectedAssessmentId) {
       setError('Selecione uma avaliação primeiro')
       return
     }
 
+    setShowLevelModal(false)
     setError(null)
     setGenerating(true)
 
@@ -126,6 +170,7 @@ function GenerateWorkoutPage() {
         weeklyFrequency: formData.weeklyFrequency,
         targetWeeks: 8,
         notes: formData.notes,
+        levelUp,
       }
 
       console.log('🚀 Generating workout with payload:', payload)
@@ -417,7 +462,7 @@ function GenerateWorkoutPage() {
                 O treino será gerado automaticamente usando os blocos permitidos
               </p>
             </div>
-            <Button onClick={handleGenerate} disabled={generating} size="lg">
+            <Button onClick={() => handleBeforeGenerate()} disabled={generating} size="lg">
               {generating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               <Zap className="w-4 h-4 mr-2" />
               Gerar Treino
@@ -425,6 +470,55 @@ function GenerateWorkoutPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Level Progression Modal */}
+      {showLevelModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+                Progressão de Nível
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm">
+                  Nível atual: <strong>{clientLevel === 'INICIANTE' ? 'Iniciante' : clientLevel === 'INTERMEDIARIO' ? 'Intermediário' : 'Avançado'}</strong>
+                </p>
+                <p className="text-sm mt-1">
+                  Próximo nível: <strong>{clientLevel === 'INICIANTE' ? 'Intermediário' : 'Avançado'}</strong>
+                </p>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                O aluno completou o programa com frequência suficiente (≥85%).
+                Ele está apto a avançar para o próximo nível?
+              </p>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => handleGenerate(true)}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={generating}
+                >
+                  {generating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Sim, subir de nível
+                </Button>
+                <Button
+                  onClick={() => handleGenerate(false)}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={generating}
+                >
+                  Não, manter nível
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
