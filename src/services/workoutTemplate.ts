@@ -180,8 +180,10 @@ export function calculateProgress(
     // Programa completo?
     const isComplete = sessionsCompleted >= totalSessionsTarget || currentWeek > MAX_WEEKS
 
-    // Próxima sessão
-    const nextSessionIndex = sessionsCompleted % sessionsPerWeek
+    // Próxima sessão no template (contínua, não reseta por semana)
+    // sessionsPerWeek * targetWeeks = total de sessões no template
+    const totalTemplateSessions = sessionsPerWeek * targetWeeks
+    const nextSessionIndex = totalTemplateSessions > 0 ? sessionsCompleted % totalTemplateSessions : 0
 
     return {
         sessionsCompleted,
@@ -231,8 +233,10 @@ export function getNextSessionWithPeriodization(
         startDate,
     )
 
-    // Pegar sessão do template
-    const baseSession = template.sessions[progress.nextSessionIndex]
+    // Pegar sessão do template usando índice contínuo
+    // O template agora tem sessions.length = sessionsPerWeek * targetWeeks
+    const sessionIndex = sessionsCompleted % template.sessions.length
+    const baseSession = template.sessions[sessionIndex]
     if (!baseSession) {
         throw new Error(`Sessão ${progress.nextSessionIndex} não encontrada no template`)
     }

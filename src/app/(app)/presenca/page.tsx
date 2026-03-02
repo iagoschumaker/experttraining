@@ -71,6 +71,16 @@ interface SessionData {
     }
     client: { id: string; name: string }
     workoutName: string
+    checkedInToday?: boolean
+    todayLesson?: {
+        id: string
+        date: string
+        startedAt: string
+        endedAt: string
+        focus: string | null
+        sessionIndex: number
+        weekIndex: number
+    } | null
 }
 
 export default function PresencaPage() {
@@ -199,9 +209,24 @@ export default function PresencaPage() {
 
             if (data.success) {
                 setCheckInSuccess(true)
-                // Recarregar sessão atualizada
-                loadNextSession(workoutId)
-                setTimeout(() => setCheckInSuccess(false), 5000)
+                // NÃO recarrega próxima sessão — mantém a sessão de hoje
+                // Apenas atualiza o flag de checkedInToday
+                if (sessionData) {
+                    setSessionData({
+                        ...sessionData,
+                        checkedInToday: true,
+                        todayLesson: {
+                            id: data.data.lessonId,
+                            date: new Date().toISOString(),
+                            startedAt: data.data.checkedInAt || new Date().toISOString(),
+                            endedAt: data.data.checkedInAt || new Date().toISOString(),
+                            focus: data.data.session?.pillarLabel || null,
+                            sessionIndex: data.data.session?.sessionIndex || 0,
+                            weekIndex: data.data.session?.weekIndex || 1,
+                        },
+                        progress: data.data.progress || sessionData.progress,
+                    })
+                }
             } else {
                 alert(data.error || 'Erro ao registrar presença')
             }
@@ -380,6 +405,27 @@ export default function PresencaPage() {
                         </Card>
                     )}
 
+                    {/* Already checked in today (from GET) */}
+                    {!checkInSuccess && sessionData?.checkedInToday && sessionData?.todayLesson && (
+                        <Card className="border-blue-500/30 bg-blue-500/5">
+                            <CardContent className="py-4 flex items-center gap-3">
+                                <CheckCircle className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                                <div>
+                                    <p className="font-bold text-blue-500">
+                                        ✅ Já fez check-in hoje
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {new Date(sessionData.todayLesson.startedAt).toLocaleTimeString('pt-BR', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}{' '}
+                                        — {sessionData.todayLesson.focus || 'Treino'}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Success check-in */}
                     {checkInSuccess && (
                         <Card className="border-green-500/30 bg-green-500/5">
@@ -390,10 +436,15 @@ export default function PresencaPage() {
                                         ✅ Presença registrada com sucesso!
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                        {new Date().toLocaleTimeString('pt-BR', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}{' '}
+                                        {sessionData?.todayLesson?.startedAt
+                                            ? new Date(sessionData.todayLesson.startedAt).toLocaleTimeString('pt-BR', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })
+                                            : new Date().toLocaleTimeString('pt-BR', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}{' '}
                                         — Horário salvo
                                     </p>
                                 </div>
@@ -503,9 +554,9 @@ export default function PresencaPage() {
                                             onClick={() =>
                                                 workouts[0] && handleCheckIn(workouts[0].id)
                                             }
-                                            disabled={registering || sessionData.progress.isComplete}
+                                            disabled={registering || sessionData.progress.isComplete || sessionData.checkedInToday || checkInSuccess}
                                             size="lg"
-                                            className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg"
+                                            className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg disabled:opacity-50"
                                         >
                                             {registering ? (
                                                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -514,7 +565,9 @@ export default function PresencaPage() {
                                             )}
                                             {sessionData.progress.isComplete
                                                 ? 'Programa Completo'
-                                                : '✅ Confirmar Presença'}
+                                                : (sessionData.checkedInToday || checkInSuccess)
+                                                    ? '✅ Presença já registrada hoje'
+                                                    : '✅ Confirmar Presença'}
                                         </Button>
                                         <p className="text-center text-xs text-muted-foreground mt-2">
                                             <Clock className="w-3 h-3 inline mr-1" />

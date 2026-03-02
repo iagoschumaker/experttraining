@@ -199,28 +199,31 @@ export async function POST(request: NextRequest) {
       console.log(`⬆️ PROGRESSÃO DE NÍVEL: ${currentLevel} → ${newLevel}`)
     }
 
-    // 2. Gerar schedule de pilares (apenas 1 semana para template)
+    // 2. Gerar schedule de pilares para TODAS as semanas do programa
+    // Isso garante rotação contínua: LOWER→PUSH→PULL sem resetar
     const pillarSchedule = generatePillarRotation({
       trainingDaysPerWeek: weeklyFrequency,
-      totalWeeks: 1, // Apenas 1 semana para o template
+      totalWeeks: targetWeeks,
       lastPillarIndex,
     })
 
-    const weekPillars = pillarSchedule.schedule[0]
+    // Achatar todas as semanas em uma lista contínua de pilares
+    const allPillars = pillarSchedule.schedule.flat()
 
     console.log(`🔄 TEMPLATE DE TREINO:`)
     console.log(`   - Último índice: ${lastPillarIndex}`)
     console.log(`   - Frequência: ${weeklyFrequency}x/semana`)
     console.log(`   - Semanas alvo: ${targetWeeks}`)
-    console.log(`   - Pilares do template: [${weekPillars.join(', ')}]`)
+    console.log(`   - Total sessões no template: ${allPillars.length}`)
+    console.log(`   - Primeiros pilares: [${allPillars.slice(0, weeklyFrequency).join(', ')}]`)
     console.log(`   - Próximo índice: ${pillarSchedule.lastIndexAfterProgram}`)
 
     // 3. Determinar objetivo do aluno
     const primaryGoal = result.primaryGoal || inputData?.primaryGoal || 'saude'
 
-    // 4. Gerar TEMPLATE (exercícios fixos, 1 semana)
+    // 4. Gerar TEMPLATE (exercícios fixos, TODAS as sessões do programa)
     const template = generateWorkoutTemplate(
-      weekPillars,
+      allPillars,
       primaryGoal,
       weeklyFrequency,
       targetWeeks,
@@ -242,7 +245,7 @@ export async function POST(request: NextRequest) {
           clientId: assessment.clientId,
           studioId,
           createdById: userId,
-          name: `Programa ${PILLAR_LABELS[weekPillars[0]]} - ${assessment.client.name}`,
+          name: `Programa ${PILLAR_LABELS[allPillars[0]]} - ${assessment.client.name}`,
           blocksUsed: result.allowedBlocks || [],
           scheduleJson: schedule,
           templateJson: template as any,
@@ -280,7 +283,7 @@ export async function POST(request: NextRequest) {
           pillarRotation: {
             previousIndex: lastPillarIndex,
             newIndex: pillarSchedule.lastIndexAfterProgram,
-            pillars: weekPillars,
+            pillars: allPillars.slice(0, weeklyFrequency),
           },
           attendanceThreshold: '85%',
           minWeeks: 6,

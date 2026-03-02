@@ -14,8 +14,18 @@ import {
     WorkoutTemplate,
 } from '@/services/workoutTemplate'
 
+// Helpers para calcular início/fim do dia (UTC-3 / BRT)
+function getTodayRange() {
+    const now = new Date()
+    const start = new Date(now)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(now)
+    end.setHours(23, 59, 59, 999)
+    return { start, end }
+}
+
 // ============================================================================
-// GET - Retorna próxima sessão com periodização
+// GET - Retorna próxima sessão com periodização + check-in status do dia
 // ============================================================================
 export async function GET(
     request: NextRequest,
@@ -54,7 +64,6 @@ export async function GET(
         const template = workout.templateJson as unknown as WorkoutTemplate | null
 
         if (!template || !template.sessions) {
-            // Fallback: treino antigo sem template
             return NextResponse.json(
                 {
                     success: false,
@@ -65,19 +74,60 @@ export async function GET(
             )
         }
 
+        // Verificar se já fez check-in hoje
+        const { start, end } = getTodayRange()
+        const todayLesson = await prisma.lesson.findFirst({
+            where: {
+                workoutId: workout.id,
+                date: { gte: start, lte: end },
+                status: 'COMPLETED',
+            },
+            orderBy: { date: 'desc' },
+            select: {
+                id: true,
+                date: true,
+                startedAt: true,
+                endedAt: true,
+                focus: true,
+                sessionIndex: true,
+                weekIndex: true,
+            },
+        })
+
+        const checkedInToday = !!todayLesson
+
         const { session, progress } = getNextSessionWithPeriodization(
             template,
             workout.sessionsCompleted,
             workout.startDate,
         )
 
+        // Se já fez check-in hoje, mostrar a sessão que completou (não a próxima)
+        let displaySession = session
+        if (checkedInToday && todayLesson?.sessionIndex != null) {
+            const completedIdx = todayLesson.sessionIndex
+            if (completedIdx >= 0 && completedIdx < template.sessions.length) {
+                displaySession = template.sessions[completedIdx]
+            }
+        }
+
         return NextResponse.json({
             success: true,
             data: {
-                session,
+                session: displaySession,
                 progress,
                 client: workout.client,
                 workoutName: workout.name,
+                checkedInToday,
+                todayLesson: todayLesson ? {
+                    id: todayLesson.id,
+                    date: todayLesson.date,
+                    startedAt: todayLesson.startedAt,
+                    endedAt: todayLesson.endedAt,
+                    focus: todayLesson.focus,
+                    sessionIndex: todayLesson.sessionIndex,
+                    weekIndex: todayLesson.weekIndex,
+                } : null,
             },
         })
     } catch (error) {
@@ -90,7 +140,7 @@ export async function GET(
 }
 
 // ============================================================================
-// POST - Registrar sessão completada
+// POST - Registrar sessão completada (1x por dia)
 // ============================================================================
 export async function POST(
     request: NextRequest,
@@ -129,8 +179,31 @@ export async function POST(
             )
         }
 
-        // Calcular qual sessão está sendo completada
-        const sessionIndex = workout.sessionsCompleted % workout.sessionsPerWeek
+        // ====================================================================
+        // GUARD: Verificar se já fez check-in HOJE
+        // ====================================================================
+        const { start, end } = getTodayRange()
+        const alreadyCheckedIn = await prisma.lesson.findFirst({
+            where: {
+                workoutId: workout.id,
+                date: { gte: start, lte: end },
+                status: 'COMPLETED',
+            },
+        })
+
+        if (alreadyCheckedIn) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Presença já registrada hoje para este aluno.',
+                    alreadyCheckedIn: true,
+                },
+                { status: 400 }
+            )
+        }
+
+        // Calcular qual sessão está sendo completada (contínua, não reseta por semana)
+        const sessionIndex = workout.sessionsCompleted % template.sessions.length
         const currentWeek = Math.floor(workout.sessionsCompleted / workout.sessionsPerWeek) + 1
         const session = template.sessions[sessionIndex]
 
@@ -216,6 +289,12 @@ export async function POST(
                 lessonId: lesson.id,
                 progress,
                 client: workout.client,
+                session: {
+                    pillarLabel: session?.pillarLabel,
+                    sessionIndex,
+                    weekIndex: currentWeek,
+                },
+                checkedInAt: new Date().toISOString(),
             },
         })
     } catch (error) {

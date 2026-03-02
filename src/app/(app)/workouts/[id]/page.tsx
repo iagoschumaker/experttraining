@@ -701,6 +701,61 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
         </Card>
       )}
 
+      {/* Histórico de Presença */}
+      {(workout as any).attendanceLessons?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Calendar className="w-5 h-5 text-green-500" />
+              Histórico de Presença
+            </CardTitle>
+            <CardDescription>
+              {(workout as any).attendanceLessons.length} sessão(ões) registrada(s)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {(workout as any).attendanceLessons.map((lesson: any, i: number) => (
+                <div
+                  key={lesson.id}
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 border"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">
+                        {new Date(lesson.date).toLocaleDateString('pt-BR', {
+                          weekday: 'short',
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {lesson.focus || 'Treino'} • Sem. {lesson.weekIndex || '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p className="font-medium">
+                      {new Date(lesson.startedAt).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Dia {lesson.dayIndex || i + 1}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Info Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

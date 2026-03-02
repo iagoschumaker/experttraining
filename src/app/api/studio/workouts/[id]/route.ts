@@ -292,6 +292,22 @@ export async function GET(
       workout.startDate,
     )
 
+    // Buscar histórico de presença (lessons)
+    const attendanceLessons = await prisma.lesson.findMany({
+      where: { workoutId: workout.id, status: 'COMPLETED' },
+      orderBy: { date: 'desc' },
+      select: {
+        id: true,
+        date: true,
+        startedAt: true,
+        endedAt: true,
+        focus: true,
+        weekIndex: true,
+        dayIndex: true,
+        duration: true,
+      },
+    })
+
     return NextResponse.json({
       success: true,
       data: {
@@ -303,6 +319,7 @@ export async function GET(
         blocks,
         studio,
         progress,
+        attendanceLessons,
       },
     })
   } catch (error) {
@@ -427,10 +444,16 @@ export async function DELETE(
       )
     }
 
-    // Excluir permanentemente (hard delete)
-    await prisma.workout.delete({
-      where: { id: workoutId },
-    })
+    // Excluir permanentemente (hard delete) + resetar pillar index
+    await prisma.$transaction([
+      prisma.workout.delete({
+        where: { id: workoutId },
+      }),
+      prisma.client.update({
+        where: { id: existing.clientId },
+        data: { lastPillarIndex: 0 },
+      }),
+    ])
 
     // Audit log
     await prisma.auditLog.create({
