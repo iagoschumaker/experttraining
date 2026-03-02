@@ -115,14 +115,27 @@ export default function PresencaPage() {
     async function loadClients() {
         setLoadingClients(true)
         try {
-            const res = await fetch('/api/studio/clients?limit=500')
+            // Buscar TODOS os treinos ativos para extrair clientes com treino aberto
+            const res = await fetch('/api/studio/workouts?status=ACTIVE&limit=500')
             const data = await res.json()
             if (data.success) {
-                const activeClients = (data.data || []).filter(
-                    (c: any) => c.status === 'ACTIVE'
-                )
-                setAllClients(activeClients)
-                setClients(activeClients)
+                // Extrair clientes únicos dos treinos ativos
+                const clientMap = new Map<string, Client>()
+                const items = data.data?.items || data.data || []
+                for (const w of items) {
+                    if (w.isActive && w.client && !clientMap.has(w.client.id)) {
+                        clientMap.set(w.client.id, {
+                            id: w.client.id,
+                            name: w.client.name,
+                            email: w.client.email || null,
+                            status: 'ACTIVE',
+                            level: w.client.level,
+                        })
+                    }
+                }
+                const uniqueClients = Array.from(clientMap.values())
+                setAllClients(uniqueClients)
+                setClients(uniqueClients)
             }
         } catch (err) {
             console.error('Error loading clients:', err)

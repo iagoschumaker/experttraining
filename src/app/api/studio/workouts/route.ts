@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
       where.clientId = clientId
     }
 
-    if (status) {
+    if (status === 'ACTIVE') {
+      where.isActive = true
+    } else if (status) {
       where.status = status
     }
 
@@ -50,7 +52,9 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               name: true,
+              email: true,
               status: true,
+              level: true,
             },
           },
         },
