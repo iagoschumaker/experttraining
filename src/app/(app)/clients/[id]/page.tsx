@@ -827,7 +827,7 @@ export default function ClientDetailPage() {
                   </p>
                   <div className="space-y-1 max-h-[250px] overflow-y-auto">
                     {history.map((lesson: any) => {
-                      const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+                      const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
                       const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
                       return (
                         <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-2">

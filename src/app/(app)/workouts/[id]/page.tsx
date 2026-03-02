@@ -754,6 +754,7 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                     <div>
                       <p className="font-medium text-sm">
                         {new Date(lesson.date).toLocaleDateString('pt-BR', {
+                          timeZone: 'UTC',
                           weekday: 'short',
                           day: '2-digit',
                           month: '2-digit',
@@ -768,6 +769,7 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                   <div className="text-right text-sm">
                     <p className="font-medium">
                       {new Date(lesson.startedAt).toLocaleTimeString('pt-BR', {
+                        timeZone: 'America/Sao_Paulo',
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
