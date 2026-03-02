@@ -423,8 +423,14 @@ function GenerateWorkoutPage() {
                 max="6"
                 value={formData.weeklyFrequency}
                 onChange={(e) =>
-                  setFormData({ ...formData, weeklyFrequency: Math.min(6, Math.max(2, parseInt(e.target.value) || 2)) })
+                  setFormData({ ...formData, weeklyFrequency: parseInt(e.target.value) || 0 })
                 }
+                onBlur={() => {
+                  const val = formData.weeklyFrequency
+                  if (val < 2 || val > 6 || isNaN(val)) {
+                    setFormData({ ...formData, weeklyFrequency: Math.min(6, Math.max(2, val || 3)) })
+                  }
+                }}
               />
               <p className="text-sm text-muted-foreground">
                 Número de sessões por semana (2-6)

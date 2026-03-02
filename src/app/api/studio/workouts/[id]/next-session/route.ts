@@ -104,8 +104,9 @@ export async function GET(
 
         // Se já fez check-in hoje, mostrar a sessão que completou (não a próxima)
         let displaySession = session
-        if (checkedInToday && todayLesson?.sessionIndex != null) {
-            const completedIdx = todayLesson.sessionIndex
+        if (checkedInToday) {
+            // sessionsCompleted já foi incrementado, então a sessão de hoje é a anterior
+            const completedIdx = (workout.sessionsCompleted - 1) % template.sessions.length
             if (completedIdx >= 0 && completedIdx < template.sessions.length) {
                 displaySession = template.sessions[completedIdx]
             }

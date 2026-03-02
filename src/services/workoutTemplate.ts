@@ -342,11 +342,16 @@ export function expandTemplateToSchedule(
         const phaseLabel = phase === 'ADAPTATION' ? 'Adaptação' :
             phase === 'DEVELOPMENT' ? 'Desenvolvimento' : 'Pico'
 
+        // Pegar as sessões DESTA semana (fatia do template completo)
+        const startIdx = week * template.sessionsPerWeek
+        const endIdx = startIdx + template.sessionsPerWeek
+        const weekSessions = template.sessions.slice(startIdx, endIdx)
+
         const weekSchedule: any = {
             week: week + 1,
             phase,
             phaseLabel,
-            sessions: template.sessions.map((session, idx) => {
+            sessions: weekSessions.map((session, idx) => {
                 // Clonar e aplicar periodização para esta semana
                 const periodizedBlocks = session.blocks.map(block => ({
                     ...block,

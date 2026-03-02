@@ -385,8 +385,8 @@ export default function ClientDetailPage() {
                         {assessment.status === 'COMPLETED'
                           ? 'Concluída'
                           : assessment.status === 'IN_PROGRESS'
-                          ? 'Em Andamento'
-                          : 'Pendente'}
+                            ? 'Em Andamento'
+                            : 'Pendente'}
                       </Badge>
                     </div>
                   </div>
@@ -406,29 +406,14 @@ export default function ClientDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Composição Corporal — calculada automaticamente */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-amber-500" />
-            Composição Corporal
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ClientBodyComposition
-            weight={client.weight ? Number(client.weight) : null}
-            bodyFat={client.bodyFat ? Number(client.bodyFat) : null}
-            height={client.height ? Number(client.height) : null}
-          />
-        </CardContent>
-      </Card>
+
 
       {/* Medidas Corporais */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Ruler className="h-5 w-5" />
-            Medidas Corporais
+            <Activity className="h-5 w-5 text-amber-500" />
+            Composição Corporal & Medidas
           </CardTitle>
           {canEdit && (
             <Link href={`/clients/${client.id}/edit`}>
@@ -440,7 +425,26 @@ export default function ClientDetailPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Tronco */}
+          {/* Peso, Altura, Gordura, IMC */}
+          {(client.weight || client.height || client.bodyFat) && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Composição</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Peso', val: client.weight, unit: 'kg' },
+                  { label: 'Altura', val: client.height, unit: 'cm' },
+                  { label: '% Gord.', val: client.bodyFat, unit: '%' },
+                  { label: 'IMC', val: (client.weight && client.height) ? (Number(client.weight) / Math.pow(Number(client.height) / 100, 2)).toFixed(1) : null, unit: '' },
+                ].map(({ label, val, unit }) => (
+                  <div key={label} className="rounded-lg border p-2 text-center">
+                    <div className="text-sm font-semibold">{val ? `${Number(val).toFixed ? Number(val).toFixed(1) : val}${unit}` : '—'}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {(client.chest || client.waist || client.hip || client.abdomen) && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tronco (cm)</p>
@@ -569,8 +573,7 @@ export default function ClientDetailPage() {
         />
       )}
 
-      {/* Evolução do Cliente */}
-      <ClientEvolution clientId={client.id} />
+
 
       {/* Workouts */}
       <Card>
