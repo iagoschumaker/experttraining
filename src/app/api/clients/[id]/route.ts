@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { verifyAccessToken, hasStudioContext, getAccessTokenCookie } from '@/lib/auth'
+import { computePollock, ageFromBirthDate } from '@/services/pollock'
+import type { SkinfoldsInput } from '@/services/pollock'
 
 // Validation schema for updating a client
 const updateClientSchema = z.object({
@@ -264,6 +266,34 @@ export async function PUT(
         sfMidaxillary: data.sfMidaxillary,
       },
     })
+
+    // Server-side Pollock computation — always runs after saving
+    const c = client as any
+    const savedGender = c.gender
+    const savedBirthDate = c.birthDate
+    const savedWeight = c.weight ? Number(c.weight) : null
+
+    if (savedWeight && savedBirthDate && (savedGender === 'M' || savedGender === 'F')) {
+      const sfInput: SkinfoldsInput = {
+        chest: c.sfChest ? Number(c.sfChest) : undefined,
+        abdomen: c.sfAbdomen ? Number(c.sfAbdomen) : undefined,
+        thigh: c.sfThigh ? Number(c.sfThigh) : undefined,
+        triceps: c.sfTriceps ? Number(c.sfTriceps) : undefined,
+        suprailiac: c.sfSuprailiac ? Number(c.sfSuprailiac) : undefined,
+        subscapular: c.sfSubscapular ? Number(c.sfSubscapular) : undefined,
+        midaxillary: c.sfMidaxillary ? Number(c.sfMidaxillary) : undefined,
+      }
+      const age = ageFromBirthDate(savedBirthDate)
+      const pollockResult = computePollock(sfInput, age, savedWeight, savedGender)
+      if (pollockResult) {
+        // Update bodyFat with Pollock result
+        await prisma.client.update({
+          where: { id: params.id },
+          data: { bodyFat: pollockResult.bodyFatPercent },
+        })
+          ; (client as any).bodyFat = pollockResult.bodyFatPercent
+      }
+    }
 
     // Auto-create bodyMetricsJson snapshot when body data changes
     const bodyFields = ['weight', 'height', 'chest', 'waist', 'hip', 'bodyFat', 'sfChest', 'sfAbdomen', 'sfThigh', 'sfTriceps', 'sfSuprailiac', 'sfSubscapular', 'sfMidaxillary'] as const

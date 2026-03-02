@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
+import { computePollock, ageFromBirthDate } from '@/services/pollock'
+import type { SkinfoldsInput } from '@/services/pollock'
 
 function normalizeGender(value: string): 'M' | 'F' | 'O' {
   switch (value) {
@@ -382,6 +384,33 @@ export async function PUT(
         sfMidaxillary: data.sfMidaxillary,
       },
     })
+
+    // Server-side Pollock computation — always runs after saving
+    const uc = updatedClient as any
+    const savedGender = uc.gender
+    const savedBirthDate = uc.birthDate
+    const savedWeight = uc.weight ? Number(uc.weight) : null
+
+    if (savedWeight && savedBirthDate && (savedGender === 'M' || savedGender === 'F')) {
+      const sfInput: SkinfoldsInput = {
+        chest: uc.sfChest ? Number(uc.sfChest) : undefined,
+        abdomen: uc.sfAbdomen ? Number(uc.sfAbdomen) : undefined,
+        thigh: uc.sfThigh ? Number(uc.sfThigh) : undefined,
+        triceps: uc.sfTriceps ? Number(uc.sfTriceps) : undefined,
+        suprailiac: uc.sfSuprailiac ? Number(uc.sfSuprailiac) : undefined,
+        subscapular: uc.sfSubscapular ? Number(uc.sfSubscapular) : undefined,
+        midaxillary: uc.sfMidaxillary ? Number(uc.sfMidaxillary) : undefined,
+      }
+      const age = ageFromBirthDate(savedBirthDate)
+      const pollockResult = computePollock(sfInput, age, savedWeight, savedGender)
+      if (pollockResult) {
+        await prisma.client.update({
+          where: { id: clientId },
+          data: { bodyFat: pollockResult.bodyFatPercent },
+        })
+          ; (updatedClient as any).bodyFat = pollockResult.bodyFatPercent
+      }
+    }
 
     // Audit log
     await prisma.auditLog.create({
