@@ -42,7 +42,7 @@ export function pollock3Male(
   weight: number
 ): PollockResult | null {
   const { chest, abdomen, thigh } = skinfolds
-  if (!chest || !abdomen || !thigh || !weight || !age) return null
+  if (!chest || !abdomen || !thigh || !weight || age == null) return null
   const S = chest + abdomen + thigh
   const dc = 1.10938 - 0.0008267 * S + 0.0000016 * S * S - 0.0002574 * age
   const pct = Math.max(0, Math.min(60, siri(dc)))
@@ -63,7 +63,7 @@ export function pollock3Female(
   weight: number
 ): PollockResult | null {
   const { triceps, suprailiac, thigh } = skinfolds
-  if (!triceps || !suprailiac || !thigh || !weight || !age) return null
+  if (!triceps || !suprailiac || !thigh || !weight || age == null) return null
   const S = triceps + suprailiac + thigh
   const dc = 1.0994921 - 0.0009929 * S + 0.0000023 * S * S - 0.0001392 * age
   const pct = Math.max(0, Math.min(60, siri(dc)))

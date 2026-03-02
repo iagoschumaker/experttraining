@@ -267,13 +267,18 @@ export async function PUT(
       },
     })
 
-    // Server-side Pollock computation — always runs after saving
+    // Server-side Pollock computation — uses saved + existing client data
     const c = client as any
-    const savedGender = c.gender
-    const savedBirthDate = c.birthDate
-    const savedWeight = c.weight ? Number(c.weight) : null
+    // Use the updated client's data, fall back to existingClient for fields not in this update
+    const pollockGender = c.gender || (existingClient as any).gender
+    const pollockBirthDate = c.birthDate || (existingClient as any).birthDate
+    const pollockWeight = c.weight ? Number(c.weight) : (existingClient.weight ? Number(existingClient.weight) : null)
 
-    if (savedWeight && savedBirthDate && (savedGender === 'M' || savedGender === 'F')) {
+    console.log('[POLLOCK DEBUG] gender:', pollockGender, 'birthDate:', pollockBirthDate, 'weight:', pollockWeight)
+    console.log('[POLLOCK DEBUG] sfTriceps:', c.sfTriceps?.toString(), 'sfSuprailiac:', c.sfSuprailiac?.toString(), 'sfThigh:', c.sfThigh?.toString())
+    console.log('[POLLOCK DEBUG] sfChest:', c.sfChest?.toString(), 'sfAbdomen:', c.sfAbdomen?.toString())
+
+    if (pollockWeight && pollockBirthDate && (pollockGender === 'M' || pollockGender === 'F')) {
       const sfInput: SkinfoldsInput = {
         chest: c.sfChest ? Number(c.sfChest) : undefined,
         abdomen: c.sfAbdomen ? Number(c.sfAbdomen) : undefined,
@@ -283,8 +288,10 @@ export async function PUT(
         subscapular: c.sfSubscapular ? Number(c.sfSubscapular) : undefined,
         midaxillary: c.sfMidaxillary ? Number(c.sfMidaxillary) : undefined,
       }
-      const age = ageFromBirthDate(savedBirthDate)
-      const pollockResult = computePollock(sfInput, age, savedWeight, savedGender)
+      const age = ageFromBirthDate(pollockBirthDate)
+      console.log('[POLLOCK DEBUG] age:', age, 'sfInput:', JSON.stringify(sfInput))
+      const pollockResult = computePollock(sfInput, age, pollockWeight, pollockGender)
+      console.log('[POLLOCK DEBUG] result:', JSON.stringify(pollockResult))
       if (pollockResult) {
         // Update bodyFat with Pollock result
         await prisma.client.update({
@@ -292,7 +299,10 @@ export async function PUT(
           data: { bodyFat: pollockResult.bodyFatPercent },
         })
           ; (client as any).bodyFat = pollockResult.bodyFatPercent
+        console.log('[POLLOCK DEBUG] bodyFat saved:', pollockResult.bodyFatPercent)
       }
+    } else {
+      console.log('[POLLOCK DEBUG] SKIPPED - missing data. weight:', pollockWeight, 'birthDate:', pollockBirthDate, 'gender:', pollockGender)
     }
 
     // Auto-create bodyMetricsJson snapshot when body data changes
