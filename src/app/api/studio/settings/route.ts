@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       }),
       // Total de clientes
       prisma.client.count({
-        where: { studioId: studioId },
+        where: { studioId: studioId, status: 'ACTIVE' },
       }),
       // Último registro de uso (para pegar trainers ativos calculados)
       prisma.usageRecord.findFirst({
@@ -97,8 +97,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Calcular trainers ativos
-    const activeTrainers = activeTrainersData?.[0]?.count 
-      ? Number(activeTrainersData[0].count) 
+    const activeTrainers = activeTrainersData?.[0]?.count
+      ? Number(activeTrainersData[0].count)
       : (lastUsageRecord?.activeTrainers || 0)
 
     return NextResponse.json({

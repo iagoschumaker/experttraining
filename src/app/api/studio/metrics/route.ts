@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   const { studioId } = auth
   const { searchParams } = new URL(request.url)
-  
+
   // Período de análise (padrão: últimos 30 dias)
   const days = parseInt(searchParams.get('days') || '30')
   const startDate = new Date()
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // =========================================================================
     // MÉTRICAS GERAIS DO STUDIO
     // =========================================================================
-    
+
     const [
       totalClients,
       activeClients,
@@ -38,28 +38,28 @@ export async function GET(request: NextRequest) {
       completedLessons,
     ] = await Promise.all([
       // Total de clientes
-      prisma.client.count({ where: { studioId } }),
-      
+      prisma.client.count({ where: { studioId, status: 'ACTIVE' } }),
+
       // Clientes ativos
       prisma.client.count({ where: { studioId, status: 'ACTIVE' } }),
-      
+
       // Total de avaliações
       prisma.assessment.count({
         where: {
-          client: { studioId },
+          client: { studioId, status: 'ACTIVE' },
           createdAt: { gte: startDate },
         },
       }),
-      
+
       // Avaliações processadas
       prisma.assessment.count({
         where: {
-          client: { studioId },
+          client: { studioId, status: 'ACTIVE' },
           status: 'COMPLETED',
           createdAt: { gte: startDate },
         },
       }),
-      
+
       // Total de treinos
       prisma.workout.count({
         where: {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           createdAt: { gte: startDate },
         },
       }),
-      
+
       // Total de aulas
       prisma.lesson.count({
         where: {
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
           startedAt: { gte: startDate },
         },
       }),
-      
+
       // Aulas finalizadas
       prisma.lesson.count({
         where: {
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     // =========================================================================
     // MÉTRICAS POR TRAINER
     // =========================================================================
-    
+
     // Buscar todos os trainers do studio
     const trainers = await prisma.userStudio.findMany({
       where: {
@@ -123,9 +123,10 @@ export async function GET(request: NextRequest) {
             where: {
               studioId,
               trainerId,
+              status: 'ACTIVE',
             },
           }),
-          
+
           // Aulas realizadas no período
           prisma.lesson.count({
             where: {
@@ -135,16 +136,16 @@ export async function GET(request: NextRequest) {
               startedAt: { gte: startDate },
             },
           }),
-          
+
           // Avaliações realizadas no período
           prisma.assessment.count({
             where: {
               assessorId: trainerId,
-              client: { studioId },
+              client: { studioId, status: 'ACTIVE' },
               createdAt: { gte: startDate },
             },
           }),
-          
+
           // Última atividade (última aula)
           prisma.lesson.findFirst({
             where: {
@@ -180,7 +181,7 @@ export async function GET(request: NextRequest) {
     // =========================================================================
     // ALERTAS E INDICADORES
     // =========================================================================
-    
+
     const alerts: string[] = []
 
     // Trainer sem atividade
@@ -210,7 +211,7 @@ export async function GET(request: NextRequest) {
     // =========================================================================
     // RESPOSTA
     // =========================================================================
-    
+
     return NextResponse.json({
       success: true,
       data: {
