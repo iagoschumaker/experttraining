@@ -121,6 +121,7 @@ export default function ClientDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showMeasureHistory, setShowMeasureHistory] = useState(false)
+  const [compareIdx, setCompareIdx] = useState(0) // 0 = first assessment for comparison
 
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
@@ -462,7 +463,7 @@ export default function ClientDetailPage() {
 
 
 
-      {/* Composição Corporal & Medidas — COMPLETO */}
+      {/* Composição Corporal — Pollock & Comparação */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -479,151 +480,88 @@ export default function ClientDetailPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* ========== SEÇÃO 1: DADOS BASE ========== */}
-          {(client.weight || client.height || client.bodyFat) && (
-            <div className="space-y-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados Base</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { label: 'Peso', val: client.weight, unit: 'kg', color: 'text-blue-400' },
-                  { label: 'Altura', val: client.height, unit: 'cm', color: 'text-purple-400' },
-                  { label: '% Gordura', val: client.bodyFat, unit: '%', color: 'text-red-400' },
-                  { label: 'IMC', val: (client.weight && client.height) ? (Number(client.weight) / Math.pow(Number(client.height) / 100, 2)).toFixed(1) : null, unit: '', color: 'text-amber-400' },
-                ].map(({ label, val, unit, color }) => (
-                  <div key={label} className="rounded-xl border bg-card p-3 text-center">
-                    <div className={`text-lg font-bold ${color}`}>{val ? `${Number(val).toFixed ? Number(val).toFixed(1) : val}${unit}` : '—'}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* ========== SEÇÃO 2: COMPOSIÇÃO CORPORAL GRÁFICO ========== */}
+          {/* ========== POLLOCK: PIE CHART + DADOS ========== */}
           {client.weight && client.bodyFat && (() => {
             const w = Number(client.weight)
             const bf = Number(client.bodyFat)
             const fatKg = w * bf / 100
             const leanKg = w - fatKg
-            const fatPct = bf
             const leanPct = 100 - bf
-            const imc = client.height ? w / Math.pow(Number(client.height) / 100, 2) : 0
-
-            // IMC Classification
-            const imcZones = [
-              { label: 'Abaixo', min: 0, max: 18.5, color: 'bg-blue-500' },
-              { label: 'Normal', min: 18.5, max: 24.9, color: 'bg-green-500' },
-              { label: 'Sobrepeso', min: 25, max: 29.9, color: 'bg-yellow-500' },
-              { label: 'Obeso I', min: 30, max: 34.9, color: 'bg-orange-500' },
-              { label: 'Obeso II', min: 35, max: 39.9, color: 'bg-red-500' },
-              { label: 'Obeso III', min: 40, max: 60, color: 'bg-red-700' },
-            ]
-            const currentZone = imcZones.find(z => imc >= z.min && imc <= z.max) || imcZones[5]
-
-            // Body Fat Classification by gender
             const gender = client.gender
-            const bfClassification = gender === 'M'
+            const bfClass = gender === 'M'
               ? (bf < 6 ? 'Essencial' : bf < 14 ? 'Atleta' : bf < 18 ? 'Bom' : bf < 25 ? 'Normal' : 'Acima')
               : (bf < 14 ? 'Essencial' : bf < 21 ? 'Atleta' : bf < 25 ? 'Bom' : bf < 32 ? 'Normal' : 'Acima')
             const bfColor = gender === 'M'
               ? (bf < 6 ? 'text-blue-400' : bf < 14 ? 'text-green-400' : bf < 18 ? 'text-emerald-400' : bf < 25 ? 'text-yellow-400' : 'text-red-400')
               : (bf < 14 ? 'text-blue-400' : bf < 21 ? 'text-green-400' : bf < 25 ? 'text-emerald-400' : bf < 32 ? 'text-yellow-400' : 'text-red-400')
 
-            // Ideal weight range by IMC 18.5-24.9
-            const heightM = client.height ? Number(client.height) / 100 : 0
-            const idealMin = heightM > 0 ? (18.5 * heightM * heightM).toFixed(0) : null
-            const idealMax = heightM > 0 ? (24.9 * heightM * heightM).toFixed(0) : null
-
-            // RCQ (Relação Cintura-Quadril)
-            const rcq = (client.waist && client.hip) ? (Number(client.waist) / Number(client.hip)) : null
-            const rcqRisk = rcq ? (gender === 'M' ? (rcq > 0.95 ? 'Alto' : rcq > 0.85 ? 'Moderado' : 'Baixo') : (rcq > 0.85 ? 'Alto' : rcq > 0.75 ? 'Moderado' : 'Baixo')) : null
-            const rcqColor = rcqRisk === 'Alto' ? 'text-red-400' : rcqRisk === 'Moderado' ? 'text-yellow-400' : 'text-green-400'
-
             return (
               <div className="space-y-4">
-                <Separator />
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Análise Corporal</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Análise Pollock</p>
 
-                {/* Fat vs Lean Mass - Enhanced */}
-                <div className="rounded-xl border bg-gradient-to-r from-cyan-500/5 to-red-500/5 p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-cyan-400">{leanKg.toFixed(1)}<span className="text-sm">kg</span></div>
+                {/* Pie Chart + Data Grid */}
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  {/* CSS Pie Chart */}
+                  <div className="relative flex-shrink-0">
+                    <div
+                      className="w-36 h-36 rounded-full shadow-lg"
+                      style={{
+                        background: `conic-gradient(
+                          #22d3ee 0% ${leanPct}%,
+                          #f87171 ${leanPct}% 100%
+                        )`,
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-background flex flex-col items-center justify-center">
+                        <span className="text-lg font-bold">{bf.toFixed(1)}%</span>
+                        <span className="text-[10px] text-muted-foreground">Gordura</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Data Cards */}
+                  <div className="flex-1 grid grid-cols-2 gap-2 w-full">
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-xl font-bold text-blue-400">{w.toFixed(1)}<span className="text-xs">kg</span></div>
+                      <div className="text-xs text-muted-foreground">Peso</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-xl font-bold text-purple-400">{client.height ? Number(client.height).toFixed(0) : '—'}<span className="text-xs">cm</span></div>
+                      <div className="text-xs text-muted-foreground">Altura</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center bg-cyan-500/5">
+                      <div className="text-xl font-bold text-cyan-400">{leanKg.toFixed(1)}<span className="text-xs">kg</span></div>
                       <div className="text-xs text-muted-foreground">Massa Magra ({leanPct.toFixed(0)}%)</div>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold text-red-400">{fatKg.toFixed(1)}<span className="text-sm">kg</span></div>
-                      <div className="text-xs text-muted-foreground">Massa Gorda ({fatPct.toFixed(0)}%)</div>
+                    <div className="rounded-xl border p-3 text-center bg-red-500/5">
+                      <div className="text-xl font-bold text-red-400">{fatKg.toFixed(1)}<span className="text-xs">kg</span></div>
+                      <div className="text-xs text-muted-foreground">Massa Gorda ({bf.toFixed(0)}%)</div>
                     </div>
-                  </div>
-                  <div className="w-full h-5 rounded-full overflow-hidden flex shadow-inner bg-muted/30">
-                    <div className="bg-gradient-to-r from-cyan-400 to-cyan-500 h-full transition-all relative" style={{ width: `${leanPct}%` }}>
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{leanPct.toFixed(0)}%</span>
-                    </div>
-                    <div className="bg-gradient-to-r from-red-400 to-red-500 h-full transition-all relative" style={{ width: `${fatPct}%` }}>
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{fatPct.toFixed(0)}%</span>
-                    </div>
-                  </div>
-                  {/* Body Fat Classification */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Classificação % Gordura ({gender === 'M' ? 'Masc.' : gender === 'F' ? 'Fem.' : '—'}):</span>
-                    <span className={`font-bold ${bfColor}`}>{bfClassification}</span>
                   </div>
                 </div>
 
-                {/* IMC Gauge */}
-                {imc > 0 && (
-                  <div className="rounded-xl border p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Índice de Massa Corporal (IMC)</span>
-                      <span className="text-lg font-bold">{imc.toFixed(1)}</span>
-                    </div>
-                    <div className="w-full h-3 rounded-full overflow-hidden flex">
-                      {imcZones.map(z => (
-                        <div key={z.label} className={`${z.color} h-full flex-1 relative`}>
-                          {imc >= z.min && imc <= z.max && (
-                            <div className="absolute -top-1 w-3 h-5 bg-white border-2 border-foreground rounded-sm"
-                              style={{ left: `${((imc - z.min) / (z.max - z.min)) * 100}%`, transform: 'translateX(-50%)' }} />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      {imcZones.map(z => <span key={z.label}>{z.label}</span>)}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs mt-1">
-                      <span className="text-muted-foreground">Classificação:</span>
-                      <Badge variant="outline" className="text-xs">{currentZone.label}</Badge>
-                    </div>
-                    {idealMin && idealMax && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted-foreground">Peso ideal (IMC 18.5-24.9):</span>
-                        <span className="font-semibold text-green-400">{idealMin}kg — {idealMax}kg</span>
-                      </div>
-                    )}
+                {/* Massa Magra vs Gorda — Bar */}
+                <div className="w-full h-5 rounded-full overflow-hidden flex shadow-inner bg-muted/30">
+                  <div className="bg-gradient-to-r from-cyan-400 to-cyan-500 h-full transition-all relative" style={{ width: `${leanPct}%` }}>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">Magra {leanPct.toFixed(0)}%</span>
                   </div>
-                )}
+                  <div className="bg-gradient-to-r from-red-400 to-red-500 h-full transition-all relative" style={{ width: `${bf}%` }}>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">Gorda {bf.toFixed(0)}%</span>
+                  </div>
+                </div>
 
-                {/* RCQ */}
-                {rcq && (
-                  <div className="rounded-xl border p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium">RCQ — Relação Cintura-Quadril</span>
-                        <p className="text-xs text-muted-foreground">Cintura {Number(client.waist).toFixed(0)}cm ÷ Quadril {Number(client.hip).toFixed(0)}cm</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold">{rcq.toFixed(2)}</div>
-                        <div className={`text-xs font-semibold ${rcqColor}`}>Risco {rcqRisk}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* Classification */}
+                <div className="flex items-center justify-between text-xs rounded-lg border p-2">
+                  <span className="text-muted-foreground">Classificação ({gender === 'M' ? 'Masculino' : gender === 'F' ? 'Feminino' : '—'}):</span>
+                  <span className={`font-bold text-sm ${bfColor}`}>{bfClass}</span>
+                </div>
               </div>
             )
           })()}
 
-          {/* ========== SEÇÃO 3: DOBRAS CUTÂNEAS (POLLOCK) ========== */}
+          {/* ========== DOBRAS CUTÂNEAS (POLLOCK) ========== */}
           {(client.sfChest || client.sfAbdomen || client.sfThigh || client.sfTriceps || client.sfSuprailiac || client.sfSubscapular || client.sfMidaxillary) && (() => {
             const skinfolds = [
               { label: 'Peitoral', val: client.sfChest, icon: '🫁' },
@@ -636,14 +574,13 @@ export default function ClientDetailPage() {
             ].filter(s => s.val)
             const sumSf = skinfolds.reduce((acc, s) => acc + Number(s.val), 0)
             const maxSf = Math.max(...skinfolds.map(s => Number(s.val)))
-            const methodUsed = skinfolds.length >= 7 ? 'Pollock 7 Dobras' : skinfolds.length >= 3 ? 'Pollock 3 Dobras' : 'Parcial'
-
+            const method = skinfolds.length >= 7 ? 'Pollock 7 Dobras' : skinfolds.length >= 3 ? 'Pollock 3 Dobras' : 'Parcial'
             return (
               <div className="space-y-3">
                 <Separator />
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dobras Cutâneas (mm)</p>
-                  <Badge variant="outline" className="text-xs">{methodUsed}</Badge>
+                  <Badge variant="outline" className="text-xs">{method}</Badge>
                 </div>
                 <div className="space-y-2">
                   {skinfolds.map(({ label, val, icon }) => (
@@ -666,7 +603,7 @@ export default function ClientDetailPage() {
             )
           })()}
 
-          {/* ========== SEÇÃO 4: CIRCUNFERÊNCIAS ========== */}
+          {/* ========== CIRCUNFERÊNCIAS ========== */}
           {(client.chest || client.waist || client.hip || client.abdomen || client.armRight || client.thighRight) && (() => {
             const measurements = [
               { label: 'Peitoral', val: client.chest, color: 'from-blue-400 to-blue-500' },
@@ -675,15 +612,14 @@ export default function ClientDetailPage() {
               { label: 'Abdômen', val: client.abdomen, color: 'from-indigo-400 to-indigo-500' },
               { label: 'Braço Dir.', val: client.armRight, color: 'from-cyan-400 to-cyan-500' },
               { label: 'Braço Esq.', val: client.armLeft, color: 'from-cyan-400 to-cyan-500' },
-              { label: 'Antebraço Dir.', val: client.forearmRight, color: 'from-teal-400 to-teal-500' },
-              { label: 'Antebraço Esq.', val: client.forearmLeft, color: 'from-teal-400 to-teal-500' },
+              { label: 'Anteb. Dir.', val: client.forearmRight, color: 'from-teal-400 to-teal-500' },
+              { label: 'Anteb. Esq.', val: client.forearmLeft, color: 'from-teal-400 to-teal-500' },
               { label: 'Coxa Dir.', val: client.thighRight, color: 'from-emerald-400 to-emerald-500' },
               { label: 'Coxa Esq.', val: client.thighLeft, color: 'from-emerald-400 to-emerald-500' },
               { label: 'Pant. Dir.', val: client.calfRight, color: 'from-green-400 to-green-500' },
               { label: 'Pant. Esq.', val: client.calfLeft, color: 'from-green-400 to-green-500' },
             ].filter(m => m.val)
             const maxVal = Math.max(...measurements.map(m => Number(m.val)))
-
             return (
               <div className="space-y-3">
                 <Separator />
@@ -691,7 +627,7 @@ export default function ClientDetailPage() {
                 <div className="space-y-2">
                   {measurements.map(({ label, val, color }) => (
                     <div key={label} className="flex items-center gap-2">
-                      <span className="text-xs w-28 text-muted-foreground">{label}</span>
+                      <span className="text-xs w-24 text-muted-foreground">{label}</span>
                       <div className="flex-1 h-3 rounded-full bg-muted/30 overflow-hidden">
                         <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all`}
                           style={{ width: `${(Number(val) / maxVal) * 100}%` }} />
@@ -704,59 +640,107 @@ export default function ClientDetailPage() {
             )
           })()}
 
-          {/* ========== SEÇÃO 5: HISTÓRICO AVALIAÇÕES ========== */}
-          {client.assessments.some(a => a.bodyMetricsJson) && (
-            <div>
-              <Separator className="my-2" />
-              <button
-                onClick={() => setShowMeasureHistory(prev => !prev)}
-                className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
-              >
-                <span className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  Histórico de Medidas ({client.assessments.filter(a => a.bodyMetricsJson).length} avaliações)
-                </span>
-                {showMeasureHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
+          {/* ========== COMPARAÇÃO DE AVALIAÇÕES ========== */}
+          {client.assessments.filter(a => a.bodyMetricsJson).length >= 1 && (() => {
+            const evals = client.assessments.filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+            // Current = latest client data
+            const currentData: Record<string, number> = {}
+            if (client.weight) currentData.weight = Number(client.weight)
+            if (client.bodyFat) currentData.bodyFat = Number(client.bodyFat)
+            if (client.chest) currentData.chest = Number(client.chest)
+            if (client.waist) currentData.waist = Number(client.waist)
+            if (client.hip) currentData.hip = Number(client.hip)
+            if (client.armRight) currentData.arm_right = Number(client.armRight)
+            if (client.thighRight) currentData.thigh_right = Number(client.thighRight)
+            if (client.calfRight) currentData.calf_right = Number(client.calfRight)
 
-              {showMeasureHistory && (
-                <div className="mt-3 space-y-3">
-                  {client.assessments
-                    .filter(a => a.bodyMetricsJson)
-                    .map(assessment => {
-                      const m = assessment.bodyMetricsJson as Record<string, number>
+            const compareData = evals[compareIdx]?.bodyMetricsJson as Record<string, number> | null
+            const metrics = [
+              { label: 'Peso', key: 'weight', unit: 'kg' },
+              { label: '% Gordura', key: 'bodyFat', unit: '%' },
+              { label: 'Peitoral', key: 'chest', unit: 'cm' },
+              { label: 'Cintura', key: 'waist', unit: 'cm' },
+              { label: 'Quadril', key: 'hip', unit: 'cm' },
+              { label: 'Braço D', key: 'arm_right', unit: 'cm' },
+              { label: 'Coxa D', key: 'thigh_right', unit: 'cm' },
+              { label: 'Pant. D', key: 'calf_right', unit: 'cm' },
+            ]
+
+            return (
+              <div className="space-y-3">
+                <Separator />
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">📊 Comparação de Avaliações</p>
+                </div>
+
+                {/* Date Selector */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Comparar com:</span>
+                  <select
+                    className="text-xs rounded-md border bg-background px-2 py-1"
+                    value={compareIdx}
+                    onChange={(e) => setCompareIdx(Number(e.target.value))}
+                  >
+                    {evals.map((ev, i) => (
+                      <option key={ev.id} value={i}>
+                        {new Date(ev.createdAt).toLocaleDateString('pt-BR')} {i === 0 ? '(primeira)' : i === evals.length - 1 ? '(última)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-muted-foreground">→ Dados atuais</span>
+                </div>
+
+                {/* Comparison Bars */}
+                {compareData && (
+                  <div className="space-y-3">
+                    {metrics.map(({ label, key, unit }) => {
+                      const prev = compareData[key]
+                      const curr = currentData[key]
+                      if (prev == null && curr == null) return null
+                      const prevVal = prev ?? 0
+                      const currVal = curr ?? 0
+                      const delta = currVal - prevVal
+                      const maxBar = Math.max(prevVal, currVal) || 1
+                      const isGood = key === 'bodyFat' || key === 'waist' ? delta < 0 : delta > 0
+
                       return (
-                        <div key={assessment.id} className="rounded-lg border p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium">{formatDate(assessment.createdAt)}</span>
-                            <Link href={`/assessments/${assessment.id}`}>
-                              <Button variant="ghost" size="sm" className="h-6 text-xs px-2">Ver avaliação</Button>
-                            </Link>
+                        <div key={key} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium">{label}</span>
+                            {delta !== 0 && prev != null && curr != null && (
+                              <span className={`font-bold ${isGood ? 'text-green-400' : 'text-red-400'}`}>
+                                {delta > 0 ? '+' : ''}{delta.toFixed(1)}{unit} {isGood ? '✓' : '⚠'}
+                              </span>
+                            )}
                           </div>
-                          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
-                            {[
-                              { label: 'Peso', key: 'weight', unit: 'kg' },
-                              { label: '% Gord.', key: 'bodyFat', unit: '%' },
-                              { label: 'Cintura', key: 'waist', unit: 'cm' },
-                              { label: 'Peitoral', key: 'chest', unit: 'cm' },
-                              { label: 'Braço D', key: 'arm_right', unit: 'cm' },
-                              { label: 'Coxa D', key: 'thigh_right', unit: 'cm' },
-                            ].map(({ label, key, unit }) => m[key] != null ? (
-                              <div key={key} className="text-center bg-muted/30 rounded p-1">
-                                <div className="font-semibold">{Number(m[key]).toFixed(1)}{unit === '%' ? '%' : ''}</div>
-                                <div className="text-muted-foreground">{label}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] w-12 text-right text-muted-foreground">{prev != null ? prevVal.toFixed(1) : '—'}</span>
+                            <div className="flex-1 space-y-[2px]">
+                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-slate-400 to-slate-500 rounded-full transition-all"
+                                  style={{ width: prev != null ? `${(prevVal / maxBar) * 100}%` : '0%' }} />
                               </div>
-                            ) : null)}
+                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                                <div className={`h-full rounded-full transition-all ${isGood ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-amber-400 to-amber-500'}`}
+                                  style={{ width: curr != null ? `${(currVal / maxBar) * 100}%` : '0%' }} />
+                              </div>
+                            </div>
+                            <span className="text-[10px] w-12 text-right font-bold">{curr != null ? currVal.toFixed(1) : '—'}</span>
+                          </div>
+                          <div className="flex justify-between text-[9px] text-muted-foreground px-14">
+                            <span>Anterior</span>
+                            <span>Atual</span>
                           </div>
                         </div>
                       )
                     })}
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
-          {!client.chest && !client.waist && !client.weight && !client.armRight && !client.assessments.some(a => a.bodyMetricsJson) && (
+          {!client.chest && !client.waist && !client.weight && !client.armRight && !client.sfChest && !(client.assessments?.some(a => a.bodyMetricsJson)) && (
             <p className="text-center text-sm text-muted-foreground py-2">
               Nenhuma medida registrada. <Link href={`/clients/${client.id}/edit`} className="text-amber-500 hover:underline">Adicionar medidas</Link>
             </p>
