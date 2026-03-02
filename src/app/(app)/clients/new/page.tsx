@@ -215,6 +215,14 @@ export default function NewClientPage() {
         thighLeft: formData.thighLeft ? parseFloat(formData.thighLeft) : null,
         calfRight: formData.calfRight ? parseFloat(formData.calfRight) : null,
         calfLeft: formData.calfLeft ? parseFloat(formData.calfLeft) : null,
+        // Dobras cutâneas
+        sfChest: formData.sfChest ? parseFloat(formData.sfChest) : null,
+        sfAbdomen: formData.sfAbdomen ? parseFloat(formData.sfAbdomen) : null,
+        sfThigh: formData.sfThigh ? parseFloat(formData.sfThigh) : null,
+        sfTriceps: formData.sfTriceps ? parseFloat(formData.sfTriceps) : null,
+        sfSuprailiac: formData.sfSuprailiac ? parseFloat(formData.sfSuprailiac) : null,
+        sfSubscapular: formData.sfSubscapular ? parseFloat(formData.sfSubscapular) : null,
+        sfMidaxillary: formData.sfMidaxillary ? parseFloat(formData.sfMidaxillary) : null,
       }
 
       const res = await fetch('/api/studio/clients', {

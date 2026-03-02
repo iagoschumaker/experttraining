@@ -227,6 +227,14 @@ model Client {
   thighLeft     Decimal?       @map("thigh_left") @db.Decimal(5, 2)
   calfRight     Decimal?       @map("calf_right") @db.Decimal(5, 2)
   calfLeft      Decimal?       @map("calf_left") @db.Decimal(5, 2)
+  // Dobras cutâneas (mm) — para cálculo Pollock
+  sfChest       Decimal?       @map("sf_chest") @db.Decimal(5, 2)
+  sfAbdomen     Decimal?       @map("sf_abdomen") @db.Decimal(5, 2)
+  sfThigh       Decimal?       @map("sf_thigh") @db.Decimal(5, 2)
+  sfTriceps     Decimal?       @map("sf_triceps") @db.Decimal(5, 2)
+  sfSuprailiac  Decimal?       @map("sf_suprailiac") @db.Decimal(5, 2)
+  sfSubscapular Decimal?       @map("sf_subscapular") @db.Decimal(5, 2)
+  sfMidaxillary Decimal?       @map("sf_midaxillary") @db.Decimal(5, 2)
   assessments   Assessment[]
   studio        Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
   trainer       User?          @relation("ClientTrainer", fields: [trainerId], references: [id])

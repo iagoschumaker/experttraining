@@ -185,14 +185,14 @@ export default function EditClientPage() {
             thighLeft: client.thighLeft ? String(client.thighLeft) : '',
             calfRight: client.calfRight ? String(client.calfRight) : '',
             calfLeft: client.calfLeft ? String(client.calfLeft) : '',
-            // Dobras cutâneas não armazenadas no cliente — inicializar vazias
-            sfChest: '',
-            sfAbdomen: '',
-            sfThigh: '',
-            sfTriceps: '',
-            sfSuprailiac: '',
-            sfSubscapular: '',
-            sfMidaxillary: '',
+            // Dobras cutâneas — carregar dados salvos se existirem
+            sfChest: client.sfChest ? String(client.sfChest) : '',
+            sfAbdomen: client.sfAbdomen ? String(client.sfAbdomen) : '',
+            sfThigh: client.sfThigh ? String(client.sfThigh) : '',
+            sfTriceps: client.sfTriceps ? String(client.sfTriceps) : '',
+            sfSuprailiac: client.sfSuprailiac ? String(client.sfSuprailiac) : '',
+            sfSubscapular: client.sfSubscapular ? String(client.sfSubscapular) : '',
+            sfMidaxillary: client.sfMidaxillary ? String(client.sfMidaxillary) : '',
           })
 
           // Then fetch trainers from the client's studio
@@ -284,6 +284,14 @@ export default function EditClientPage() {
         const pollockResult = computePollock(sf, age, clientWeight, clientGender)
         if (pollockResult) updateData.bodyFat = pollockResult.bodyFatPercent
       }
+      // Save skinfold values to database
+      updateData.sfChest = formData.sfChest ? parseFloat(formData.sfChest) : null
+      updateData.sfAbdomen = formData.sfAbdomen ? parseFloat(formData.sfAbdomen) : null
+      updateData.sfThigh = formData.sfThigh ? parseFloat(formData.sfThigh) : null
+      updateData.sfTriceps = formData.sfTriceps ? parseFloat(formData.sfTriceps) : null
+      updateData.sfSuprailiac = formData.sfSuprailiac ? parseFloat(formData.sfSuprailiac) : null
+      updateData.sfSubscapular = formData.sfSubscapular ? parseFloat(formData.sfSubscapular) : null
+      updateData.sfMidaxillary = formData.sfMidaxillary ? parseFloat(formData.sfMidaxillary) : null
 
       const res = await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
