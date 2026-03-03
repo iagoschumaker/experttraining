@@ -1,110 +1,69 @@
 'use client'
 
 // ============================================================================
-// EXPERT PRO TRAINING - PRESENÇA (CHECK-IN) + SESSÃO EM GRUPO (MULTI-TABS)
+// EXPERT PRO TRAINING - PRESENÇA (CHECK-IN) + SESSÃO EM GRUPO (SERVER-SIDE)
 // ============================================================================
-// - Multi-select → sessões em abas → check-in ao FINALIZAR sessão
-// - Sessions persistem em localStorage (sobrevivem navegação)
-// - Botões flutuantes: "+ Aluno" e "Finalizar Sessão"
+// - Sessions stored server-side → sync across devices
+// - Per-trainer isolation: each trainer sees only their sessions
+// - Cross-trainer: students in any session show "em sessão" badge
+// - Check-in only on "Finalizar Sessão"
+// - Polls every 10s for session updates
 // ============================================================================
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-    UserCheck,
-    Search,
-    Loader2,
-    CheckCircle,
-    Dumbbell,
-    Activity,
-    Clock,
-    AlertCircle,
-    Users,
-    Plus,
-    X,
-    ChevronDown,
-    ChevronUp,
-    Weight,
-    ArrowLeft,
-    UserPlus,
-    Flag,
+    UserCheck, Search, Loader2, CheckCircle, AlertCircle,
+    Users, Plus, X, ChevronDown, ChevronUp, Weight,
+    ArrowLeft, UserPlus, Flag,
 } from 'lucide-react'
 
 // ============================================================================
 // TYPES
 // ============================================================================
 interface Client {
-    id: string
-    name: string
-    email: string | null
-    status: string
-    level?: string
+    id: string; name: string; email: string | null; status: string; level?: string
 }
 
 interface SessionExercise {
-    name: string
-    sets: number
-    reps: string
-    rest: string
-    role: string
-    weight?: string | null
-    blockIdx?: number
-    exerciseIdx?: number
+    name: string; sets: number; reps: string; rest: string; role: string
+    weight?: string | null; blockIdx?: number; exerciseIdx?: number
 }
 
 interface SessionData {
     session: {
-        dayIndex: number
-        pillarLabel: string
-        exercises: SessionExercise[]
+        dayIndex: number; pillarLabel: string; exercises: SessionExercise[]
         periodization: { phase: string; phaseLabel: string; week: number }
         preparation?: any
         blocks?: Array<{ code: string; name: string; exercises: SessionExercise[] }>
         finalProtocol?: any
     }
     progress: {
-        attendanceRate: number
-        attendanceRateLabel: string
-        attendanceStatus: string
-        currentWeek: number
-        currentPhaseLabel: string
-        sessionsCompleted: number
-        sessionsExpectedByNow: number
-        canReassess: boolean
-        mustExtend: boolean
-        isComplete: boolean
+        attendanceRate: number; attendanceRateLabel: string; attendanceStatus: string
+        currentWeek: number; currentPhaseLabel: string
+        sessionsCompleted: number; sessionsExpectedByNow: number
+        canReassess: boolean; mustExtend: boolean; isComplete: boolean
     }
-    client: { id: string; name: string }
-    workoutName: string
-    checkedInToday?: boolean
-    todayLesson?: {
-        id: string; date: string; startedAt: string; endedAt: string
-        focus: string | null; sessionIndex: number; weekIndex: number
-    } | null
+    client: { id: string; name: string }; workoutName: string; checkedInToday?: boolean
+    todayLesson?: { id: string; date: string; startedAt: string; endedAt: string; focus: string | null; sessionIndex: number; weekIndex: number } | null
 }
 
-interface GroupStudent {
-    client: Client
-    workoutId: string
+interface StudentEntry { clientId: string; workoutId: string; clientName: string }
+
+interface ServerSession {
+    id: string; label: string; students: StudentEntry[]
+    createdAt: string; finalized: boolean
+}
+
+// Local state per student card
+interface StudentCard {
+    entry: StudentEntry
     sessionData: SessionData | null
-    loading: boolean
-    checkedIn: boolean
-    error: string | null
-    collapsed: boolean
+    loading: boolean; checkedIn: boolean; error: string | null; collapsed: boolean
 }
-
-interface SessionTab {
-    id: string
-    label: string
-    students: GroupStudent[]
-    createdAt: string // ISO string for JSON serialization
-    finalized: boolean
-}
-
-const STORAGE_KEY = 'expertpro_sessions'
 
 // ============================================================================
 // MAIN COMPONENT
@@ -116,54 +75,40 @@ export default function PresencaPage() {
     const [loadingClients, setLoadingClients] = useState(true)
     const [clientWorkoutMap, setClientWorkoutMap] = useState<Map<string, string>>(new Map())
 
-    // Multi-select
+    // Selection
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [startingSession, setStartingSession] = useState(false)
 
-    // Multiple session tabs — loaded from localStorage
-    const [sessions, setSessions] = useState<SessionTab[]>([])
+    // Server sessions
+    const [serverSessions, setServerSessions] = useState<ServerSession[]>([])
     const [activeTabId, setActiveTabId] = useState<string | null>(null)
+    const [loadingSessions, setLoadingSessions] = useState(true)
+
+    // Student cards (populated client-side from next-session API)
+    const [cardsBySession, setCardsBySession] = useState<Map<string, StudentCard[]>>(new Map())
+
+    // Active clients in studio (cross-trainer)
+    const [activeClientIds, setActiveClientIds] = useState<Map<string, string>>(new Map()) // clientId → trainerId
+
+    // UI
     const [showAddStudent, setShowAddStudent] = useState(false)
     const [addStudentSearch, setAddStudentSearch] = useState('')
     const [finalizingSession, setFinalizingSession] = useState(false)
-
-    // Weight saving
     const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
 
-    const activeSession = sessions.find(s => s.id === activeTabId) || null
-
-    // ========================================================================
-    // PERSISTENCE — save sessions to localStorage
-    // ========================================================================
-    const isInitialLoad = useRef(true)
-
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY)
-            if (saved) {
-                const parsed = JSON.parse(saved) as SessionTab[]
-                // Only restore non-finalized sessions from today
-                const today = new Date().toDateString()
-                const valid = parsed.filter(s => !s.finalized && new Date(s.createdAt).toDateString() === today)
-                if (valid.length > 0) {
-                    setSessions(valid)
-                }
-            }
-        } catch { }
-        isInitialLoad.current = false
-    }, [])
-
-    useEffect(() => {
-        if (isInitialLoad.current) return
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
-        } catch { }
-    }, [sessions])
+    const activeSession = serverSessions.find(s => s.id === activeTabId) || null
+    const activeCards = activeTabId ? (cardsBySession.get(activeTabId) || []) : []
 
     // ========================================================================
     // DATA LOADING
     // ========================================================================
-    useEffect(() => { loadClients() }, [])
+    useEffect(() => { loadClients(); loadSessions(); loadActiveClients() }, [])
+
+    // Poll for active sessions + active clients every 10s
+    useEffect(() => {
+        const interval = setInterval(() => { loadSessions(); loadActiveClients() }, 10000)
+        return () => clearInterval(interval)
+    }, [])
 
     useEffect(() => {
         if (!searchQuery.trim()) { setClients(allClients); return }
@@ -184,199 +129,261 @@ export default function PresencaPage() {
                 const items = data.data?.items || data.data || []
                 for (const w of items) {
                     if (w.isActive && w.client && !cMap.has(w.client.id)) {
-                        cMap.set(w.client.id, {
-                            id: w.client.id, name: w.client.name,
-                            email: w.client.email || null, status: 'ACTIVE', level: w.client.level,
-                        })
+                        cMap.set(w.client.id, { id: w.client.id, name: w.client.name, email: w.client.email || null, status: 'ACTIVE', level: w.client.level })
                         wMap.set(w.client.id, w.id)
                     }
                 }
                 const sorted = Array.from(cMap.values()).sort((a, b) => a.name.localeCompare(b.name))
-                setAllClients(sorted)
-                setClients(sorted)
-                setClientWorkoutMap(wMap)
+                setAllClients(sorted); setClients(sorted); setClientWorkoutMap(wMap)
             }
-        } catch (err) { console.error('Error loading clients:', err) }
+        } catch (err) { console.error(err) }
         finally { setLoadingClients(false) }
     }
 
+    async function loadSessions() {
+        try {
+            const res = await fetch('/api/studio/training-sessions')
+            const data = await res.json()
+            if (data.success) {
+                const sessions = data.data as ServerSession[]
+                setServerSessions(sessions)
+
+                // Auto-load card data for any session that doesn't have it yet
+                for (const session of sessions) {
+                    if (!cardsBySession.get(session.id)) {
+                        loadSessionCards(session)
+                    }
+                }
+            }
+        } catch (err) { console.error(err) }
+        finally { setLoadingSessions(false) }
+    }
+
+    async function loadActiveClients() {
+        try {
+            const res = await fetch('/api/studio/training-sessions/active-clients')
+            const data = await res.json()
+            if (data.success) {
+                const map = new Map<string, string>()
+                for (const item of data.data) { map.set(item.clientId, item.trainerId) }
+                setActiveClientIds(map)
+            }
+        } catch { }
+    }
+
+    // Load workout data for all students in a session
+    async function loadSessionCards(session: ServerSession) {
+        const initialCards: StudentCard[] = session.students.map(entry => ({
+            entry, sessionData: null, loading: true, checkedIn: false, error: null, collapsed: false,
+        }))
+        setCardsBySession(prev => new Map(prev).set(session.id, initialCards))
+
+        const loaded = await Promise.all(session.students.map(async (entry) => {
+            if (!entry.workoutId) return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Sem treino ativo', collapsed: false } as StudentCard
+            try {
+                const res = await fetch(`/api/studio/workouts/${entry.workoutId}/next-session`)
+                const data = await res.json()
+                if (!data.success) return { entry, sessionData: null, loading: false, checkedIn: false, error: data.error || 'Erro', collapsed: false } as StudentCard
+                const sd = data.data as SessionData
+                return { entry, sessionData: sd, loading: false, checkedIn: sd.checkedInToday || false, error: null, collapsed: false } as StudentCard
+            } catch { return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Erro de conexão', collapsed: false } as StudentCard }
+        }))
+
+        setCardsBySession(prev => new Map(prev).set(session.id, loaded))
+    }
+
     // ========================================================================
-    // SELECTION LOGIC
+    // SELECTION
     // ========================================================================
     function toggleSelect(id: string) {
-        setSelectedIds(prev => {
-            const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
-        })
+        setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
     }
-    function selectAll() { setSelectedIds(new Set(clients.map(c => c.id))) }
+    function selectAll() { setSelectedIds(new Set(clients.filter(c => !activeClientIds.has(c.id)).map(c => c.id))) }
     function deselectAll() { setSelectedIds(new Set()) }
 
     // ========================================================================
-    // SESSION MANAGEMENT — NO auto check-in on start
+    // SESSION MANAGEMENT — Server-side
     // ========================================================================
     async function startGroupSession() {
         setStartingSession(true)
         const selected = allClients.filter(c => selectedIds.has(c.id))
-        const tabId = `session-${Date.now()}`
+        const students: StudentEntry[] = selected.map(c => ({
+            clientId: c.id,
+            workoutId: clientWorkoutMap.get(c.id) || '',
+            clientName: c.name,
+        }))
         const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
-        const students: GroupStudent[] = selected.map(c => ({
-            client: c, workoutId: clientWorkoutMap.get(c.id) || '',
-            sessionData: null, loading: true, checkedIn: false, error: null, collapsed: false,
-        }))
-
-        const newTab: SessionTab = {
-            id: tabId, label: `${time} · ${selected.length} alunos`,
-            students, createdAt: new Date().toISOString(), finalized: false,
-        }
-        setSessions(prev => [...prev, newTab])
-        setActiveTabId(tabId)
-        setSelectedIds(new Set())
-
-        // Load sessions in parallel — but DO NOT check-in yet
-        const results = await Promise.all(students.map(async (student) => {
-            if (!student.workoutId) return { ...student, loading: false, error: 'Sem treino ativo' }
-            try {
-                const res = await fetch(`/api/studio/workouts/${student.workoutId}/next-session`)
-                const data = await res.json()
-                if (!data.success) return { ...student, loading: false, error: data.error || 'Erro' }
-                const sessionData = data.data as SessionData
-                const alreadyCheckedIn = sessionData.checkedInToday || false
-                return { ...student, sessionData, loading: false, checkedIn: alreadyCheckedIn, error: null }
-            } catch { return { ...student, loading: false, error: 'Erro de conexão' } }
-        }))
-
-        setSessions(prev => prev.map(s => s.id === tabId ? { ...s, students: results } : s))
-        setStartingSession(false)
+        try {
+            const res = await fetch('/api/studio/training-sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ students, label: `${time} · ${selected.length} alunos` }),
+            })
+            const data = await res.json()
+            if (data.success) {
+                const newSession = data.data as ServerSession
+                setServerSessions(prev => [...prev, newSession])
+                setActiveTabId(newSession.id)
+                setSelectedIds(new Set())
+                loadSessionCards(newSession)
+                loadActiveClients()
+            } else {
+                alert(data.error || 'Erro ao criar sessão')
+            }
+        } catch (err) { alert('Erro de conexão') }
+        finally { setStartingSession(false) }
     }
 
-    // Add late student — also NO auto check-in
-    async function addLateStudent(client: Client, tabId: string) {
+    async function addLateStudent(client: Client) {
+        if (!activeTabId || !activeSession) return
         const workoutId = clientWorkoutMap.get(client.id)
         if (!workoutId) return
-        setShowAddStudent(false)
-        setAddStudentSearch('')
+        setShowAddStudent(false); setAddStudentSearch('')
 
-        const newStudent: GroupStudent = {
-            client, workoutId, sessionData: null,
-            loading: true, checkedIn: false, error: null, collapsed: false,
-        }
-
-        setSessions(prev => prev.map(s =>
-            s.id === tabId ? { ...s, students: [...s.students, newStudent] } : s
-        ))
+        const entry: StudentEntry = { clientId: client.id, workoutId, clientName: client.name }
 
         try {
-            const res = await fetch(`/api/studio/workouts/${workoutId}/next-session`)
+            const res = await fetch(`/api/studio/training-sessions/${activeTabId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ addStudent: entry }),
+            })
             const data = await res.json()
-            if (!data.success) {
-                updateStudent(tabId, client.id, { loading: false, error: data.error || 'Erro' })
-                return
-            }
-            const sessionData = data.data as SessionData
-            const alreadyCheckedIn = sessionData.checkedInToday || false
-            updateStudent(tabId, client.id, { sessionData, loading: false, checkedIn: alreadyCheckedIn, error: null })
-        } catch {
-            updateStudent(tabId, client.id, { loading: false, error: 'Erro de conexão' })
-        }
-    }
+            if (!data.success) { alert(data.error || 'Erro'); return }
 
-    function updateStudent(tabId: string, clientId: string, updates: Partial<GroupStudent>) {
-        setSessions(prev => prev.map(s =>
-            s.id === tabId ? { ...s, students: s.students.map(st => st.client.id === clientId ? { ...st, ...updates } : st) } : s
-        ))
-    }
+            // Update server sessions
+            setServerSessions(prev => prev.map(s => s.id === activeTabId ? { ...s, students: data.data.students } : s))
+            loadActiveClients()
 
-    function removeFromSession(tabId: string, clientId: string) {
-        setSessions(prev => prev.map(s =>
-            s.id === tabId ? { ...s, students: s.students.filter(st => st.client.id !== clientId) } : s
-        ))
-    }
+            // Load workout data for new student
+            const newCard: StudentCard = { entry, sessionData: null, loading: true, checkedIn: false, error: null, collapsed: false }
+            setCardsBySession(prev => {
+                const m = new Map(prev)
+                const cards = m.get(activeTabId!) || []
+                m.set(activeTabId!, [...cards, newCard])
+                return m
+            })
 
-    // FINALIZE SESSION — this does the ACTUAL check-in for each student
-    async function finalizeSession(tabId: string) {
-        setFinalizingSession(true)
-        const session = sessions.find(s => s.id === tabId)
-        if (!session) { setFinalizingSession(false); return }
-
-        // Check-in each student who hasn't been checked in yet
-        const checkInPromises = session.students.map(async (student) => {
-            if (student.checkedIn || !student.sessionData || student.error || student.sessionData.progress.isComplete) {
-                return student
-            }
             try {
-                const res = await fetch(`/api/studio/workouts/${student.workoutId}/next-session`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                const wRes = await fetch(`/api/studio/workouts/${workoutId}/next-session`)
+                const wData = await wRes.json()
+                const card: StudentCard = wData.success
+                    ? { entry, sessionData: wData.data, loading: false, checkedIn: wData.data.checkedInToday || false, error: null, collapsed: false }
+                    : { entry, sessionData: null, loading: false, checkedIn: false, error: wData.error || 'Erro', collapsed: false }
+                setCardsBySession(prev => {
+                    const m = new Map(prev)
+                    const cards = m.get(activeTabId!) || []
+                    m.set(activeTabId!, cards.map(c => c.entry.clientId === client.id ? card : c))
+                    return m
                 })
-                const data = await res.json()
-                if (data.success) {
-                    return { ...student, checkedIn: true }
-                }
-                return student
-            } catch { return student }
-        })
-
-        const results = await Promise.all(checkInPromises)
-        const checkedCount = results.filter(s => s.checkedIn).length
-
-        // Mark session as finalized and update students
-        setSessions(prev => prev.map(s =>
-            s.id === tabId ? { ...s, students: results, finalized: true } : s
-        ))
-
-        setFinalizingSession(false)
-
-        // Show brief success then remove the tab
-        setTimeout(() => {
-            setSessions(prev => prev.filter(s => s.id !== tabId))
-            if (activeTabId === tabId) {
-                const remaining = sessions.filter(s => s.id !== tabId && !s.finalized)
-                setActiveTabId(remaining.length > 0 ? remaining[remaining.length - 1].id : null)
-            }
-        }, 2000)
+            } catch { }
+        } catch { alert('Erro de conexão') }
     }
 
-    function closeSession(tabId: string) {
-        // Close without check-in (discard)
-        setSessions(prev => prev.filter(s => s.id !== tabId))
+    async function removeFromSession(clientId: string) {
+        if (!activeTabId) return
+        try {
+            const res = await fetch(`/api/studio/training-sessions/${activeTabId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ removeClientId: clientId }),
+            })
+            const data = await res.json()
+            if (data.success) {
+                setServerSessions(prev => prev.map(s => s.id === activeTabId ? { ...s, students: data.data.students } : s))
+                setCardsBySession(prev => {
+                    const m = new Map(prev)
+                    const cards = m.get(activeTabId!) || []
+                    m.set(activeTabId!, cards.filter(c => c.entry.clientId !== clientId))
+                    return m
+                })
+                loadActiveClients()
+            }
+        } catch { }
+    }
+
+    async function finalizeSession() {
+        if (!activeTabId) return
+        setFinalizingSession(true)
+        try {
+            const res = await fetch(`/api/studio/training-sessions/${activeTabId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            const data = await res.json()
+            if (data.success) {
+                // Update cards to show checked-in
+                setCardsBySession(prev => {
+                    const m = new Map(prev)
+                    const cards = m.get(activeTabId!) || []
+                    const checkedIds = new Set(data.data.results.filter((r: any) => r.checkedIn).map((r: any) => r.clientId))
+                    m.set(activeTabId!, cards.map(c => checkedIds.has(c.entry.clientId) ? { ...c, checkedIn: true } : c))
+                    return m
+                })
+                // Mark finalized
+                setServerSessions(prev => prev.map(s => s.id === activeTabId ? { ...s, finalized: true } : s))
+                // After 2s, remove tab
+                setTimeout(() => {
+                    setServerSessions(prev => prev.filter(s => s.id !== activeTabId))
+                    setCardsBySession(prev => { const m = new Map(prev); m.delete(activeTabId!); return m })
+                    const remaining = serverSessions.filter(s => s.id !== activeTabId && !s.finalized)
+                    setActiveTabId(remaining.length > 0 ? remaining[remaining.length - 1].id : null)
+                    loadActiveClients()
+                }, 2500)
+            }
+        } catch (err) { alert('Erro ao finalizar') }
+        finally { setFinalizingSession(false) }
+    }
+
+    async function closeSession(tabId: string) {
+        try {
+            await fetch(`/api/studio/training-sessions/${tabId}`, { method: 'DELETE' })
+        } catch { }
+        setServerSessions(prev => prev.filter(s => s.id !== tabId))
+        setCardsBySession(prev => { const m = new Map(prev); m.delete(tabId); return m })
         if (activeTabId === tabId) {
-            const remaining = sessions.filter(s => s.id !== tabId)
+            const remaining = serverSessions.filter(s => s.id !== tabId)
             setActiveTabId(remaining.length > 0 ? remaining[remaining.length - 1].id : null)
         }
+        loadActiveClients()
     }
 
-    function toggleCollapse(tabId: string, clientId: string) {
-        setSessions(prev => prev.map(s =>
-            s.id === tabId ? { ...s, students: s.students.map(st => st.client.id === clientId ? { ...st, collapsed: !st.collapsed } : st) } : s
-        ))
+    function toggleCollapse(clientId: string) {
+        if (!activeTabId) return
+        setCardsBySession(prev => {
+            const m = new Map(prev)
+            const cards = m.get(activeTabId!) || []
+            m.set(activeTabId!, cards.map(c => c.entry.clientId === clientId ? { ...c, collapsed: !c.collapsed } : c))
+            return m
+        })
     }
 
-    // Save weight for exercise
-    async function saveWeight(tabId: string, studentIdx: number, workoutId: string, weekIdx: number, sessionIdx: number, blockIdx: number, exerciseIdx: number, weight: string) {
-        const key = `${tabId}-${studentIdx}-${blockIdx}-${exerciseIdx}`
+    async function saveWeight(studentIdx: number, workoutId: string, weekIdx: number, sessionIdx: number, blockIdx: number, exerciseIdx: number, weight: string) {
+        if (!activeTabId) return
+        const key = `${activeTabId}-${studentIdx}-${blockIdx}-${exerciseIdx}`
         setSavingWeightKey(key)
         try {
             await fetch(`/api/studio/workouts/${workoutId}/exercise-weight`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ weekIdx, sessionIdx, blockIdx, exerciseIdx, weight: weight || null }),
             })
-            setSessions(prev => prev.map(s => {
-                if (s.id !== tabId) return s
-                return {
-                    ...s, students: s.students.map((st, idx) => {
-                        if (idx !== studentIdx || !st.sessionData) return st
-                        const session = JSON.parse(JSON.stringify(st.sessionData.session))
-                        if (session.blocks?.[blockIdx]?.exercises?.[exerciseIdx])
-                            session.blocks[blockIdx].exercises[exerciseIdx].weight = weight || null
-                        if (session.exercises) {
-                            const flatEx = session.exercises.find((e: any) => e.blockIdx === blockIdx && e.exerciseIdx === exerciseIdx)
-                            if (flatEx) flatEx.weight = weight || null
-                        }
-                        return { ...st, sessionData: { ...st.sessionData, session } }
-                    })
-                }
-            }))
-        } catch (err) { console.error('Error saving weight:', err) }
+            setCardsBySession(prev => {
+                const m = new Map(prev)
+                const cards = m.get(activeTabId!) || []
+                m.set(activeTabId!, cards.map((c, idx) => {
+                    if (idx !== studentIdx || !c.sessionData) return c
+                    const session = JSON.parse(JSON.stringify(c.sessionData.session))
+                    if (session.blocks?.[blockIdx]?.exercises?.[exerciseIdx]) session.blocks[blockIdx].exercises[exerciseIdx].weight = weight || null
+                    if (session.exercises) {
+                        const flatEx = session.exercises.find((e: any) => e.blockIdx === blockIdx && e.exerciseIdx === exerciseIdx)
+                        if (flatEx) flatEx.weight = weight || null
+                    }
+                    return { ...c, sessionData: { ...c.sessionData, session } }
+                }))
+                return m
+            })
+        } catch (err) { console.error(err) }
         finally { setSavingWeightKey(null) }
     }
 
@@ -384,13 +391,6 @@ export default function PresencaPage() {
     // HELPERS
     // ========================================================================
     const levelLabel = (l?: string) => l === 'INTERMEDIARIO' ? 'Intermediário' : l === 'AVANCADO' ? 'Avançado' : 'Iniciante'
-    const pillarColor = (p: string) => {
-        const l = p?.toLowerCase() || ''
-        if (l.includes('lower') || l.includes('inferior')) return 'from-blue-600 to-blue-400'
-        if (l.includes('push') || l.includes('empurr')) return 'from-red-600 to-red-400'
-        if (l.includes('pull') || l.includes('pux')) return 'from-green-600 to-green-400'
-        return 'from-amber-600 to-amber-400'
-    }
     const pillarBg = (p: string) => {
         const l = p?.toLowerCase() || ''
         if (l.includes('lower') || l.includes('inferior')) return 'bg-blue-500/10 text-blue-400'
@@ -401,12 +401,12 @@ export default function PresencaPage() {
     const initials = (name: string) => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
     // ========================================================================
-    // RENDER — SESSION VIEW (when a tab is active)
+    // RENDER — SESSION VIEW
     // ========================================================================
     if (activeSession) {
         const isFinalized = activeSession.finalized
         const studentsNotInSession = allClients.filter(c =>
-            !activeSession.students.some(s => s.client.id === c.id)
+            !activeSession.students.some(s => s.clientId === c.id) && !activeClientIds.has(c.id)
         )
         const filteredAdd = addStudentSearch
             ? studentsNotInSession.filter(c => c.name.toLowerCase().includes(addStudentSearch.toLowerCase()))
@@ -414,24 +414,21 @@ export default function PresencaPage() {
 
         return (
             <div className="space-y-3 pb-24">
-                {/* ====== TAB BAR — improved visual ====== */}
+                {/* TAB BAR */}
                 <div className="sticky top-0 z-40 -mx-4 px-4 py-2 bg-background/80 backdrop-blur-lg border-b border-muted/30">
                     <div className="flex items-center gap-2 overflow-x-auto">
-                        <button
-                            className="flex-shrink-0 w-9 h-9 rounded-xl bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors"
-                            onClick={() => setActiveTabId(null)}
-                        >
+                        <button className="flex-shrink-0 w-9 h-9 rounded-xl bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors"
+                            onClick={() => setActiveTabId(null)}>
                             <ArrowLeft className="w-4 h-4" />
                         </button>
 
-                        {sessions.filter(s => !s.finalized).map(tab => (
+                        {serverSessions.filter(s => !s.finalized).map(tab => (
                             <button key={tab.id}
                                 className={`group flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${tab.id === activeTabId
                                         ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30 shadow-lg shadow-green-500/10'
                                         : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-transparent'
                                     }`}
-                                onClick={() => setActiveTabId(tab.id)}
-                            >
+                                onClick={() => setActiveTabId(tab.id)}>
                                 <div className={`w-2 h-2 rounded-full ${tab.id === activeTabId ? 'bg-green-400 animate-pulse' : 'bg-muted-foreground/50'}`} />
                                 <Users className="w-3.5 h-3.5" />
                                 {tab.label}
@@ -442,39 +439,34 @@ export default function PresencaPage() {
                             </button>
                         ))}
 
-                        <button
-                            className="flex-shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-                            onClick={() => setActiveTabId(null)}
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            Nova Sessão
+                        <button className="flex-shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                            onClick={() => setActiveTabId(null)}>
+                            <Plus className="w-3.5 h-3.5" /> Nova Sessão
                         </button>
                     </div>
                 </div>
 
                 {/* Session Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
-                            <Users className="w-5 h-5 text-green-500" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold">Sessão {activeSession.label}</h2>
-                            <p className="text-xs text-muted-foreground">
-                                {activeSession.students.filter(s => !s.loading && !s.error).length} alunos • {new Date().toLocaleDateString('pt-BR')}
-                                {isFinalized && <span className="text-green-500 font-bold ml-2">✅ Finalizada!</span>}
-                            </p>
-                        </div>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold">Sessão {activeSession.label}</h2>
+                        <p className="text-xs text-muted-foreground">
+                            {activeCards.filter(s => !s.loading && !s.error).length} alunos • {new Date().toLocaleDateString('pt-BR')}
+                            {isFinalized && <span className="text-green-500 font-bold ml-2">✅ Finalizada!</span>}
+                        </p>
                     </div>
                 </div>
 
-                {/* Finalized success message */}
+                {/* Finalized message */}
                 {isFinalized && (
                     <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
                         <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
                         <p className="text-green-500 font-bold">Sessão finalizada com sucesso!</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Check-in registrado para {activeSession.students.filter(s => s.checkedIn).length} alunos
+                            Check-in registrado para {activeCards.filter(s => s.checkedIn).length} alunos
                         </p>
                     </div>
                 )}
@@ -484,7 +476,7 @@ export default function PresencaPage() {
                     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
                         <div className="bg-card rounded-2xl border shadow-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
                             <div className="p-4 border-b flex items-center justify-between">
-                                <h3 className="font-bold text-sm">Adicionar Aluno</h3>
+                                <h3 className="font-bold text-sm">Adicionar Aluno Atrasado</h3>
                                 <button onClick={() => { setShowAddStudent(false); setAddStudentSearch('') }}>
                                     <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                                 </button>
@@ -493,29 +485,24 @@ export default function PresencaPage() {
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input placeholder="Buscar aluno..." value={addStudentSearch}
-                                        onChange={(e) => setAddStudentSearch(e.target.value)}
-                                        className="pl-10" autoFocus />
+                                        onChange={(e) => setAddStudentSearch(e.target.value)} className="pl-10" autoFocus />
                                 </div>
                             </div>
                             <div className="overflow-y-auto max-h-[50vh] px-3 pb-3 space-y-1">
                                 {filteredAdd.length === 0 ? (
                                     <p className="text-center text-xs text-muted-foreground py-4">Nenhum aluno disponível</p>
-                                ) : (
-                                    filteredAdd.slice(0, 30).map(c => (
-                                        <button key={c.id}
-                                            className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
-                                            onClick={() => addLateStudent(c, activeSession.id)}>
-                                            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                                                <span className="text-amber-500 font-bold text-xs">{initials(c.name)}</span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium truncate">{c.name}</p>
-                                                <p className="text-[10px] text-muted-foreground truncate">{c.email || ''}</p>
-                                            </div>
-                                            <Plus className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                        </button>
-                                    ))
-                                )}
+                                ) : filteredAdd.slice(0, 30).map(c => (
+                                    <button key={c.id} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                                        onClick={() => addLateStudent(c)}>
+                                        <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-amber-500 font-bold text-xs">{initials(c.name)}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium truncate">{c.name}</p>
+                                        </div>
+                                        <Plus className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -523,94 +510,83 @@ export default function PresencaPage() {
 
                 {/* Workout Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-                    {activeSession.students.map((student, studentIdx) => (
-                        <Card key={student.client.id} className={`overflow-hidden transition-all ${student.checkedIn ? 'border-green-500/30' : student.error ? 'border-red-500/30' : ''
+                    {activeCards.map((card, cardIdx) => (
+                        <Card key={card.entry.clientId} className={`overflow-hidden transition-all ${card.checkedIn ? 'border-green-500/30' : card.error ? 'border-red-500/30' : ''
                             }`}>
                             {/* Card Header */}
-                            <div className={`px-3 py-2 flex items-center justify-between cursor-pointer ${student.checkedIn ? 'bg-green-500/5' : student.error ? 'bg-red-500/5' : 'bg-muted/20'
-                                }`} onClick={() => toggleCollapse(activeSession.id, student.client.id)}>
+                            <div className={`px-3 py-2 flex items-center justify-between cursor-pointer ${card.checkedIn ? 'bg-green-500/5' : card.error ? 'bg-red-500/5' : 'bg-muted/20'
+                                }`} onClick={() => toggleCollapse(card.entry.clientId)}>
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${student.checkedIn ? 'bg-green-500/20 text-green-500' : 'bg-amber-500/20 text-amber-500'
-                                        }`}>{initials(student.client.name)}</div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${card.checkedIn ? 'bg-green-500/20 text-green-500' : 'bg-amber-500/20 text-amber-500'
+                                        }`}>{initials(card.entry.clientName)}</div>
                                     <div className="min-w-0">
-                                        <p className="font-medium text-sm truncate">{student.client.name}</p>
-                                        {student.sessionData && (
+                                        <p className="font-medium text-sm truncate">{card.entry.clientName}</p>
+                                        {card.sessionData && (
                                             <div className="flex items-center gap-1.5">
-                                                <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(student.sessionData.session.pillarLabel)}`}>
-                                                    {student.sessionData.session.pillarLabel}
+                                                <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(card.sessionData.session.pillarLabel)}`}>
+                                                    {card.sessionData.session.pillarLabel}
                                                 </Badge>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    Dia {student.sessionData.session.dayIndex + 1}
-                                                </span>
+                                                <span className="text-[10px] text-muted-foreground">Dia {card.sessionData.session.dayIndex + 1}</span>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                    {student.checkedIn && <CheckCircle className="w-4 h-4 text-green-500" />}
-                                    {student.loading && <Loader2 className="w-4 h-4 animate-spin text-amber-500" />}
-                                    {student.error && <AlertCircle className="w-4 h-4 text-red-500" />}
+                                    {card.checkedIn && <CheckCircle className="w-4 h-4 text-green-500" />}
+                                    {card.loading && <Loader2 className="w-4 h-4 animate-spin text-amber-500" />}
+                                    {card.error && <AlertCircle className="w-4 h-4 text-red-500" />}
                                     {!isFinalized && (
                                         <button className="ml-1 text-muted-foreground/50 hover:text-red-400 transition-colors"
-                                            onClick={(e) => { e.stopPropagation(); removeFromSession(activeSession.id, student.client.id) }}>
+                                            onClick={(e) => { e.stopPropagation(); removeFromSession(card.entry.clientId) }}>
                                             <X className="w-3.5 h-3.5" />
                                         </button>
                                     )}
-                                    {student.collapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
+                                    {card.collapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
                                 </div>
                             </div>
 
                             {/* Card Body */}
-                            {!student.collapsed && (
+                            {!card.collapsed && (
                                 <div>
-                                    {student.loading && (
-                                        <div className="flex items-center justify-center py-6">
-                                            <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
-                                        </div>
-                                    )}
-
-                                    {student.error && (
+                                    {card.loading && <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-amber-500" /></div>}
+                                    {card.error && (
                                         <div className="px-3 py-4 text-center">
                                             <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-1" />
-                                            <p className="text-xs text-red-400">{student.error}</p>
+                                            <p className="text-xs text-red-400">{card.error}</p>
                                         </div>
                                     )}
-
-                                    {student.sessionData && !student.loading && (
+                                    {card.sessionData && !card.loading && (
                                         <div className="divide-y divide-muted/30">
                                             {/* Progress + 85% bar */}
                                             <div className="px-3 py-1.5">
                                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                                                    <span>{student.sessionData.session.periodization?.phaseLabel || student.sessionData.progress.currentPhaseLabel}</span>
-                                                    <span>Sem. {student.sessionData.progress.currentWeek}</span>
+                                                    <span>{card.sessionData.session.periodization?.phaseLabel || card.sessionData.progress.currentPhaseLabel}</span>
+                                                    <span>Sem. {card.sessionData.progress.currentWeek}</span>
                                                 </div>
                                                 {(() => {
-                                                    const pct = Math.round((student.sessionData.progress.attendanceRate ?? 0) * 100)
-                                                    const status = student.sessionData.progress.attendanceStatus
-                                                    const color = status === 'ON_TRACK' ? 'bg-green-500' : status === 'BELOW_TARGET' ? 'bg-yellow-500' : 'bg-red-500'
-                                                    const txtColor = status === 'ON_TRACK' ? 'text-green-500' : status === 'BELOW_TARGET' ? 'text-yellow-500' : 'text-red-500'
-                                                    return (
-                                                        <>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                                                                    <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                                                                </div>
-                                                                <span className={`text-[10px] font-bold ${txtColor}`}>{pct}%</span>
+                                                    const pct = Math.round((card.sessionData!.progress.attendanceRate ?? 0) * 100)
+                                                    const st = card.sessionData!.progress.attendanceStatus
+                                                    const cl = st === 'ON_TRACK' ? 'bg-green-500' : st === 'BELOW_TARGET' ? 'bg-yellow-500' : 'bg-red-500'
+                                                    const tc = st === 'ON_TRACK' ? 'text-green-500' : st === 'BELOW_TARGET' ? 'text-yellow-500' : 'text-red-500'
+                                                    return (<>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                                                                <div className={`h-full rounded-full ${cl}`} style={{ width: `${Math.min(100, pct)}%` }} />
                                                             </div>
-                                                            <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
-                                                                <span>{student.sessionData!.progress.sessionsCompleted} sessões</span>
-                                                                <span>Meta: 85%</span>
-                                                            </div>
-                                                        </>
-                                                    )
+                                                            <span className={`text-[10px] font-bold ${tc}`}>{pct}%</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+                                                            <span>{card.sessionData!.progress.sessionsCompleted} sessões</span>
+                                                            <span>Meta: 85%</span>
+                                                        </div>
+                                                    </>)
                                                 })()}
                                             </div>
-
                                             {/* Preparation */}
-                                            {student.sessionData.session.preparation && (
+                                            {card.sessionData.session.preparation && (
                                                 <div className="px-3 py-1.5">
                                                     <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Preparação</p>
-                                                    {(student.sessionData.session.preparation.exercises || []).map((ex: any, i: number) => (
+                                                    {(card.sessionData.session.preparation.exercises || []).map((ex: any, i: number) => (
                                                         <div key={i} className="flex items-center justify-between text-xs py-0.5">
                                                             <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
                                                             <span className="text-[10px] font-mono ml-1">{ex.sets}x{ex.reps} {ex.rest}</span>
@@ -618,43 +594,33 @@ export default function PresencaPage() {
                                                     ))}
                                                 </div>
                                             )}
-
                                             {/* Blocks */}
-                                            {student.sessionData.session.blocks
-                                                ? student.sessionData.session.blocks.map((block, bIdx) => (
+                                            {card.sessionData.session.blocks
+                                                ? card.sessionData.session.blocks.map((block, bIdx) => (
                                                     <div key={bIdx} className="px-3 py-1.5">
-                                                        <p className="text-[10px] font-bold text-amber-500 uppercase mb-1">
-                                                            {block.code} {block.name}
-                                                        </p>
+                                                        <p className="text-[10px] font-bold text-amber-500 uppercase mb-1">{block.code} {block.name}</p>
                                                         {block.exercises.map((ex, eIdx) => (
                                                             <ExerciseRow key={eIdx} ex={ex} savingKey={savingWeightKey}
-                                                                onSave={(w) => saveWeight(activeSession.id, studentIdx, student.workoutId,
-                                                                    (student.sessionData!.progress.currentWeek || 1) - 1,
-                                                                    student.sessionData!.session.dayIndex, bIdx, eIdx, w)}
-                                                                uniqueKey={`${activeSession.id}-${studentIdx}-${bIdx}-${eIdx}`}
-                                                            />
+                                                                onSave={(w) => saveWeight(cardIdx, card.entry.workoutId,
+                                                                    (card.sessionData!.progress.currentWeek || 1) - 1,
+                                                                    card.sessionData!.session.dayIndex, bIdx, eIdx, w)}
+                                                                uniqueKey={`${activeTabId}-${cardIdx}-${bIdx}-${eIdx}`} />
                                                         ))}
                                                     </div>
                                                 ))
-                                                : (
-                                                    <div className="px-3 py-1.5">
-                                                        {(student.sessionData.session.exercises || []).map((ex, i) => (
-                                                            <ExerciseRow key={i} ex={ex} savingKey={savingWeightKey}
-                                                                onSave={(w) => saveWeight(activeSession.id, studentIdx, student.workoutId,
-                                                                    (student.sessionData!.progress.currentWeek || 1) - 1,
-                                                                    student.sessionData!.session.dayIndex, ex.blockIdx ?? 0, ex.exerciseIdx ?? i, w)}
-                                                                uniqueKey={`${activeSession.id}-${studentIdx}-${ex.blockIdx ?? 0}-${ex.exerciseIdx ?? i}`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                )
+                                                : <div className="px-3 py-1.5">{(card.sessionData.session.exercises || []).map((ex, i) => (
+                                                    <ExerciseRow key={i} ex={ex} savingKey={savingWeightKey}
+                                                        onSave={(w) => saveWeight(cardIdx, card.entry.workoutId,
+                                                            (card.sessionData!.progress.currentWeek || 1) - 1,
+                                                            card.sessionData!.session.dayIndex, ex.blockIdx ?? 0, ex.exerciseIdx ?? i, w)}
+                                                        uniqueKey={`${activeTabId}-${cardIdx}-${ex.blockIdx ?? 0}-${ex.exerciseIdx ?? i}`} />
+                                                ))}</div>
                                             }
-
                                             {/* Final Protocol */}
-                                            {student.sessionData.session.finalProtocol && (
+                                            {card.sessionData.session.finalProtocol && (
                                                 <div className="px-3 py-1.5">
                                                     <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Protocolo Final</p>
-                                                    {(student.sessionData.session.finalProtocol.exercises || []).map((ex: any, i: number) => (
+                                                    {(card.sessionData.session.finalProtocol.exercises || []).map((ex: any, i: number) => (
                                                         <div key={i} className="flex items-center justify-between text-xs py-0.5">
                                                             <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
                                                             <span className="text-[10px] font-mono ml-1">{ex.sets}x{ex.reps} {ex.rest}</span>
@@ -670,32 +636,18 @@ export default function PresencaPage() {
                     ))}
                 </div>
 
-                {/* ====== FLOATING ACTION BUTTONS ====== */}
+                {/* FLOATING BUTTONS */}
                 {!isFinalized && (
                     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3">
-                        {/* + Add Student */}
-                        {studentsNotInSession.length > 0 && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowAddStudent(true)}
-                                className="rounded-full px-5 h-12 shadow-xl bg-card border-muted hover:border-amber-500/50 gap-2"
-                            >
-                                <UserPlus className="w-4 h-4 text-amber-500" />
-                                <span className="text-sm font-medium">+ Aluno</span>
-                            </Button>
-                        )}
-
-                        {/* Finalizar Sessão */}
-                        <Button
-                            onClick={() => finalizeSession(activeSession.id)}
-                            disabled={finalizingSession || activeSession.students.every(s => s.loading)}
-                            className="rounded-full px-6 h-12 shadow-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white gap-2 text-sm font-bold"
-                        >
-                            {finalizingSession ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Flag className="w-4 h-4" />
-                            )}
+                        <Button variant="outline" onClick={() => setShowAddStudent(true)}
+                            className="rounded-full px-5 h-12 shadow-xl bg-card border-muted hover:border-amber-500/50 gap-2">
+                            <UserPlus className="w-4 h-4 text-amber-500" />
+                            <span className="text-sm font-medium">+ Aluno</span>
+                        </Button>
+                        <Button onClick={finalizeSession}
+                            disabled={finalizingSession || activeCards.every(c => c.loading)}
+                            className="rounded-full px-6 h-12 shadow-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white gap-2 text-sm font-bold">
+                            {finalizingSession ? <Loader2 className="w-4 h-4 animate-spin" /> : <Flag className="w-4 h-4" />}
                             Finalizar Sessão
                         </Button>
                     </div>
@@ -709,30 +661,25 @@ export default function PresencaPage() {
     // ========================================================================
     return (
         <div className="space-y-4">
-            {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
                     <UserCheck className="w-6 h-6 text-green-500" />
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold">Presença</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Selecione os alunos e inicie a sessão em grupo
-                    </p>
+                    <p className="text-sm text-muted-foreground">Selecione os alunos e inicie a sessão em grupo</p>
                 </div>
             </div>
 
             {/* Active sessions bar */}
-            {sessions.filter(s => !s.finalized).length > 0 && (
+            {serverSessions.filter(s => !s.finalized).length > 0 && (
                 <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-xl p-3">
-                    <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
-                        🟢 Sessões ativas
-                    </p>
+                    <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">🟢 Sessões ativas</p>
                     <div className="flex items-center gap-2 overflow-x-auto">
-                        {sessions.filter(s => !s.finalized).map(tab => (
+                        {serverSessions.filter(s => !s.finalized).map(tab => (
                             <button key={tab.id}
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-green-500/15 to-emerald-500/15 text-green-400 border border-green-500/30 whitespace-nowrap flex-shrink-0 hover:from-green-500/25 hover:to-emerald-500/25 transition-all shadow-sm"
-                                onClick={() => setActiveTabId(tab.id)}>
+                                onClick={() => { setActiveTabId(tab.id); if (!cardsBySession.has(tab.id)) loadSessionCards(tab) }}>
                                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                                 <Users className="w-3.5 h-3.5" />
                                 {tab.label}
@@ -748,23 +695,15 @@ export default function PresencaPage() {
                 <CardContent className="p-4 space-y-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input placeholder="Pesquisar aluno por nome ou email..."
-                            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10" autoFocus />
+                        <Input placeholder="Pesquisar aluno por nome ou email..." value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" autoFocus />
                     </div>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={selectAll} className="text-xs">
-                                Selecionar Todos
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={deselectAll}
-                                className="text-xs" disabled={selectedIds.size === 0}>Limpar</Button>
+                            <Button variant="outline" size="sm" onClick={selectAll} className="text-xs">Selecionar Todos</Button>
+                            <Button variant="ghost" size="sm" onClick={deselectAll} className="text-xs" disabled={selectedIds.size === 0}>Limpar</Button>
                         </div>
-                        {selectedIds.size > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                                {selectedIds.size} selecionado{selectedIds.size > 1 ? 's' : ''}
-                            </Badge>
-                        )}
+                        {selectedIds.size > 0 && <Badge variant="secondary" className="text-xs">{selectedIds.size} selecionado{selectedIds.size > 1 ? 's' : ''}</Badge>}
                     </div>
                 </CardContent>
             </Card>
@@ -772,49 +711,38 @@ export default function PresencaPage() {
             {/* Client List */}
             <div className="space-y-1 pb-20">
                 {loadingClients ? (
-                    <div className="flex items-center justify-center py-12">
-                        <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-                    </div>
+                    <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-amber-500" /></div>
                 ) : clients.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-8 text-center text-muted-foreground">
-                            {searchQuery ? 'Nenhum aluno encontrado' : 'Nenhum aluno ativo'}
-                        </CardContent>
-                    </Card>
-                ) : (
-                    clients.map((client) => {
-                        const isSelected = selectedIds.has(client.id)
-                        const inSession = sessions.some(s => !s.finalized && s.students.some(st => st.client.id === client.id))
-                        return (
-                            <div key={client.id}
-                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-green-500/50 bg-green-500/5'
-                                        : inSession ? 'border-blue-500/30 bg-blue-500/5 opacity-60'
-                                            : 'border-transparent hover:border-muted hover:bg-muted/20'
-                                    }`}
-                                onClick={() => !inSession && toggleSelect(client.id)}>
-                                {/* Checkbox */}
-                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-green-500 border-green-500'
-                                        : inSession ? 'bg-blue-500/30 border-blue-500/50'
-                                            : 'border-muted-foreground/50'
-                                    }`}>
-                                    {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
-                                    {inSession && !isSelected && <CheckCircle className="w-3.5 h-3.5 text-blue-400" />}
-                                </div>
-                                <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-amber-500 font-bold text-xs">{initials(client.name)}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{client.name}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{client.email || 'Sem email'}</p>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                    {inSession && <Badge variant="outline" className="text-[10px] border-blue-500/50 text-blue-400">Em sessão</Badge>}
-                                    {client.level && <Badge variant="outline" className="text-[10px]">{levelLabel(client.level)}</Badge>}
-                                </div>
+                    <Card><CardContent className="py-8 text-center text-muted-foreground">{searchQuery ? 'Nenhum aluno encontrado' : 'Nenhum aluno ativo'}</CardContent></Card>
+                ) : clients.map((client) => {
+                    const isSelected = selectedIds.has(client.id)
+                    const inSession = activeClientIds.has(client.id)
+                    return (
+                        <div key={client.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-green-500/50 bg-green-500/5'
+                                    : inSession ? 'border-blue-500/30 bg-blue-500/5 opacity-60'
+                                        : 'border-transparent hover:border-muted hover:bg-muted/20'
+                                }`}
+                            onClick={() => !inSession && toggleSelect(client.id)}>
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-green-500 border-green-500' : inSession ? 'bg-blue-500/30 border-blue-500/50' : 'border-muted-foreground/50'
+                                }`}>
+                                {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                                {inSession && !isSelected && <CheckCircle className="w-3.5 h-3.5 text-blue-400" />}
                             </div>
-                        )
-                    })
-                )}
+                            <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-amber-500 font-bold text-xs">{initials(client.name)}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{client.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{client.email || 'Sem email'}</p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                                {inSession && <Badge variant="outline" className="text-[10px] border-blue-500/50 text-blue-400">Em sessão</Badge>}
+                                {client.level && <Badge variant="outline" className="text-[10px]">{levelLabel(client.level)}</Badge>}
+                            </div>
+                        </div>
+                    )
+                })}
             </div>
 
             {/* Start Session FAB */}
@@ -832,18 +760,14 @@ export default function PresencaPage() {
 }
 
 // ============================================================================
-// EXERCISE ROW — inline editable weight
+// EXERCISE ROW
 // ============================================================================
 function ExerciseRow({ ex, savingKey, uniqueKey, onSave }: {
-    ex: SessionExercise; savingKey: string | null; uniqueKey: string
-    onSave: (weight: string) => void
+    ex: SessionExercise; savingKey: string | null; uniqueKey: string; onSave: (w: string) => void
 }) {
     const [editing, setEditing] = useState(false)
     const [val, setVal] = useState(ex.weight || '')
-    const isSaving = savingKey === uniqueKey
-
     const icon = ex.role === 'FOCO_PRINCIPAL' ? '🎯' : ex.role === 'SECUNDARIO' ? '🔄' : '⚡'
-
     function handleSave() { onSave(val); setEditing(false) }
 
     return (
@@ -859,7 +783,7 @@ function ExerciseRow({ ex, savingKey, uniqueKey, onSave }: {
                         onChange={(e) => setVal(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
                         autoFocus placeholder="kg" />
-                    <button className="text-green-500 hover:text-green-400" onClick={handleSave} disabled={isSaving}>
+                    <button className="text-green-500 hover:text-green-400" onClick={handleSave} disabled={savingKey === uniqueKey}>
                         <CheckCircle className="w-3.5 h-3.5" />
                     </button>
                 </div>
