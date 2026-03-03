@@ -1,15 +1,15 @@
 'use client'
 
 // ============================================================================
-// EXPERT PRO TRAINING - PRESENÇA (CHECK-IN)
+// EXPERT PRO TRAINING - PRESENÇA (CHECK-IN) + SESSÃO EM GRUPO
 // ============================================================================
-// Página rápida para registrar presença do aluno
-// Pesquisa aluno → mostra treino do dia → confirma presença
+// Permite selecionar múltiplos alunos, fazer check-in em grupo,
+// e visualizar os treinos de todos numa única tela responsiva.
 // ============================================================================
 
-import { useState, useEffect, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,6 +21,12 @@ import {
     Activity,
     Clock,
     AlertCircle,
+    Users,
+    Plus,
+    X,
+    ChevronDown,
+    ChevronUp,
+    Weight,
 } from 'lucide-react'
 
 interface Client {
@@ -40,22 +46,34 @@ interface WorkoutInfo {
     targetWeeks: number
 }
 
+interface SessionExercise {
+    name: string
+    sets: number
+    reps: string
+    rest: string
+    role: string
+    weight?: string | null
+    blockIdx?: number
+    exerciseIdx?: number
+}
+
 interface SessionData {
     session: {
         dayIndex: number
         pillarLabel: string
-        exercises: Array<{
-            name: string
-            sets: number
-            reps: string
-            rest: string
-            role: string
-        }>
+        exercises: SessionExercise[]
         periodization: {
             phase: string
             phaseLabel: string
             week: number
         }
+        preparation?: any
+        blocks?: Array<{
+            code: string
+            name: string
+            exercises: SessionExercise[]
+        }>
+        finalProtocol?: any
     }
     progress: {
         attendanceRate: number
@@ -83,23 +101,33 @@ interface SessionData {
     } | null
 }
 
+// Data for each student in the group session
+interface GroupStudent {
+    client: Client
+    workoutId: string
+    sessionData: SessionData | null
+    loading: boolean
+    checkedIn: boolean
+    error: string | null
+    collapsed: boolean
+}
+
 export default function PresencaPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [clients, setClients] = useState<Client[]>([])
     const [allClients, setAllClients] = useState<Client[]>([])
-    const [searching, setSearching] = useState(false)
     const [loadingClients, setLoadingClients] = useState(true)
 
-    // Selected client state
-    const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-    const [workouts, setWorkouts] = useState<WorkoutInfo[]>([])
-    const [loadingWorkouts, setLoadingWorkouts] = useState(false)
+    // Multi-select mode
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-    // Session state
-    const [sessionData, setSessionData] = useState<SessionData | null>(null)
-    const [loadingSession, setLoadingSession] = useState(false)
-    const [registering, setRegistering] = useState(false)
-    const [checkInSuccess, setCheckInSuccess] = useState(false)
+    // Group session state
+    const [sessionActive, setSessionActive] = useState(false)
+    const [groupStudents, setGroupStudents] = useState<GroupStudent[]>([])
+    const [startingSession, setStartingSession] = useState(false)
+
+    // Weight saving state
+    const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
 
     // Load all clients on mount
     useEffect(() => {
@@ -122,15 +150,17 @@ export default function PresencaPage() {
         )
     }, [searchQuery, allClients])
 
+    // Workout ID map (client → active workout id)
+    const [clientWorkoutMap, setClientWorkoutMap] = useState<Map<string, string>>(new Map())
+
     async function loadClients() {
         setLoadingClients(true)
         try {
-            // Buscar TODOS os treinos ativos para extrair clientes com treino aberto
             const res = await fetch('/api/studio/workouts?status=ACTIVE&limit=500')
             const data = await res.json()
             if (data.success) {
-                // Extrair clientes únicos dos treinos ativos
                 const clientMap = new Map<string, Client>()
+                const workoutMap = new Map<string, string>()
                 const items = data.data?.items || data.data || []
                 for (const w of items) {
                     if (w.isActive && w.client && !clientMap.has(w.client.id)) {
@@ -141,11 +171,13 @@ export default function PresencaPage() {
                             status: 'ACTIVE',
                             level: w.client.level,
                         })
+                        workoutMap.set(w.client.id, w.id)
                     }
                 }
-                const uniqueClients = Array.from(clientMap.values())
+                const uniqueClients = Array.from(clientMap.values()).sort((a, b) => a.name.localeCompare(b.name))
                 setAllClients(uniqueClients)
                 setClients(uniqueClients)
+                setClientWorkoutMap(workoutMap)
             }
         } catch (err) {
             console.error('Error loading clients:', err)
@@ -154,96 +186,196 @@ export default function PresencaPage() {
         }
     }
 
-    async function selectClient(client: Client) {
-        setSelectedClient(client)
-        setCheckInSuccess(false)
-        setSessionData(null)
-        setLoadingWorkouts(true)
-
-        try {
-            // Buscar treinos ativos do cliente
-            const res = await fetch(`/api/studio/clients/${client.id}/workouts`)
-            const data = await res.json()
-
-            if (data.success) {
-                const activeWorkouts = (data.data || []).filter((w: any) => w.isActive)
-                setWorkouts(activeWorkouts)
-
-                // Se tem treino ativo, buscar próxima sessão
-                if (activeWorkouts.length > 0) {
-                    loadNextSession(activeWorkouts[0].id)
-                }
-            }
-        } catch (err) {
-            console.error('Error loading workouts:', err)
-        } finally {
-            setLoadingWorkouts(false)
-        }
-    }
-
-    async function loadNextSession(workoutId: string) {
-        setLoadingSession(true)
-        try {
-            const res = await fetch(
-                `/api/studio/workouts/${workoutId}/next-session`
-            )
-            const data = await res.json()
-            if (data.success) {
-                setSessionData(data.data)
-            }
-        } catch (err) {
-            console.error('Error loading session:', err)
-        } finally {
-            setLoadingSession(false)
-        }
-    }
-
-    async function handleCheckIn(workoutId: string) {
-        setRegistering(true)
-        try {
-            const res = await fetch(
-                `/api/studio/workouts/${workoutId}/next-session`,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' } }
-            )
-            const data = await res.json()
-
-            if (data.success) {
-                setCheckInSuccess(true)
-                // NÃO recarrega próxima sessão — mantém a sessão de hoje
-                // Apenas atualiza o flag de checkedInToday
-                if (sessionData) {
-                    setSessionData({
-                        ...sessionData,
-                        checkedInToday: true,
-                        todayLesson: {
-                            id: data.data.lessonId,
-                            date: new Date().toISOString(),
-                            startedAt: data.data.checkedInAt || new Date().toISOString(),
-                            endedAt: data.data.checkedInAt || new Date().toISOString(),
-                            focus: data.data.session?.pillarLabel || null,
-                            sessionIndex: data.data.session?.sessionIndex || 0,
-                            weekIndex: data.data.session?.weekIndex || 1,
-                        },
-                        progress: data.data.progress || sessionData.progress,
-                    })
-                }
+    function toggleSelect(clientId: string) {
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            if (next.has(clientId)) {
+                next.delete(clientId)
             } else {
-                alert(data.error || 'Erro ao registrar presença')
+                next.add(clientId)
             }
-        } catch (err) {
-            console.error('Check-in error:', err)
-            alert('Erro de conexão')
-        } finally {
-            setRegistering(false)
+            return next
+        })
+    }
+
+    function selectAll() {
+        const visibleIds = clients.map(c => c.id)
+        setSelectedIds(new Set(visibleIds))
+    }
+
+    function deselectAll() {
+        setSelectedIds(new Set())
+    }
+
+    // Start group session: load next-session for each selected student + auto check-in
+    async function startGroupSession() {
+        setStartingSession(true)
+        const selected = allClients.filter(c => selectedIds.has(c.id))
+
+        // Initialize group students
+        const students: GroupStudent[] = selected.map(c => ({
+            client: c,
+            workoutId: clientWorkoutMap.get(c.id) || '',
+            sessionData: null,
+            loading: true,
+            checkedIn: false,
+            error: null,
+            collapsed: false,
+        }))
+        setGroupStudents(students)
+        setSessionActive(true)
+
+        // Load sessions in parallel
+        const promises = students.map(async (student, idx) => {
+            if (!student.workoutId) {
+                return { ...student, loading: false, error: 'Sem treino ativo' }
+            }
+            try {
+                // GET next session
+                const res = await fetch(`/api/studio/workouts/${student.workoutId}/next-session`)
+                const data = await res.json()
+                if (!data.success) {
+                    return { ...student, loading: false, error: data.error || 'Erro ao carregar' }
+                }
+                const sessionData = data.data as SessionData
+
+                // Auto check-in if not already checked in today
+                let checkedIn = sessionData.checkedInToday || false
+                if (!checkedIn && !sessionData.progress.isComplete) {
+                    try {
+                        const checkRes = await fetch(
+                            `/api/studio/workouts/${student.workoutId}/next-session`,
+                            { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+                        )
+                        const checkData = await checkRes.json()
+                        if (checkData.success) {
+                            checkedIn = true
+                            sessionData.checkedInToday = true
+                        }
+                    } catch { /* ignore check-in error */ }
+                }
+
+                return { ...student, sessionData, loading: false, checkedIn, error: null }
+            } catch (err) {
+                return { ...student, loading: false, error: 'Erro de conexão' }
+            }
+        })
+
+        const results = await Promise.all(promises)
+        setGroupStudents(results)
+        setStartingSession(false)
+    }
+
+    // Add a late student to the active session
+    async function addLateStudent(client: Client) {
+        const workoutId = clientWorkoutMap.get(client.id)
+        if (!workoutId) return
+
+        // Add loading placeholder
+        const newStudent: GroupStudent = {
+            client,
+            workoutId,
+            sessionData: null,
+            loading: true,
+            checkedIn: false,
+            error: null,
+            collapsed: false,
+        }
+        setGroupStudents(prev => [...prev, newStudent])
+        setSelectedIds(prev => { const n = new Set(prev); n.add(client.id); return n })
+
+        try {
+            // GET next session
+            const res = await fetch(`/api/studio/workouts/${workoutId}/next-session`)
+            const data = await res.json()
+            if (!data.success) {
+                setGroupStudents(prev => prev.map(s =>
+                    s.client.id === client.id ? { ...s, loading: false, error: data.error || 'Erro' } : s
+                ))
+                return
+            }
+            const sessionData = data.data as SessionData
+
+            // Auto check-in
+            let checkedIn = sessionData.checkedInToday || false
+            if (!checkedIn && !sessionData.progress.isComplete) {
+                try {
+                    const checkRes = await fetch(
+                        `/api/studio/workouts/${workoutId}/next-session`,
+                        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+                    )
+                    const checkData = await checkRes.json()
+                    if (checkData.success) checkedIn = true
+                } catch { /* ignore */ }
+            }
+
+            setGroupStudents(prev => prev.map(s =>
+                s.client.id === client.id ? { ...s, sessionData, loading: false, checkedIn, error: null } : s
+            ))
+        } catch {
+            setGroupStudents(prev => prev.map(s =>
+                s.client.id === client.id ? { ...s, loading: false, error: 'Erro de conexão' } : s
+            ))
         }
     }
 
-    function resetSelection() {
-        setSelectedClient(null)
-        setWorkouts([])
-        setSessionData(null)
-        setCheckInSuccess(false)
-        setSearchQuery('')
+    // Remove student from active session
+    function removeFromSession(clientId: string) {
+        setGroupStudents(prev => prev.filter(s => s.client.id !== clientId))
+        setSelectedIds(prev => { const n = new Set(prev); n.delete(clientId); return n })
+    }
+
+    // Toggle card collapse
+    function toggleCollapse(clientId: string) {
+        setGroupStudents(prev => prev.map(s =>
+            s.client.id === clientId ? { ...s, collapsed: !s.collapsed } : s
+        ))
+    }
+
+    // Save exercise weight
+    async function saveWeight(
+        studentIdx: number,
+        workoutId: string,
+        weekIdx: number,
+        sessionIdx: number,
+        blockIdx: number,
+        exerciseIdx: number,
+        weight: string
+    ) {
+        const key = `${studentIdx}-${blockIdx}-${exerciseIdx}`
+        setSavingWeightKey(key)
+        try {
+            await fetch(`/api/studio/workouts/${workoutId}/exercise-weight`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ weekIdx, sessionIdx, blockIdx, exerciseIdx, weight: weight || null }),
+            })
+            // Update local state
+            setGroupStudents(prev => prev.map((s, idx) => {
+                if (idx !== studentIdx || !s.sessionData) return s
+                const session = JSON.parse(JSON.stringify(s.sessionData.session))
+                if (session.blocks?.[blockIdx]?.exercises?.[exerciseIdx]) {
+                    session.blocks[blockIdx].exercises[exerciseIdx].weight = weight || null
+                }
+                // Also update flat exercises if they have matching indices
+                if (session.exercises) {
+                    const flatEx = session.exercises.find((e: any) => e.blockIdx === blockIdx && e.exerciseIdx === exerciseIdx)
+                    if (flatEx) flatEx.weight = weight || null
+                }
+                return { ...s, sessionData: { ...s.sessionData, session } }
+            }))
+        } catch (err) {
+            console.error('Error saving weight:', err)
+        } finally {
+            setSavingWeightKey(null)
+        }
+    }
+
+    // End session
+    function endSession() {
+        setSessionActive(false)
+        setGroupStudents([])
+        setSelectedIds(new Set())
     }
 
     const levelLabel = (l?: string) =>
@@ -253,6 +385,232 @@ export default function PresencaPage() {
                 ? 'Avançado'
                 : 'Iniciante'
 
+    const pillarColor = (p: string) => {
+        const lower = p?.toLowerCase() || ''
+        if (lower.includes('lower') || lower.includes('inferior')) return 'bg-blue-500'
+        if (lower.includes('push') || lower.includes('empurr')) return 'bg-red-500'
+        if (lower.includes('pull') || lower.includes('pux')) return 'bg-green-500'
+        return 'bg-amber-500'
+    }
+
+    const initials = (name: string) =>
+        name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+
+    // ========================================================================
+    // RENDER
+    // ========================================================================
+
+    // GROUP SESSION ACTIVE — show grid of workout cards
+    if (sessionActive) {
+        const studentsInSession = groupStudents.filter(s => s.sessionData || s.loading || s.error)
+        const studentsNotInSession = allClients.filter(c =>
+            !groupStudents.some(s => s.client.id === c.id)
+        )
+
+        return (
+            <div className="space-y-4">
+                {/* Session Header */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                            <Users className="w-6 h-6 text-green-500" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold">Sessão em Grupo</h1>
+                            <p className="text-sm text-muted-foreground">
+                                {groupStudents.filter(s => s.checkedIn).length}/{groupStudents.length} alunos • {new Date().toLocaleDateString('pt-BR')}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={endSession}>
+                            <X className="w-4 h-4 mr-1" />
+                            Encerrar
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Add Late Student */}
+                {studentsNotInSession.length > 0 && (
+                    <details className="group">
+                        <summary className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                            <Plus className="w-4 h-4" />
+                            Adicionar aluno atrasado ({studentsNotInSession.length} disponíveis)
+                        </summary>
+                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                            {studentsNotInSession.slice(0, 20).map(c => (
+                                <Button
+                                    key={c.id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs justify-start"
+                                    onClick={() => addLateStudent(c)}
+                                >
+                                    <Plus className="w-3 h-3 mr-1 flex-shrink-0" />
+                                    <span className="truncate">{c.name}</span>
+                                </Button>
+                            ))}
+                        </div>
+                    </details>
+                )}
+
+                {/* Workout Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                    {groupStudents.map((student, studentIdx) => (
+                        <Card
+                            key={student.client.id}
+                            className={`overflow-hidden transition-all ${student.checkedIn
+                                    ? 'border-green-500/30'
+                                    : student.error
+                                        ? 'border-red-500/30'
+                                        : 'border-muted'
+                                }`}
+                        >
+                            {/* Card Header — always visible */}
+                            <div
+                                className={`px-3 py-2 flex items-center justify-between cursor-pointer ${student.checkedIn ? 'bg-green-500/5' : student.error ? 'bg-red-500/5' : 'bg-muted/20'
+                                    }`}
+                                onClick={() => toggleCollapse(student.client.id)}
+                            >
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${student.checkedIn ? 'bg-green-500/20 text-green-500' : 'bg-amber-500/20 text-amber-500'
+                                        }`}>
+                                        {initials(student.client.name)}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-sm truncate">{student.client.name}</p>
+                                        {student.sessionData && (
+                                            <div className="flex items-center gap-1">
+                                                <span className={`w-2 h-2 rounded-full ${pillarColor(student.sessionData.session.pillarLabel)}`} />
+                                                <span className="text-[10px] text-muted-foreground truncate">
+                                                    {student.sessionData.session.pillarLabel} • Dia {student.sessionData.session.dayIndex + 1}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                    {student.checkedIn && <CheckCircle className="w-4 h-4 text-green-500" />}
+                                    {student.loading && <Loader2 className="w-4 h-4 animate-spin text-amber-500" />}
+                                    {student.error && <AlertCircle className="w-4 h-4 text-red-500" />}
+                                    {student.collapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
+                                </div>
+                            </div>
+
+                            {/* Card Body — collapsible */}
+                            {!student.collapsed && (
+                                <CardContent className="p-0">
+                                    {student.loading && (
+                                        <div className="flex items-center justify-center py-6">
+                                            <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+                                        </div>
+                                    )}
+
+                                    {student.error && (
+                                        <div className="px-3 py-4 text-center">
+                                            <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-1" />
+                                            <p className="text-xs text-red-400">{student.error}</p>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-xs mt-2"
+                                                onClick={() => removeFromSession(student.client.id)}
+                                            >
+                                                Remover
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {student.sessionData && !student.loading && (
+                                        <div className="divide-y divide-muted/30">
+                                            {/* Phase + Progress mini */}
+                                            <div className="px-3 py-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+                                                <span>{student.sessionData.session.periodization?.phaseLabel || student.sessionData.progress.currentPhaseLabel}</span>
+                                                <span>Sem. {student.sessionData.progress.currentWeek} • {Math.round((student.sessionData.progress.attendanceRate ?? 0) * 100)}%</span>
+                                            </div>
+
+                                            {/* Preparation */}
+                                            {student.sessionData.session.preparation && (
+                                                <div className="px-3 py-1.5">
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Preparação</p>
+                                                    {(student.sessionData.session.preparation.exercises || []).map((ex: any, i: number) => (
+                                                        <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                                                            <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
+                                                            <span className="text-[10px] font-mono ml-1">{ex.sets}x{ex.reps} {ex.rest}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Blocks with exercises */}
+                                            {student.sessionData.session.blocks
+                                                ? student.sessionData.session.blocks.map((block, bIdx) => (
+                                                    <div key={bIdx} className="px-3 py-1.5">
+                                                        <p className="text-[10px] font-bold text-amber-500 uppercase mb-1">
+                                                            {block.code} {block.name}
+                                                        </p>
+                                                        {block.exercises.map((ex, eIdx) => (
+                                                            <ExerciseRow
+                                                                key={eIdx}
+                                                                ex={ex}
+                                                                studentIdx={studentIdx}
+                                                                workoutId={student.workoutId}
+                                                                weekIdx={(student.sessionData!.progress.currentWeek || 1) - 1}
+                                                                sessionIdx={student.sessionData!.session.dayIndex}
+                                                                blockIdx={bIdx}
+                                                                exerciseIdx={eIdx}
+                                                                savingKey={savingWeightKey}
+                                                                onSaveWeight={saveWeight}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ))
+                                                : (
+                                                    <div className="px-3 py-1.5">
+                                                        {(student.sessionData.session.exercises || []).map((ex, i) => (
+                                                            <ExerciseRow
+                                                                key={i}
+                                                                ex={ex}
+                                                                studentIdx={studentIdx}
+                                                                workoutId={student.workoutId}
+                                                                weekIdx={(student.sessionData!.progress.currentWeek || 1) - 1}
+                                                                sessionIdx={student.sessionData!.session.dayIndex}
+                                                                blockIdx={ex.blockIdx ?? 0}
+                                                                exerciseIdx={ex.exerciseIdx ?? i}
+                                                                savingKey={savingWeightKey}
+                                                                onSaveWeight={saveWeight}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )
+                                            }
+
+                                            {/* Final Protocol */}
+                                            {student.sessionData.session.finalProtocol && (
+                                                <div className="px-3 py-1.5">
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Protocolo Final</p>
+                                                    {(student.sessionData.session.finalProtocol.exercises || []).map((ex: any, i: number) => (
+                                                        <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                                                            <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
+                                                            <span className="text-[10px] font-mono ml-1">{ex.sets}x{ex.reps} {ex.rest}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            )}
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    // ========================================================================
+    // CLIENT SELECTION MODE — multi-select with checkboxes
+    // ========================================================================
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -263,323 +621,209 @@ export default function PresencaPage() {
                 <div>
                     <h1 className="text-2xl font-bold">Presença</h1>
                     <p className="text-sm text-muted-foreground">
-                        Registre a chegada do aluno e veja o treino do dia
+                        Selecione os alunos presentes e inicie a sessão
                     </p>
                 </div>
             </div>
 
-            {!selectedClient ? (
-                <>
-                    {/* Search */}
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Pesquisar aluno por nome ou email..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10"
-                                    autoFocus
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Client List */}
-                    <div className="space-y-2">
-                        {loadingClients ? (
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-                            </div>
-                        ) : clients.length === 0 ? (
-                            <Card>
-                                <CardContent className="py-8 text-center text-muted-foreground">
-                                    {searchQuery
-                                        ? 'Nenhum aluno encontrado'
-                                        : 'Nenhum aluno ativo'}
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            clients.slice(0, 20).map((client) => (
-                                <Card
-                                    key={client.id}
-                                    className="cursor-pointer hover:border-amber-500/50 transition-colors"
-                                    onClick={() => selectClient(client)}
-                                >
-                                    <CardContent className="p-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                                                <span className="text-amber-500 font-bold text-sm">
-                                                    {client.name
-                                                        .split(' ')
-                                                        .map((w) => w[0])
-                                                        .slice(0, 2)
-                                                        .join('')
-                                                        .toUpperCase()}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">{client.name}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {client.email || 'Sem email'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {client.level && (
-                                                <Badge variant="outline" className="text-xs">
-                                                    {levelLabel(client.level)}
-                                                </Badge>
-                                            )}
-                                            <Button size="sm" variant="outline">
-                                                <UserCheck className="w-4 h-4 mr-1" />
-                                                Check-in
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        )}
-                        {clients.length > 20 && (
-                            <p className="text-center text-sm text-muted-foreground py-2">
-                                Mostrando 20 de {clients.length} alunos. Refine a pesquisa.
-                            </p>
+            {/* Search + Actions */}
+            <Card>
+                <CardContent className="p-4 space-y-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Pesquisar aluno por nome ou email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                            autoFocus
+                        />
+                    </div>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={selectAll}
+                                className="text-xs">
+                                Selecionar Todos
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={deselectAll}
+                                className="text-xs" disabled={selectedIds.size === 0}>
+                                Limpar
+                            </Button>
+                        </div>
+                        {selectedIds.size > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                                {selectedIds.size} selecionado{selectedIds.size > 1 ? 's' : ''}
+                            </Badge>
                         )}
                     </div>
-                </>
-            ) : (
-                <>
-                    {/* Selected Client Header */}
-                    <Card className="border-green-500/30 bg-gradient-to-r from-green-500/5 to-transparent">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                                        <span className="text-green-500 font-bold">
-                                            {selectedClient.name
-                                                .split(' ')
-                                                .map((w) => w[0])
-                                                .slice(0, 2)
-                                                .join('')
-                                                .toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <h2 className="text-lg font-bold">{selectedClient.name}</h2>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="text-xs">
-                                                {levelLabel(selectedClient.level)}
-                                            </Badge>
-                                            <span className="text-sm text-muted-foreground">
-                                                {selectedClient.email}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <Button variant="outline" onClick={resetSelection}>
-                                    Trocar aluno
-                                </Button>
-                            </div>
+                </CardContent>
+            </Card>
+
+            {/* Client List with checkboxes */}
+            <div className="space-y-1">
+                {loadingClients ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                    </div>
+                ) : clients.length === 0 ? (
+                    <Card>
+                        <CardContent className="py-8 text-center text-muted-foreground">
+                            {searchQuery
+                                ? 'Nenhum aluno encontrado'
+                                : 'Nenhum aluno ativo'}
                         </CardContent>
                     </Card>
+                ) : (
+                    clients.map((client) => {
+                        const isSelected = selectedIds.has(client.id)
+                        return (
+                            <div
+                                key={client.id}
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected
+                                        ? 'border-green-500/50 bg-green-500/5'
+                                        : 'border-transparent hover:border-muted hover:bg-muted/20'
+                                    }`}
+                                onClick={() => toggleSelect(client.id)}
+                            >
+                                {/* Checkbox */}
+                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-green-500 border-green-500' : 'border-muted-foreground/50'
+                                    }`}>
+                                    {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                                </div>
 
-                    {/* Loading */}
-                    {(loadingWorkouts || loadingSession) && (
-                        <div className="flex items-center justify-center py-8">
-                            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-                        </div>
-                    )}
+                                {/* Avatar */}
+                                <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-amber-500 font-bold text-xs">
+                                        {initials(client.name)}
+                                    </span>
+                                </div>
 
-                    {/* No active workout */}
-                    {!loadingWorkouts && workouts.length === 0 && (
-                        <Card>
-                            <CardContent className="py-8 text-center">
-                                <AlertCircle className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
-                                <p className="font-medium">Nenhum treino ativo</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Este aluno não possui treino em aberto. Gere um novo treino
-                                    através de uma avaliação.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Already checked in today (from GET) */}
-                    {!checkInSuccess && sessionData?.checkedInToday && sessionData?.todayLesson && (
-                        <Card className="border-blue-500/30 bg-blue-500/5">
-                            <CardContent className="py-4 flex items-center gap-3">
-                                <CheckCircle className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                                <div>
-                                    <p className="font-bold text-blue-500">
-                                        ✅ Já fez check-in hoje
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {new Date(sessionData.todayLesson.startedAt).toLocaleTimeString('pt-BR', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}{' '}
-                                        — {sessionData.todayLesson.focus || 'Treino'}
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{client.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        {client.email || 'Sem email'}
                                     </p>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
 
-                    {/* Success check-in */}
-                    {checkInSuccess && (
-                        <Card className="border-green-500/30 bg-green-500/5">
-                            <CardContent className="py-4 flex items-center gap-3">
-                                <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
-                                <div>
-                                    <p className="font-bold text-green-500">
-                                        ✅ Presença registrada com sucesso!
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {sessionData?.todayLesson?.startedAt
-                                            ? new Date(sessionData.todayLesson.startedAt).toLocaleTimeString('pt-BR', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })
-                                            : new Date().toLocaleTimeString('pt-BR', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}{' '}
-                                        — Horário salvo
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                {/* Level */}
+                                {client.level && (
+                                    <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                                        {levelLabel(client.level)}
+                                    </Badge>
+                                )}
+                            </div>
+                        )
+                    })
+                )}
+                {clients.length > 0 && allClients.length > clients.length && (
+                    <p className="text-center text-xs text-muted-foreground py-2">
+                        Mostrando {clients.length} de {allClients.length} alunos
+                    </p>
+                )}
+            </div>
 
-                    {/* Session / Workout for today */}
-                    {sessionData && !loadingSession && (
-                        <>
-                            {/* Progress Bar */}
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-base">
-                                        <Activity className="w-5 h-5 text-amber-500" />
-                                        Progresso
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    {(() => {
-                                        const p = sessionData.progress
-                                        const pct = Math.round((p.attendanceRate ?? 0) * 100)
-                                        const barColor =
-                                            p.attendanceStatus === 'ON_TRACK'
-                                                ? 'bg-green-500'
-                                                : p.attendanceStatus === 'BELOW_TARGET'
-                                                    ? 'bg-yellow-500'
-                                                    : 'bg-red-500'
-                                        return (
-                                            <>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">
-                                                        Frequência: {p.attendanceRateLabel}
-                                                    </span>
-                                                    <span>
-                                                        Sem. {p.currentWeek} • {p.currentPhaseLabel}
-                                                    </span>
-                                                </div>
-                                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full ${barColor}`}
-                                                        style={{ width: `${Math.min(100, pct)}%` }}
-                                                    />
-                                                </div>
-                                                <div className="flex justify-between text-xs text-muted-foreground">
-                                                    <span>
-                                                        {p.sessionsCompleted} sessões feitas
-                                                    </span>
-                                                    <span>Meta: 85%</span>
-                                                </div>
-                                            </>
-                                        )
-                                    })()}
-                                </CardContent>
-                            </Card>
-
-                            {/* Today's Workout */}
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-base">
-                                        <Dumbbell className="w-5 h-5 text-amber-500" />
-                                        Treino de Hoje — {sessionData.session.pillarLabel}
-                                    </CardTitle>
-                                    <p className="text-sm text-muted-foreground">
-                                        Sessão {sessionData.session.dayIndex + 1} •{' '}
-                                        {sessionData.session.periodization?.phaseLabel ||
-                                            sessionData.progress.currentPhaseLabel}
-                                    </p>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2">
-                                        {sessionData.session.exercises?.map((ex, i) => (
-                                            <div
-                                                key={i}
-                                                className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 border"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-mono text-muted-foreground w-5">
-                                                        {i + 1}
-                                                    </span>
-                                                    <div>
-                                                        <p className="font-medium text-sm">{ex.name}</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {ex.role === 'FOCO_PRINCIPAL'
-                                                                ? '🎯 Foco'
-                                                                : ex.role === 'SECUNDARIO'
-                                                                    ? '🔄 Secundário'
-                                                                    : '⚡ Complementar'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right text-sm">
-                                                    <p className="font-medium">
-                                                        {ex.sets}x{ex.reps}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {ex.rest}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Check-in Button */}
-                                    <div className="mt-6 pt-4 border-t">
-                                        <Button
-                                            onClick={() =>
-                                                workouts[0] && handleCheckIn(workouts[0].id)
-                                            }
-                                            disabled={registering || sessionData.progress.isComplete || sessionData.checkedInToday || checkInSuccess}
-                                            size="lg"
-                                            className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg disabled:opacity-50"
-                                        >
-                                            {registering ? (
-                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                            ) : (
-                                                <CheckCircle className="w-5 h-5 mr-2" />
-                                            )}
-                                            {sessionData.progress.isComplete
-                                                ? 'Programa Completo'
-                                                : (sessionData.checkedInToday || checkInSuccess)
-                                                    ? '✅ Presença já registrada hoje'
-                                                    : '✅ Confirmar Presença'}
-                                        </Button>
-                                        <p className="text-center text-xs text-muted-foreground mt-2">
-                                            <Clock className="w-3 h-3 inline mr-1" />
-                                            Horário será salvo automaticamente
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </>
-                    )}
-                </>
+            {/* Start Session FAB */}
+            {selectedIds.size > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+                    <Button
+                        onClick={startGroupSession}
+                        disabled={startingSession}
+                        size="lg"
+                        className="bg-green-600 hover:bg-green-700 text-white shadow-2xl rounded-full px-8 h-14 text-lg gap-2"
+                    >
+                        {startingSession ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Users className="w-5 h-5" />
+                        )}
+                        Iniciar Sessão ({selectedIds.size})
+                    </Button>
+                </div>
             )}
+        </div>
+    )
+}
+
+// ============================================================================
+// EXERCISE ROW COMPONENT — with inline editable weight
+// ============================================================================
+function ExerciseRow({
+    ex,
+    studentIdx,
+    workoutId,
+    weekIdx,
+    sessionIdx,
+    blockIdx,
+    exerciseIdx,
+    savingKey,
+    onSaveWeight,
+}: {
+    ex: SessionExercise
+    studentIdx: number
+    workoutId: string
+    weekIdx: number
+    sessionIdx: number
+    blockIdx: number
+    exerciseIdx: number
+    savingKey: string | null
+    onSaveWeight: (studentIdx: number, workoutId: string, weekIdx: number, sessionIdx: number, blockIdx: number, exerciseIdx: number, weight: string) => void
+}) {
+    const [editing, setEditing] = useState(false)
+    const [weightValue, setWeightValue] = useState(ex.weight || '')
+    const key = `${studentIdx}-${blockIdx}-${exerciseIdx}`
+    const isSaving = savingKey === key
+
+    const roleIcon = ex.role === 'FOCO_PRINCIPAL' ? '🎯'
+        : ex.role === 'SECUNDARIO' ? '🔄' : '⚡'
+
+    function handleSave() {
+        onSaveWeight(studentIdx, workoutId, weekIdx, sessionIdx, blockIdx, exerciseIdx, weightValue)
+        setEditing(false)
+    }
+
+    return (
+        <div className="flex items-center gap-1.5 py-1 group">
+            <span className="text-[10px] text-muted-foreground w-3">{roleIcon}</span>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate leading-tight">{ex.name}</p>
+                <p className="text-[10px] text-muted-foreground">{ex.sets}×{ex.reps} · {ex.rest}</p>
+            </div>
+            {/* Weight */}
+            <div className="flex-shrink-0">
+                {editing ? (
+                    <div className="flex items-center gap-1">
+                        <input
+                            type="text"
+                            className="w-14 h-6 text-xs text-center rounded border bg-background px-1"
+                            value={weightValue}
+                            onChange={(e) => setWeightValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false) }}
+                            autoFocus
+                            placeholder="kg"
+                        />
+                        <button
+                            className="text-green-500 hover:text-green-400"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                        >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        className={`h-6 px-1.5 rounded text-[10px] font-mono flex items-center gap-0.5 transition-colors ${ex.weight
+                                ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                            }`}
+                        onClick={() => { setWeightValue(ex.weight || ''); setEditing(true) }}
+                        title="Editar carga"
+                    >
+                        <Weight className="w-3 h-3" />
+                        {ex.weight ? `${ex.weight}` : '—'}
+                    </button>
+                )}
+            </div>
         </div>
     )
 }
