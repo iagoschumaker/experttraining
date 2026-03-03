@@ -510,7 +510,17 @@ export default function ClientDetailPage() {
             // Fall back to saved bodyFat if Pollock can't compute
             if (bf == null && client.bodyFat) bf = Number(client.bodyFat)
 
-            if (!w || bf == null) return null
+            // DEBUG: show what data we have
+            if (!w || bf == null) return (
+              <div className="rounded-lg border border-amber-500 p-3 text-xs space-y-1 bg-amber-500/10">
+                <p className="font-bold text-amber-600">⚠️ Debug Pollock (remover depois):</p>
+                <p>Peso: {w ?? 'NULL'} | Gênero: {gender ?? 'NULL'} | Nascimento: {birthDate ?? 'NULL'}</p>
+                <p>sfTriceps: {client.sfTriceps ?? 'NULL'} | sfSuprailiac: {client.sfSuprailiac ?? 'NULL'} | sfThigh: {client.sfThigh ?? 'NULL'}</p>
+                <p>sfChest: {client.sfChest ?? 'NULL'} | sfAbdomen: {client.sfAbdomen ?? 'NULL'}</p>
+                <p>bodyFat salvo: {client.bodyFat ?? 'NULL'} | bf calculado: {bf ?? 'NULL'}</p>
+                <p className="text-red-500 font-bold">Motivo: {!w ? 'PESO FALTANDO' : 'POLLOCK RETORNOU NULL (dobras insuficientes)'}</p>
+              </div>
+            )
 
             const fatKg = w * bf / 100
             const leanKg = w - fatKg
