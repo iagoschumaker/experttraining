@@ -1,16 +1,3 @@
--- AlterTable
-ALTER TABLE "clients" ADD COLUMN     "last_pillar_index" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "level" TEXT NOT NULL DEFAULT 'INICIANTE',
-ADD COLUMN     "training_days_per_week" INTEGER;
-
--- AlterTable
-ALTER TABLE "lessons" ADD COLUMN     "session_index" INTEGER;
-
--- AlterTable
-ALTER TABLE "workouts" ADD COLUMN     "sessions_completed" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "sessions_per_week" INTEGER NOT NULL DEFAULT 3,
-ADD COLUMN     "target_weeks" INTEGER NOT NULL DEFAULT 8,
-ADD COLUMN     "template_json" JSONB;
 
 -- CreateTable
 CREATE TABLE "training_sessions" (
