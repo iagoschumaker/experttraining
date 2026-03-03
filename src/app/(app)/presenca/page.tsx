@@ -425,17 +425,18 @@ export default function PresencaPage() {
                         {serverSessions.filter(s => !s.finalized).map(tab => (
                             <button key={tab.id}
                                 className={`group flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${tab.id === activeTabId
-                                        ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30 shadow-lg shadow-green-500/10'
-                                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-transparent'
+                                    ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30 shadow-lg shadow-green-500/10'
+                                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-transparent'
                                     }`}
                                 onClick={() => setActiveTabId(tab.id)}>
                                 <div className={`w-2 h-2 rounded-full ${tab.id === activeTabId ? 'bg-green-400 animate-pulse' : 'bg-muted-foreground/50'}`} />
                                 <Users className="w-3.5 h-3.5" />
                                 {tab.label}
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-                                    onClick={(e) => { e.stopPropagation(); closeSession(tab.id) }}>
-                                    <X className="w-3 h-3 hover:text-red-400" />
-                                </span>
+                                <button className="ml-1 w-5 h-5 rounded-full bg-red-500/15 hover:bg-red-500/30 flex items-center justify-center transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); closeSession(tab.id) }}
+                                    title="Cancelar sessão">
+                                    <X className="w-3 h-3 text-red-500" />
+                                </button>
                             </button>
                         ))}
 
@@ -720,8 +721,8 @@ export default function PresencaPage() {
                     return (
                         <div key={client.id}
                             className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-green-500/50 bg-green-500/5'
-                                    : inSession ? 'border-blue-500/30 bg-blue-500/5 opacity-60'
-                                        : 'border-transparent hover:border-muted hover:bg-muted/20'
+                                : inSession ? 'border-blue-500/30 bg-blue-500/5 opacity-60'
+                                    : 'border-transparent hover:border-muted hover:bg-muted/20'
                                 }`}
                             onClick={() => !inSession && toggleSelect(client.id)}>
                             <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-green-500 border-green-500' : inSession ? 'bg-blue-500/30 border-blue-500/50' : 'border-muted-foreground/50'

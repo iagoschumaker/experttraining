@@ -44,6 +44,8 @@ import {
   ChevronDown,
   ChevronUp,
   Activity,
+  X,
+  Loader2,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
@@ -123,6 +125,7 @@ export default function ClientDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showMeasureHistory, setShowMeasureHistory] = useState(false)
+  const [fabOpen, setFabOpen] = useState(false)
   const [compareIdxA, setCompareIdxA] = useState(0) // first assessment
   const [compareIdxB, setCompareIdxB] = useState(-1) // -1 = "Dados atuais"
 
@@ -244,22 +247,7 @@ export default function ClientDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          {canEdit && (
-            <Link href={`/clients/${client.id}/edit`}>
-              <Button variant="outline">
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar
-              </Button>
-            </Link>
-          )}
-          <Link href={`/assessments/new?clientId=${client.id}`}>
-            <Button className="bg-amber-500 hover:bg-amber-600 text-black">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Avaliação
-            </Button>
-          </Link>
-        </div>
+        {/* Actions moved to floating FAB */}
       </div>
 
       {/* Client Info */}
@@ -406,19 +394,104 @@ export default function ClientDetailPage() {
         </Card>
       </div>
 
+      {/* Presença & Check-in — before assessments */}
+      {(() => {
+        const stats = (client as any).attendanceStats
+        const history = (client as any).checkInHistory || []
+        if (!stats && history.length === 0) return null
+
+        const pct = stats ? Math.round(stats.attendanceRate * 100) : 0
+        const barColor = pct >= 85 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+        const statusText = pct >= 85 ? 'No alvo ✓' : pct >= 60 ? 'Abaixo' : 'Crítico'
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-green-500" />
+                Presença & Check-in
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {stats && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-2xl font-bold text-green-400">{stats.sessionsCompleted}</div>
+                      <div className="text-xs text-muted-foreground">Sessões feitas</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-2xl font-bold text-amber-400">{stats.remaining}</div>
+                      <div className="text-xs text-muted-foreground">Restantes</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className="text-2xl font-bold text-blue-400">{stats.sessionsPerWeek}x</div>
+                      <div className="text-xs text-muted-foreground">/semana</div>
+                    </div>
+                    <div className="rounded-xl border p-3 text-center">
+                      <div className={`text-2xl font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{pct}%</div>
+                      <div className="text-xs text-muted-foreground">Frequência</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Progresso: {stats.sessionsCompleted}/{stats.totalExpected}</span>
+                      <span className={`font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{statusText}</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                    </div>
+                  </div>
+                  {stats.workoutId && (
+                    <Link href={`/workouts/${stats.workoutId}`}>
+                      <Button variant="outline" size="sm" className="w-full text-xs">
+                        Ver treino ativo{stats.workoutName ? `: ${stats.workoutName}` : ''}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              )}
+              {history.length > 0 && (
+                <div className="space-y-2">
+                  <Separator />
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Últimos check-ins ({history.length})
+                  </p>
+                  <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                    {history.map((lesson: any) => {
+                      const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+                      const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
+                      return (
+                        <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <div>
+                              <div className="text-xs font-medium capitalize">{dateStr}</div>
+                              {timeStr && <div className="text-[10px] text-muted-foreground">{timeStr}</div>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {lesson.focus && <Badge variant="outline" className="text-[10px]">{lesson.focus}</Badge>}
+                            {lesson.weekIndex && <span className="text-[10px] text-muted-foreground">Sem.{lesson.weekIndex}</span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
       {/* Assessments */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5" />
             Avaliações
           </CardTitle>
-          <Link href={`/assessments/new?clientId=${client.id}`}>
-            <Button variant="outline" size="sm">
-              <Plus className="mr-1 h-4 w-4" />
-              Nova
-            </Button>
-          </Link>
         </CardHeader>
         <CardContent>
           {client.assessments && client.assessments.length > 0 ? (
@@ -899,104 +972,6 @@ export default function ClientDetailPage() {
 
 
 
-      {/* Presença & Check-in */}
-      {(() => {
-        const stats = (client as any).attendanceStats
-        const history = (client as any).checkInHistory || []
-        if (!stats && history.length === 0) return null
-
-        const pct = stats ? Math.round(stats.attendanceRate * 100) : 0
-        const barColor = pct >= 85 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-        const statusText = pct >= 85 ? 'No alvo ✓' : pct >= 60 ? 'Abaixo' : 'Crítico'
-
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-green-500" />
-                Presença & Check-in
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Attendance Stats */}
-              {stats && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className="text-2xl font-bold text-green-400">{stats.sessionsCompleted}</div>
-                      <div className="text-xs text-muted-foreground">Sessões feitas</div>
-                    </div>
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className="text-2xl font-bold text-amber-400">{stats.remaining}</div>
-                      <div className="text-xs text-muted-foreground">Restantes</div>
-                    </div>
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className="text-2xl font-bold text-blue-400">{stats.sessionsPerWeek}x</div>
-                      <div className="text-xs text-muted-foreground">/semana</div>
-                    </div>
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className={`text-2xl font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{pct}%</div>
-                      <div className="text-xs text-muted-foreground">Frequência</div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Progresso: {stats.sessionsCompleted}/{stats.totalExpected}</span>
-                      <span className={`font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{statusText}</span>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                    </div>
-                  </div>
-                  {stats.workoutId && (
-                    <Link href={`/workouts/${stats.workoutId}`}>
-                      <Button variant="outline" size="sm" className="w-full text-xs">
-                        Ver treino ativo{stats.workoutName ? `: ${stats.workoutName}` : ''}
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              )}
-
-              {/* Check-in History */}
-              {history.length > 0 && (
-                <div className="space-y-2">
-                  <Separator />
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Últimos check-ins ({history.length})
-                  </p>
-                  <div className="space-y-1 max-h-[250px] overflow-y-auto">
-                    {history.map((lesson: any) => {
-                      const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
-                      const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
-                      return (
-                        <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500" />
-                            <div>
-                              <div className="text-xs font-medium capitalize">{dateStr}</div>
-                              {timeStr && <div className="text-[10px] text-muted-foreground">{timeStr}</div>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {lesson.focus && (
-                              <Badge variant="outline" className="text-[10px]">{lesson.focus}</Badge>
-                            )}
-                            {lesson.weekIndex && (
-                              <span className="text-[10px] text-muted-foreground">Sem.{lesson.weekIndex}</span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )
-      })()}
-
       {/* Workouts */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -1040,6 +1015,37 @@ export default function ClientDetailPage() {
           )}
         </CardContent>
       </Card>
+      {/* Floating Action Button (FAB) — expandable */}
+      {fabOpen && <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setFabOpen(false)} />}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <>
+            {canEdit && (
+              <Link href={`/clients/${client.id}/edit`} onClick={() => setFabOpen(false)}>
+                <Button className="rounded-full shadow-lg px-5 h-11 bg-card border border-border text-foreground hover:bg-muted gap-2">
+                  <Pencil className="w-4 h-4" />
+                  Editar Aluno
+                </Button>
+              </Link>
+            )}
+            <Link href={`/assessments/new?clientId=${client.id}`} onClick={() => setFabOpen(false)}>
+              <Button className="rounded-full shadow-lg px-5 h-11 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white gap-2">
+                <ClipboardCheck className="w-4 h-4" />
+                Nova Avaliação
+              </Button>
+            </Link>
+          </>
+        )}
+        <Button
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-14 h-14 rounded-full shadow-2xl transition-all ${fabOpen
+              ? 'bg-muted hover:bg-muted/80 text-foreground rotate-45'
+              : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black'
+            }`}
+        >
+          {fabOpen ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+        </Button>
+      </div>
     </div>
   )
 }
