@@ -444,7 +444,33 @@ export async function DELETE(
       )
     }
 
-    // Excluir permanentemente (hard delete) + resetar pillar index
+    // 1. Excluir LessonClient de aulas vinculadas a este treino
+    const relatedLessons = await prisma.lesson.findMany({
+      where: { workoutId },
+      select: { id: true },
+    })
+    const lessonIds = relatedLessons.map(l => l.id)
+
+    if (lessonIds.length > 0) {
+      await prisma.lessonClient.deleteMany({
+        where: { lessonId: { in: lessonIds } },
+      })
+      await prisma.lesson.deleteMany({
+        where: { id: { in: lessonIds } },
+      })
+    }
+
+    // 2. Excluir avaliação vinculada (criada até 5min antes do treino, mesmo cliente)
+    const createdAt = existing.createdAt
+    const fiveMinBefore = new Date(createdAt.getTime() - 5 * 60 * 1000)
+    await prisma.assessment.deleteMany({
+      where: {
+        clientId: existing.clientId,
+        createdAt: { gte: fiveMinBefore, lte: createdAt },
+      },
+    })
+
+    // 3. Excluir treino + resetar pillar index
     await prisma.$transaction([
       prisma.workout.delete({
         where: { id: workoutId },
