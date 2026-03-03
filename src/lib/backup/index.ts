@@ -42,6 +42,7 @@ export interface BackupData {
     auditLogs: any[]
     refreshTokens: any[]
     rules: any[]
+    trainingSessions: any[]
   }
 }
 
@@ -68,7 +69,7 @@ function calculateChecksum(data: string): string {
 export async function createFullBackup(userId: string, userName: string, description?: string): Promise<BackupData> {
   const backupId = generateBackupId()
   const startTime = Date.now()
-  
+
   console.log(`🔄 Iniciando backup completo: ${backupId}`)
 
   // Collect all data from all tables that exist in schema
@@ -91,6 +92,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     auditLogs,
     refreshTokens,
     rules,
+    trainingSessions,
   ] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.studio.findMany({ orderBy: { createdAt: 'asc' } }),
@@ -110,6 +112,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     prisma.auditLog.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.refreshToken.findMany({ orderBy: { createdAt: 'asc' } }),
     prisma.rule.findMany({ orderBy: { createdAt: 'asc' } }),
+    prisma.trainingSession.findMany({ orderBy: { createdAt: 'asc' } }),
   ])
 
   const data = {
@@ -131,6 +134,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     auditLogs,
     refreshTokens,
     rules,
+    trainingSessions,
   }
 
   const recordCounts: Record<string, number> = {
@@ -152,6 +156,7 @@ export async function createFullBackup(userId: string, userName: string, descrip
     auditLogs: auditLogs.length,
     refreshTokens: refreshTokens.length,
     rules: rules.length,
+    trainingSessions: trainingSessions.length,
   }
 
   const totalRecords = Object.values(recordCounts).reduce((a, b) => a + b, 0)
@@ -218,8 +223,8 @@ export function validateBackup(backup: BackupData): { valid: boolean; errors: st
 
 // Restore data from backup (with transaction for safety)
 export async function restoreFromBackup(
-  backup: BackupData, 
-  options: { 
+  backup: BackupData,
+  options: {
     clearExisting?: boolean
     skipUsers?: boolean
     skipAuditLogs?: boolean
@@ -242,7 +247,7 @@ export async function restoreFromBackup(
       // Delete in reverse order of dependencies
       if (options.clearExisting) {
         console.log('🗑️ Limpando dados existentes...')
-        
+
         // Delete in correct order (children first)
         await tx.lessonClient.deleteMany()
         await tx.lesson.deleteMany()
@@ -261,11 +266,12 @@ export async function restoreFromBackup(
         await tx.block.deleteMany()
         if (!options.skipAuditLogs) await tx.auditLog.deleteMany()
         await tx.refreshToken.deleteMany()
+        await tx.trainingSession.deleteMany()
         if (!options.skipUsers) await tx.user.deleteMany()
       }
 
       // Restore in correct order (parents first)
-      
+
       // 1. Users (if not skipping)
       if (!options.skipUsers && backup.data.users?.length > 0) {
         for (const user of backup.data.users) {
@@ -468,6 +474,18 @@ export async function restoreFromBackup(
           })
         }
         restored.auditLogs = backup.data.auditLogs.length
+      }
+
+      // 17. TrainingSessions
+      if ((backup.data as any).trainingSessions?.length > 0) {
+        for (const ts of (backup.data as any).trainingSessions) {
+          await tx.trainingSession.upsert({
+            where: { id: ts.id },
+            create: ts,
+            update: ts,
+          })
+        }
+        restored.trainingSessions = (backup.data as any).trainingSessions.length
       }
 
     }, {

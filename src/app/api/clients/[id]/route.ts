@@ -137,9 +137,67 @@ export async function GET(
     // All trainers in the studio can view any client details
     // (editing is restricted to the assigned trainer or admin)
 
+    // ---- Compute attendance stats from active workout + lessons ----
+    let attendanceStats: any = null
+    let checkInHistory: any[] = []
+
+    // Find active workout for this client
+    const activeWorkout = await prisma.workout.findFirst({
+      where: { clientId: client.id, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        sessionsPerWeek: true,
+        targetWeeks: true,
+        sessionsCompleted: true,
+        createdAt: true,
+      },
+    })
+
+    if (activeWorkout) {
+      const totalExpected = (activeWorkout.sessionsPerWeek || 3) * (activeWorkout.targetWeeks || 8)
+      const completed = activeWorkout.sessionsCompleted || 0
+
+      // Compute expected sessions by now
+      const weeksSinceStart = Math.max(1, Math.ceil(
+        (Date.now() - new Date(activeWorkout.createdAt).getTime()) / (7 * 24 * 60 * 60 * 1000)
+      ))
+      const expectedByNow = Math.min(totalExpected, weeksSinceStart * (activeWorkout.sessionsPerWeek || 3))
+      const rate = expectedByNow > 0 ? completed / expectedByNow : completed > 0 ? 1 : 0
+
+      attendanceStats = {
+        workoutId: activeWorkout.id,
+        workoutName: activeWorkout.name,
+        sessionsCompleted: completed,
+        totalExpected,
+        remaining: Math.max(0, totalExpected - completed),
+        sessionsPerWeek: activeWorkout.sessionsPerWeek || 3,
+        targetWeeks: activeWorkout.targetWeeks || 8,
+        attendanceRate: Math.min(1, rate),
+        attendanceStatus: rate >= 0.85 ? 'ON_TRACK' : rate >= 0.60 ? 'BELOW_TARGET' : 'CRITICAL',
+      }
+
+      // Load check-in history (lessons for this client's workouts)
+      const lessons = await prisma.lesson.findMany({
+        where: { workoutId: activeWorkout.id },
+        orderBy: { date: 'desc' },
+        take: 30,
+        select: {
+          id: true,
+          date: true,
+          startedAt: true,
+          endedAt: true,
+          focus: true,
+          sessionIndex: true,
+          weekIndex: true,
+        },
+      })
+      checkInHistory = lessons
+    }
+
     return NextResponse.json({
       success: true,
-      data: client,
+      data: { ...client, attendanceStats, checkInHistory },
     })
   } catch (error) {
     console.error('Get client error:', error)
