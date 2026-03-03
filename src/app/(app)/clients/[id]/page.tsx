@@ -123,7 +123,8 @@ export default function ClientDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showMeasureHistory, setShowMeasureHistory] = useState(false)
-  const [compareIdx, setCompareIdx] = useState(0) // 0 = first assessment for comparison
+  const [compareIdxA, setCompareIdxA] = useState(0) // first assessment
+  const [compareIdxB, setCompareIdxB] = useState(-1) // -1 = "Dados atuais"
 
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
@@ -690,97 +691,189 @@ export default function ClientDetailPage() {
           {/* ========== COMPARAÇÃO DE AVALIAÇÕES ========== */}
           {(client.assessments || []).filter(a => a.bodyMetricsJson).length >= 1 && (() => {
             const evals = (client.assessments || []).filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-            // Current = latest client data
+
+            // Build "Dados atuais" from client fields
             const currentData: Record<string, number> = {}
             if (client.weight) currentData.weight = Number(client.weight)
             if (client.bodyFat) currentData.bodyFat = Number(client.bodyFat)
             if (client.chest) currentData.chest = Number(client.chest)
             if (client.waist) currentData.waist = Number(client.waist)
             if (client.hip) currentData.hip = Number(client.hip)
+            if (client.abdomen) currentData.abdomen = Number(client.abdomen)
             if (client.armRight) currentData.arm_right = Number(client.armRight)
+            if (client.armLeft) currentData.arm_left = Number(client.armLeft)
             if (client.thighRight) currentData.thigh_right = Number(client.thighRight)
+            if (client.thighLeft) currentData.thigh_left = Number(client.thighLeft)
             if (client.calfRight) currentData.calf_right = Number(client.calfRight)
+            if (client.calfLeft) currentData.calf_left = Number(client.calfLeft)
+            if (client.sfTriceps) currentData.sfTriceps = Number(client.sfTriceps)
+            if (client.sfSuprailiac) currentData.sfSuprailiac = Number(client.sfSuprailiac)
+            if (client.sfThigh) currentData.sfThigh = Number(client.sfThigh)
+            if (client.sfChest) currentData.sfChest = Number(client.sfChest)
+            if (client.sfAbdomen) currentData.sfAbdomen = Number(client.sfAbdomen)
 
-            const compareData = evals[compareIdx]?.bodyMetricsJson as Record<string, number> | null
+            // Data A = selected eval or current
+            const dataA: Record<string, number> = compareIdxA === -1 ? currentData : (evals[compareIdxA]?.bodyMetricsJson as Record<string, number> ?? {})
+            const dataB: Record<string, number> = compareIdxB === -1 ? currentData : (evals[compareIdxB]?.bodyMetricsJson as Record<string, number> ?? {})
+            const labelA = compareIdxA === -1 ? 'Atual' : new Date(evals[compareIdxA]?.createdAt).toLocaleDateString('pt-BR')
+            const labelB = compareIdxB === -1 ? 'Atual' : new Date(evals[compareIdxB]?.createdAt).toLocaleDateString('pt-BR')
+
             const metrics = [
-              { label: 'Peso', key: 'weight', unit: 'kg' },
-              { label: '% Gordura', key: 'bodyFat', unit: '%' },
-              { label: 'Peitoral', key: 'chest', unit: 'cm' },
-              { label: 'Cintura', key: 'waist', unit: 'cm' },
-              { label: 'Quadril', key: 'hip', unit: 'cm' },
-              { label: 'Braço D', key: 'arm_right', unit: 'cm' },
-              { label: 'Coxa D', key: 'thigh_right', unit: 'cm' },
-              { label: 'Pant. D', key: 'calf_right', unit: 'cm' },
+              { label: 'Peso', key: 'weight', unit: 'kg', lowerBetter: false },
+              { label: '% Gordura', key: 'bodyFat', unit: '%', lowerBetter: true },
+              { label: 'Peitoral', key: 'chest', unit: 'cm', lowerBetter: false },
+              { label: 'Cintura', key: 'waist', unit: 'cm', lowerBetter: true },
+              { label: 'Quadril', key: 'hip', unit: 'cm', lowerBetter: false },
+              { label: 'Abdômen', key: 'abdomen', unit: 'cm', lowerBetter: true },
+              { label: 'Braço D', key: 'arm_right', unit: 'cm', lowerBetter: false },
+              { label: 'Braço E', key: 'arm_left', unit: 'cm', lowerBetter: false },
+              { label: 'Coxa D', key: 'thigh_right', unit: 'cm', lowerBetter: false },
+              { label: 'Coxa E', key: 'thigh_left', unit: 'cm', lowerBetter: false },
+              { label: 'Pant. D', key: 'calf_right', unit: 'cm', lowerBetter: false },
+              { label: 'Pant. E', key: 'calf_left', unit: 'cm', lowerBetter: false },
+              { label: 'Tríceps', key: 'sfTriceps', unit: 'mm', lowerBetter: true },
+              { label: 'Suprail.', key: 'sfSuprailiac', unit: 'mm', lowerBetter: true },
+              { label: 'Coxa DC', key: 'sfThigh', unit: 'mm', lowerBetter: true },
             ]
+
+            // Filter to only metrics that have data in at least one side
+            const activeMetrics = metrics.filter(m => dataA[m.key] != null || dataB[m.key] != null)
+            const maxVals = activeMetrics.map(m => Math.max(dataA[m.key] ?? 0, dataB[m.key] ?? 0))
+            const globalMax = Math.max(...maxVals, 1)
 
             return (
               <div className="space-y-3">
                 <Separator />
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">📊 Comparação de Avaliações</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">📊 Comparação de Avaliações</p>
+
+                {/* Dual Date Selectors */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase">Data A</label>
+                    <select
+                      className="w-full text-xs rounded-md border bg-background px-2 py-1.5"
+                      value={compareIdxA}
+                      onChange={(e) => setCompareIdxA(Number(e.target.value))}
+                    >
+                      <option value={-1}>Dados atuais</option>
+                      {evals.map((ev, i) => (
+                        <option key={ev.id} value={i}>
+                          {new Date(ev.createdAt).toLocaleDateString('pt-BR')} {i === 0 ? '(1ª)' : i === evals.length - 1 ? '(última)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase">Data B</label>
+                    <select
+                      className="w-full text-xs rounded-md border bg-background px-2 py-1.5"
+                      value={compareIdxB}
+                      onChange={(e) => setCompareIdxB(Number(e.target.value))}
+                    >
+                      <option value={-1}>Dados atuais</option>
+                      {evals.map((ev, i) => (
+                        <option key={ev.id} value={i}>
+                          {new Date(ev.createdAt).toLocaleDateString('pt-BR')} {i === 0 ? '(1ª)' : i === evals.length - 1 ? '(última)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Date Selector */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">Comparar com:</span>
-                  <select
-                    className="text-xs rounded-md border bg-background px-2 py-1"
-                    value={compareIdx}
-                    onChange={(e) => setCompareIdx(Number(e.target.value))}
-                  >
-                    {evals.map((ev, i) => (
-                      <option key={ev.id} value={i}>
-                        {new Date(ev.createdAt).toLocaleDateString('pt-BR')} {i === 0 ? '(primeira)' : i === evals.length - 1 ? '(última)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-xs text-muted-foreground">→ Dados atuais</span>
+                {/* Legend */}
+                <div className="flex items-center gap-4 text-[10px]">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-blue-500 to-blue-400" />
+                    <span className="text-muted-foreground">{labelA}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-amber-500 to-amber-400" />
+                    <span className="text-muted-foreground">{labelB}</span>
+                  </div>
                 </div>
 
-                {/* Comparison Bars */}
-                {compareData && (
-                  <div className="space-y-3">
-                    {metrics.map(({ label, key, unit }) => {
-                      const prev = compareData[key]
-                      const curr = currentData[key]
-                      if (prev == null && curr == null) return null
-                      const prevVal = prev ?? 0
-                      const currVal = curr ?? 0
-                      const delta = currVal - prevVal
-                      const maxBar = Math.max(prevVal, currVal) || 1
-                      const isGood = key === 'bodyFat' || key === 'waist' ? delta < 0 : delta > 0
+                {/* Vertical Bar Chart */}
+                <div className="overflow-x-auto">
+                  <div className="flex items-end gap-1 min-w-0" style={{ minHeight: '180px' }}>
+                    {activeMetrics.map((m, idx) => {
+                      const valA = dataA[m.key] ?? 0
+                      const valB = dataB[m.key] ?? 0
+                      const localMax = Math.max(valA, valB, 0.1)
+                      const delta = valB - valA
+                      const isGood = m.lowerBetter ? delta <= 0 : delta >= 0
+                      const hA = valA > 0 ? Math.max(8, (valA / localMax) * 140) : 0
+                      const hB = valB > 0 ? Math.max(8, (valB / localMax) * 140) : 0
 
                       return (
-                        <div key={key} className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium">{label}</span>
-                            {delta !== 0 && prev != null && curr != null && (
-                              <span className={`font-bold ${isGood ? 'text-green-400' : 'text-red-400'}`}>
-                                {delta > 0 ? '+' : ''}{delta.toFixed(1)}{unit} {isGood ? '✓' : '⚠'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] w-12 text-right text-muted-foreground">{prev != null ? prevVal.toFixed(1) : '—'}</span>
-                            <div className="flex-1 space-y-[2px]">
-                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-slate-400 to-slate-500 rounded-full transition-all"
-                                  style={{ width: prev != null ? `${(prevVal / maxBar) * 100}%` : '0%' }} />
-                              </div>
-                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
-                                <div className={`h-full rounded-full transition-all ${isGood ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-amber-400 to-amber-500'}`}
-                                  style={{ width: curr != null ? `${(currVal / maxBar) * 100}%` : '0%' }} />
-                              </div>
+                        <div key={m.key} className="flex flex-col items-center flex-1 min-w-[40px] max-w-[60px]">
+                          {/* Delta */}
+                          {delta !== 0 && valA > 0 && valB > 0 && (
+                            <span className={`text-[9px] font-bold mb-1 ${isGood ? 'text-green-500' : 'text-red-500'}`}>
+                              {delta > 0 ? '+' : ''}{delta.toFixed(1)}
+                            </span>
+                          )}
+                          {/* Bars container */}
+                          <div className="flex items-end gap-[2px] w-full justify-center" style={{ height: '140px' }}>
+                            {/* Bar A */}
+                            <div className="flex flex-col items-center w-[14px]">
+                              <div
+                                className="w-full rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-500"
+                                style={{ height: `${hA}px` }}
+                              />
                             </div>
-                            <span className="text-[10px] w-12 text-right font-bold">{curr != null ? currVal.toFixed(1) : '—'}</span>
+                            {/* Bar B */}
+                            <div className="flex flex-col items-center w-[14px]">
+                              <div
+                                className="w-full rounded-t-sm bg-gradient-to-t from-amber-600 to-amber-400 transition-all duration-500"
+                                style={{ height: `${hB}px` }}
+                              />
+                            </div>
                           </div>
-                          <div className="flex justify-between text-[9px] text-muted-foreground px-14">
-                            <span>Anterior</span>
-                            <span>Atual</span>
+                          {/* Values */}
+                          <div className="text-[8px] text-center mt-1 leading-tight">
+                            <span className="text-blue-400 font-bold">{valA > 0 ? valA.toFixed(1) : '—'}</span>
+                            <span className="text-muted-foreground mx-[1px]">/</span>
+                            <span className="text-amber-400 font-bold">{valB > 0 ? valB.toFixed(1) : '—'}</span>
                           </div>
+                          {/* Label */}
+                          <span className="text-[9px] text-muted-foreground text-center mt-0.5 leading-tight">{m.label}</span>
                         </div>
                       )
                     })}
+                  </div>
+                </div>
+
+                {/* Summary Table */}
+                {activeMetrics.length > 0 && (
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-muted/30">
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground">Medida</th>
+                          <th className="text-right px-2 py-1 font-medium text-blue-400">{labelA}</th>
+                          <th className="text-right px-2 py-1 font-medium text-amber-400">{labelB}</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Δ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeMetrics.map(m => {
+                          const vA = dataA[m.key]
+                          const vB = dataB[m.key]
+                          const delta = (vB ?? 0) - (vA ?? 0)
+                          const isGood = m.lowerBetter ? delta <= 0 : delta >= 0
+                          return (
+                            <tr key={m.key} className="border-t border-muted/20">
+                              <td className="px-2 py-1 text-muted-foreground">{m.label}</td>
+                              <td className="px-2 py-1 text-right font-medium">{vA != null ? vA.toFixed(1) : '—'} <span className="text-muted-foreground">{m.unit}</span></td>
+                              <td className="px-2 py-1 text-right font-medium">{vB != null ? vB.toFixed(1) : '—'} <span className="text-muted-foreground">{m.unit}</span></td>
+                              <td className={`px-2 py-1 text-right font-bold ${vA != null && vB != null && delta !== 0 ? (isGood ? 'text-green-500' : 'text-red-500') : 'text-muted-foreground'}`}>
+                                {vA != null && vB != null ? `${delta > 0 ? '+' : ''}${delta.toFixed(1)}` : '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
