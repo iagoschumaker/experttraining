@@ -229,7 +229,7 @@ export default function EditClientPage() {
     setSaving(true)
 
     try {
-      // Prepare data
+      // Prepare data — always include gender, birthDate, weight for Pollock
       const updateData: any = {
         name: formData.name,
         email: formData.email || null,
@@ -239,19 +239,10 @@ export default function EditClientPage() {
         notes: formData.notes || null,
         goal: formData.goal || null,
         trainerId: formData.trainerId || null,
-      }
-
-      if (formData.birthDate) {
-        updateData.birthDate = convertDateToISO(formData.birthDate)
-      }
-      if (formData.gender) {
-        updateData.gender = formData.gender
-      }
-      if (formData.height) {
-        updateData.height = parseFloat(formData.height)
-      }
-      if (formData.weight) {
-        updateData.weight = parseFloat(formData.weight)
+        gender: formData.gender || null,
+        birthDate: formData.birthDate ? convertDateToISO(formData.birthDate) : null,
+        height: formData.height ? parseFloat(formData.height) : null,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
       }
       updateData.chest = formData.chest ? parseFloat(formData.chest) : null
       updateData.waist = formData.waist ? parseFloat(formData.waist) : null

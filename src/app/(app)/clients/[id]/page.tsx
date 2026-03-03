@@ -49,6 +49,8 @@ import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
 import { ClientBodyComposition } from '@/components/clients/client-body-composition'
+import { computePollock, ageFromBirthDate } from '@/services/pollock'
+import type { SkinfoldsInput } from '@/services/pollock'
 
 interface Assessment {
   id: string
@@ -482,13 +484,37 @@ export default function ClientDetailPage() {
         <CardContent className="space-y-5">
 
           {/* ========== POLLOCK: PIE CHART + DADOS ========== */}
-          {client.weight && client.bodyFat && (() => {
-            const w = Number(client.weight)
-            const bf = Number(client.bodyFat)
+          {(() => {
+            // Compute Pollock client-side from skinfold data
+            const w = client.weight ? Number(client.weight) : null
+            const gender = client.gender as 'M' | 'F' | null
+            const birthDate = client.birthDate
+
+            let bf: number | null = null
+
+            if (w && gender && (gender === 'M' || gender === 'F') && birthDate) {
+              const sfInput: SkinfoldsInput = {
+                chest: client.sfChest ? Number(client.sfChest) : undefined,
+                abdomen: client.sfAbdomen ? Number(client.sfAbdomen) : undefined,
+                thigh: client.sfThigh ? Number(client.sfThigh) : undefined,
+                triceps: client.sfTriceps ? Number(client.sfTriceps) : undefined,
+                suprailiac: client.sfSuprailiac ? Number(client.sfSuprailiac) : undefined,
+                subscapular: client.sfSubscapular ? Number(client.sfSubscapular) : undefined,
+                midaxillary: client.sfMidaxillary ? Number(client.sfMidaxillary) : undefined,
+              }
+              const age = ageFromBirthDate(birthDate)
+              const result = computePollock(sfInput, age, w, gender)
+              if (result) bf = result.bodyFatPercent
+            }
+
+            // Fall back to saved bodyFat if Pollock can't compute
+            if (bf == null && client.bodyFat) bf = Number(client.bodyFat)
+
+            if (!w || bf == null) return null
+
             const fatKg = w * bf / 100
             const leanKg = w - fatKg
             const leanPct = 100 - bf
-            const gender = client.gender
             const bfClass = gender === 'M'
               ? (bf < 6 ? 'Essencial' : bf < 14 ? 'Atleta' : bf < 18 ? 'Bom' : bf < 25 ? 'Normal' : 'Acima')
               : (bf < 14 ? 'Essencial' : bf < 21 ? 'Atleta' : bf < 25 ? 'Bom' : bf < 32 ? 'Normal' : 'Acima')
@@ -498,7 +524,7 @@ export default function ClientDetailPage() {
 
             return (
               <div className="space-y-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Análise Pollock</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Análise Pollock — {gender === 'M' ? '3 Dobras Masculino' : '3 Dobras Feminino'}</p>
 
                 {/* Pie Chart + Data Grid */}
                 <div className="flex flex-col sm:flex-row items-center gap-6">
