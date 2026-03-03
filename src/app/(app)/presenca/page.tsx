@@ -3,10 +3,12 @@
 // ============================================================================
 // EXPERT PRO TRAINING - PRESENÇA (CHECK-IN) + SESSÃO EM GRUPO (MULTI-TABS)
 // ============================================================================
-// Multi-select → múltiplas sessões em abas → check-in automático + 85%
+// - Multi-select → sessões em abas → check-in ao FINALIZAR sessão
+// - Sessions persistem em localStorage (sobrevivem navegação)
+// - Botões flutuantes: "+ Aluno" e "Finalizar Sessão"
 // ============================================================================
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +29,8 @@ import {
     ChevronUp,
     Weight,
     ArrowLeft,
+    UserPlus,
+    Flag,
 } from 'lucide-react'
 
 // ============================================================================
@@ -56,17 +60,9 @@ interface SessionData {
         dayIndex: number
         pillarLabel: string
         exercises: SessionExercise[]
-        periodization: {
-            phase: string
-            phaseLabel: string
-            week: number
-        }
+        periodization: { phase: string; phaseLabel: string; week: number }
         preparation?: any
-        blocks?: Array<{
-            code: string
-            name: string
-            exercises: SessionExercise[]
-        }>
+        blocks?: Array<{ code: string; name: string; exercises: SessionExercise[] }>
         finalProtocol?: any
     }
     progress: {
@@ -85,13 +81,8 @@ interface SessionData {
     workoutName: string
     checkedInToday?: boolean
     todayLesson?: {
-        id: string
-        date: string
-        startedAt: string
-        endedAt: string
-        focus: string | null
-        sessionIndex: number
-        weekIndex: number
+        id: string; date: string; startedAt: string; endedAt: string
+        focus: string | null; sessionIndex: number; weekIndex: number
     } | null
 }
 
@@ -109,8 +100,11 @@ interface SessionTab {
     id: string
     label: string
     students: GroupStudent[]
-    createdAt: Date
+    createdAt: string // ISO string for JSON serialization
+    finalized: boolean
 }
+
+const STORAGE_KEY = 'expertpro_sessions'
 
 // ============================================================================
 // MAIN COMPONENT
@@ -126,14 +120,45 @@ export default function PresencaPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [startingSession, setStartingSession] = useState(false)
 
-    // Multiple session tabs
+    // Multiple session tabs — loaded from localStorage
     const [sessions, setSessions] = useState<SessionTab[]>([])
     const [activeTabId, setActiveTabId] = useState<string | null>(null)
+    const [showAddStudent, setShowAddStudent] = useState(false)
+    const [addStudentSearch, setAddStudentSearch] = useState('')
+    const [finalizingSession, setFinalizingSession] = useState(false)
 
     // Weight saving
     const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
 
     const activeSession = sessions.find(s => s.id === activeTabId) || null
+
+    // ========================================================================
+    // PERSISTENCE — save sessions to localStorage
+    // ========================================================================
+    const isInitialLoad = useRef(true)
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY)
+            if (saved) {
+                const parsed = JSON.parse(saved) as SessionTab[]
+                // Only restore non-finalized sessions from today
+                const today = new Date().toDateString()
+                const valid = parsed.filter(s => !s.finalized && new Date(s.createdAt).toDateString() === today)
+                if (valid.length > 0) {
+                    setSessions(valid)
+                }
+            }
+        } catch { }
+        isInitialLoad.current = false
+    }, [])
+
+    useEffect(() => {
+        if (isInitialLoad.current) return
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+        } catch { }
+    }, [sessions])
 
     // ========================================================================
     // DATA LOADING
@@ -180,16 +205,14 @@ export default function PresencaPage() {
     // ========================================================================
     function toggleSelect(id: string) {
         setSelectedIds(prev => {
-            const n = new Set(prev)
-            n.has(id) ? n.delete(id) : n.add(id)
-            return n
+            const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
         })
     }
     function selectAll() { setSelectedIds(new Set(clients.map(c => c.id))) }
     function deselectAll() { setSelectedIds(new Set()) }
 
     // ========================================================================
-    // SESSION MANAGEMENT
+    // SESSION MANAGEMENT — NO auto check-in on start
     // ========================================================================
     async function startGroupSession() {
         setStartingSession(true)
@@ -202,13 +225,15 @@ export default function PresencaPage() {
             sessionData: null, loading: true, checkedIn: false, error: null, collapsed: false,
         }))
 
-        const newTab: SessionTab = { id: tabId, label: `${time} (${selected.length})`, students, createdAt: new Date() }
+        const newTab: SessionTab = {
+            id: tabId, label: `${time} · ${selected.length} alunos`,
+            students, createdAt: new Date().toISOString(), finalized: false,
+        }
         setSessions(prev => [...prev, newTab])
         setActiveTabId(tabId)
         setSelectedIds(new Set())
-        setStartingSession(false)
 
-        // Load sessions + auto check-in in parallel
+        // Load sessions in parallel — but DO NOT check-in yet
         const results = await Promise.all(students.map(async (student) => {
             if (!student.workoutId) return { ...student, loading: false, error: 'Sem treino ativo' }
             try {
@@ -216,26 +241,21 @@ export default function PresencaPage() {
                 const data = await res.json()
                 if (!data.success) return { ...student, loading: false, error: data.error || 'Erro' }
                 const sessionData = data.data as SessionData
-
-                let checkedIn = sessionData.checkedInToday || false
-                if (!checkedIn && !sessionData.progress.isComplete) {
-                    try {
-                        const cr = await fetch(`/api/studio/workouts/${student.workoutId}/next-session`,
-                            { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                        const cd = await cr.json()
-                        if (cd.success) { checkedIn = true; sessionData.checkedInToday = true }
-                    } catch { }
-                }
-                return { ...student, sessionData, loading: false, checkedIn, error: null }
+                const alreadyCheckedIn = sessionData.checkedInToday || false
+                return { ...student, sessionData, loading: false, checkedIn: alreadyCheckedIn, error: null }
             } catch { return { ...student, loading: false, error: 'Erro de conexão' } }
         }))
 
         setSessions(prev => prev.map(s => s.id === tabId ? { ...s, students: results } : s))
+        setStartingSession(false)
     }
 
+    // Add late student — also NO auto check-in
     async function addLateStudent(client: Client, tabId: string) {
         const workoutId = clientWorkoutMap.get(client.id)
         if (!workoutId) return
+        setShowAddStudent(false)
+        setAddStudentSearch('')
 
         const newStudent: GroupStudent = {
             client, workoutId, sessionData: null,
@@ -243,7 +263,7 @@ export default function PresencaPage() {
         }
 
         setSessions(prev => prev.map(s =>
-            s.id === tabId ? { ...s, students: [...s.students, newStudent], label: s.label.replace(/\(\d+\)/, `(${s.students.length + 1})`) } : s
+            s.id === tabId ? { ...s, students: [...s.students, newStudent] } : s
         ))
 
         try {
@@ -254,16 +274,8 @@ export default function PresencaPage() {
                 return
             }
             const sessionData = data.data as SessionData
-            let checkedIn = sessionData.checkedInToday || false
-            if (!checkedIn && !sessionData.progress.isComplete) {
-                try {
-                    const cr = await fetch(`/api/studio/workouts/${workoutId}/next-session`,
-                        { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                    const cd = await cr.json()
-                    if (cd.success) checkedIn = true
-                } catch { }
-            }
-            updateStudent(tabId, client.id, { sessionData, loading: false, checkedIn, error: null })
+            const alreadyCheckedIn = sessionData.checkedInToday || false
+            updateStudent(tabId, client.id, { sessionData, loading: false, checkedIn: alreadyCheckedIn, error: null })
         } catch {
             updateStudent(tabId, client.id, { loading: false, error: 'Erro de conexão' })
         }
@@ -281,7 +293,51 @@ export default function PresencaPage() {
         ))
     }
 
+    // FINALIZE SESSION — this does the ACTUAL check-in for each student
+    async function finalizeSession(tabId: string) {
+        setFinalizingSession(true)
+        const session = sessions.find(s => s.id === tabId)
+        if (!session) { setFinalizingSession(false); return }
+
+        // Check-in each student who hasn't been checked in yet
+        const checkInPromises = session.students.map(async (student) => {
+            if (student.checkedIn || !student.sessionData || student.error || student.sessionData.progress.isComplete) {
+                return student
+            }
+            try {
+                const res = await fetch(`/api/studio/workouts/${student.workoutId}/next-session`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                })
+                const data = await res.json()
+                if (data.success) {
+                    return { ...student, checkedIn: true }
+                }
+                return student
+            } catch { return student }
+        })
+
+        const results = await Promise.all(checkInPromises)
+        const checkedCount = results.filter(s => s.checkedIn).length
+
+        // Mark session as finalized and update students
+        setSessions(prev => prev.map(s =>
+            s.id === tabId ? { ...s, students: results, finalized: true } : s
+        ))
+
+        setFinalizingSession(false)
+
+        // Show brief success then remove the tab
+        setTimeout(() => {
+            setSessions(prev => prev.filter(s => s.id !== tabId))
+            if (activeTabId === tabId) {
+                const remaining = sessions.filter(s => s.id !== tabId && !s.finalized)
+                setActiveTabId(remaining.length > 0 ? remaining[remaining.length - 1].id : null)
+            }
+        }, 2000)
+    }
+
     function closeSession(tabId: string) {
+        // Close without check-in (discard)
         setSessions(prev => prev.filter(s => s.id !== tabId))
         if (activeTabId === tabId) {
             const remaining = sessions.filter(s => s.id !== tabId)
@@ -330,10 +386,17 @@ export default function PresencaPage() {
     const levelLabel = (l?: string) => l === 'INTERMEDIARIO' ? 'Intermediário' : l === 'AVANCADO' ? 'Avançado' : 'Iniciante'
     const pillarColor = (p: string) => {
         const l = p?.toLowerCase() || ''
-        if (l.includes('lower') || l.includes('inferior')) return 'bg-blue-500'
-        if (l.includes('push') || l.includes('empurr')) return 'bg-red-500'
-        if (l.includes('pull') || l.includes('pux')) return 'bg-green-500'
-        return 'bg-amber-500'
+        if (l.includes('lower') || l.includes('inferior')) return 'from-blue-600 to-blue-400'
+        if (l.includes('push') || l.includes('empurr')) return 'from-red-600 to-red-400'
+        if (l.includes('pull') || l.includes('pux')) return 'from-green-600 to-green-400'
+        return 'from-amber-600 to-amber-400'
+    }
+    const pillarBg = (p: string) => {
+        const l = p?.toLowerCase() || ''
+        if (l.includes('lower') || l.includes('inferior')) return 'bg-blue-500/10 text-blue-400'
+        if (l.includes('push') || l.includes('empurr')) return 'bg-red-500/10 text-red-400'
+        if (l.includes('pull') || l.includes('pux')) return 'bg-green-500/10 text-green-400'
+        return 'bg-amber-500/10 text-amber-400'
     }
     const initials = (name: string) => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
@@ -341,76 +404,121 @@ export default function PresencaPage() {
     // RENDER — SESSION VIEW (when a tab is active)
     // ========================================================================
     if (activeSession) {
+        const isFinalized = activeSession.finalized
         const studentsNotInSession = allClients.filter(c =>
             !activeSession.students.some(s => s.client.id === c.id)
         )
+        const filteredAdd = addStudentSearch
+            ? studentsNotInSession.filter(c => c.name.toLowerCase().includes(addStudentSearch.toLowerCase()))
+            : studentsNotInSession
 
         return (
-            <div className="space-y-3">
-                {/* Tab Bar */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    <Button variant="ghost" size="icon" className="flex-shrink-0 h-9 w-9"
-                        onClick={() => setActiveTabId(null)}>
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-
-                    {sessions.map(tab => (
+            <div className="space-y-3 pb-24">
+                {/* ====== TAB BAR — improved visual ====== */}
+                <div className="sticky top-0 z-40 -mx-4 px-4 py-2 bg-background/80 backdrop-blur-lg border-b border-muted/30">
+                    <div className="flex items-center gap-2 overflow-x-auto">
                         <button
-                            key={tab.id}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${tab.id === activeTabId
-                                    ? 'bg-green-500/10 text-green-500 border border-green-500/30'
-                                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-transparent'
-                                }`}
-                            onClick={() => setActiveTabId(tab.id)}
+                            className="flex-shrink-0 w-9 h-9 rounded-xl bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors"
+                            onClick={() => setActiveTabId(null)}
                         >
-                            <Users className="w-3.5 h-3.5" />
-                            {tab.label}
-                            <span className="ml-1 hover:text-red-400"
-                                onClick={(e) => { e.stopPropagation(); closeSession(tab.id) }}>
-                                <X className="w-3 h-3" />
-                            </span>
+                            <ArrowLeft className="w-4 h-4" />
                         </button>
-                    ))}
 
-                    <Button variant="ghost" size="sm" className="text-xs flex-shrink-0 text-muted-foreground"
-                        onClick={() => setActiveTabId(null)}>
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        Nova
-                    </Button>
+                        {sessions.filter(s => !s.finalized).map(tab => (
+                            <button key={tab.id}
+                                className={`group flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${tab.id === activeTabId
+                                        ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30 shadow-lg shadow-green-500/10'
+                                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-transparent'
+                                    }`}
+                                onClick={() => setActiveTabId(tab.id)}
+                            >
+                                <div className={`w-2 h-2 rounded-full ${tab.id === activeTabId ? 'bg-green-400 animate-pulse' : 'bg-muted-foreground/50'}`} />
+                                <Users className="w-3.5 h-3.5" />
+                                {tab.label}
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                                    onClick={(e) => { e.stopPropagation(); closeSession(tab.id) }}>
+                                    <X className="w-3 h-3 hover:text-red-400" />
+                                </span>
+                            </button>
+                        ))}
+
+                        <button
+                            className="flex-shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                            onClick={() => setActiveTabId(null)}
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            Nova Sessão
+                        </button>
+                    </div>
                 </div>
 
                 {/* Session Header */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                            <Users className="w-4 h-4 text-green-500" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-green-500" />
                         </div>
                         <div>
-                            <h2 className="text-sm font-bold">Sessão {activeSession.label}</h2>
+                            <h2 className="text-lg font-bold">Sessão {activeSession.label}</h2>
                             <p className="text-xs text-muted-foreground">
-                                {activeSession.students.filter(s => s.checkedIn).length}/{activeSession.students.length} check-ins • {new Date().toLocaleDateString('pt-BR')}
+                                {activeSession.students.filter(s => !s.loading && !s.error).length} alunos • {new Date().toLocaleDateString('pt-BR')}
+                                {isFinalized && <span className="text-green-500 font-bold ml-2">✅ Finalizada!</span>}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Add Late Student */}
-                {studentsNotInSession.length > 0 && (
-                    <details className="group">
-                        <summary className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                            <Plus className="w-3.5 h-3.5" />
-                            Adicionar aluno atrasado ({studentsNotInSession.length})
-                        </summary>
-                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-                            {studentsNotInSession.slice(0, 20).map(c => (
-                                <Button key={c.id} variant="outline" size="sm" className="text-xs justify-start h-8"
-                                    onClick={() => addLateStudent(c, activeSession.id)}>
-                                    <Plus className="w-3 h-3 mr-1 flex-shrink-0" />
-                                    <span className="truncate">{c.name}</span>
-                                </Button>
-                            ))}
+                {/* Finalized success message */}
+                {isFinalized && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+                        <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                        <p className="text-green-500 font-bold">Sessão finalizada com sucesso!</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Check-in registrado para {activeSession.students.filter(s => s.checkedIn).length} alunos
+                        </p>
+                    </div>
+                )}
+
+                {/* Add Student Modal */}
+                {showAddStudent && !isFinalized && (
+                    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-card rounded-2xl border shadow-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
+                            <div className="p-4 border-b flex items-center justify-between">
+                                <h3 className="font-bold text-sm">Adicionar Aluno</h3>
+                                <button onClick={() => { setShowAddStudent(false); setAddStudentSearch('') }}>
+                                    <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                                </button>
+                            </div>
+                            <div className="p-3">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input placeholder="Buscar aluno..." value={addStudentSearch}
+                                        onChange={(e) => setAddStudentSearch(e.target.value)}
+                                        className="pl-10" autoFocus />
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto max-h-[50vh] px-3 pb-3 space-y-1">
+                                {filteredAdd.length === 0 ? (
+                                    <p className="text-center text-xs text-muted-foreground py-4">Nenhum aluno disponível</p>
+                                ) : (
+                                    filteredAdd.slice(0, 30).map(c => (
+                                        <button key={c.id}
+                                            className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                                            onClick={() => addLateStudent(c, activeSession.id)}>
+                                            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-amber-500 font-bold text-xs">{initials(c.name)}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">{c.name}</p>
+                                                <p className="text-[10px] text-muted-foreground truncate">{c.email || ''}</p>
+                                            </div>
+                                            <Plus className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                        </button>
+                                    ))
+                                )}
+                            </div>
                         </div>
-                    </details>
+                    </div>
                 )}
 
                 {/* Workout Cards Grid */}
@@ -427,10 +535,12 @@ export default function PresencaPage() {
                                     <div className="min-w-0">
                                         <p className="font-medium text-sm truncate">{student.client.name}</p>
                                         {student.sessionData && (
-                                            <div className="flex items-center gap-1">
-                                                <span className={`w-2 h-2 rounded-full ${pillarColor(student.sessionData.session.pillarLabel)}`} />
-                                                <span className="text-[10px] text-muted-foreground truncate">
-                                                    {student.sessionData.session.pillarLabel} • Dia {student.sessionData.session.dayIndex + 1}
+                                            <div className="flex items-center gap-1.5">
+                                                <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(student.sessionData.session.pillarLabel)}`}>
+                                                    {student.sessionData.session.pillarLabel}
+                                                </Badge>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    Dia {student.sessionData.session.dayIndex + 1}
                                                 </span>
                                             </div>
                                         )}
@@ -440,6 +550,12 @@ export default function PresencaPage() {
                                     {student.checkedIn && <CheckCircle className="w-4 h-4 text-green-500" />}
                                     {student.loading && <Loader2 className="w-4 h-4 animate-spin text-amber-500" />}
                                     {student.error && <AlertCircle className="w-4 h-4 text-red-500" />}
+                                    {!isFinalized && (
+                                        <button className="ml-1 text-muted-foreground/50 hover:text-red-400 transition-colors"
+                                            onClick={(e) => { e.stopPropagation(); removeFromSession(activeSession.id, student.client.id) }}>
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                     {student.collapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
                                 </div>
                             </div>
@@ -457,39 +573,37 @@ export default function PresencaPage() {
                                         <div className="px-3 py-4 text-center">
                                             <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-1" />
                                             <p className="text-xs text-red-400">{student.error}</p>
-                                            <Button variant="ghost" size="sm" className="text-xs mt-1"
-                                                onClick={() => removeFromSession(activeSession.id, student.client.id)}>Remover</Button>
                                         </div>
                                     )}
 
                                     {student.sessionData && !student.loading && (
                                         <div className="divide-y divide-muted/30">
-                                            {/* Progress + attendance */}
+                                            {/* Progress + 85% bar */}
                                             <div className="px-3 py-1.5">
                                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
                                                     <span>{student.sessionData.session.periodization?.phaseLabel || student.sessionData.progress.currentPhaseLabel}</span>
                                                     <span>Sem. {student.sessionData.progress.currentWeek}</span>
                                                 </div>
-                                                {/* 85% attendance bar */}
                                                 {(() => {
                                                     const pct = Math.round((student.sessionData.progress.attendanceRate ?? 0) * 100)
                                                     const status = student.sessionData.progress.attendanceStatus
-                                                    const barColor = status === 'ON_TRACK' ? 'bg-green-500' : status === 'BELOW_TARGET' ? 'bg-yellow-500' : 'bg-red-500'
+                                                    const color = status === 'ON_TRACK' ? 'bg-green-500' : status === 'BELOW_TARGET' ? 'bg-yellow-500' : 'bg-red-500'
+                                                    const txtColor = status === 'ON_TRACK' ? 'text-green-500' : status === 'BELOW_TARGET' ? 'text-yellow-500' : 'text-red-500'
                                                     return (
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                                                                <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                                                        <>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                                                                    <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                                                                </div>
+                                                                <span className={`text-[10px] font-bold ${txtColor}`}>{pct}%</span>
                                                             </div>
-                                                            <span className={`text-[10px] font-bold ${status === 'ON_TRACK' ? 'text-green-500' : status === 'BELOW_TARGET' ? 'text-yellow-500' : 'text-red-500'}`}>
-                                                                {pct}%
-                                                            </span>
-                                                        </div>
+                                                            <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+                                                                <span>{student.sessionData!.progress.sessionsCompleted} sessões</span>
+                                                                <span>Meta: 85%</span>
+                                                            </div>
+                                                        </>
                                                     )
                                                 })()}
-                                                <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
-                                                    <span>{student.sessionData.progress.sessionsCompleted} sessões</span>
-                                                    <span>Meta: 85%</span>
-                                                </div>
                                             </div>
 
                                             {/* Preparation */}
@@ -505,7 +619,7 @@ export default function PresencaPage() {
                                                 </div>
                                             )}
 
-                                            {/* Blocks with exercises */}
+                                            {/* Blocks */}
                                             {student.sessionData.session.blocks
                                                 ? student.sessionData.session.blocks.map((block, bIdx) => (
                                                     <div key={bIdx} className="px-3 py-1.5">
@@ -555,12 +669,43 @@ export default function PresencaPage() {
                         </Card>
                     ))}
                 </div>
+
+                {/* ====== FLOATING ACTION BUTTONS ====== */}
+                {!isFinalized && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3">
+                        {/* + Add Student */}
+                        {studentsNotInSession.length > 0 && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowAddStudent(true)}
+                                className="rounded-full px-5 h-12 shadow-xl bg-card border-muted hover:border-amber-500/50 gap-2"
+                            >
+                                <UserPlus className="w-4 h-4 text-amber-500" />
+                                <span className="text-sm font-medium">+ Aluno</span>
+                            </Button>
+                        )}
+
+                        {/* Finalizar Sessão */}
+                        <Button
+                            onClick={() => finalizeSession(activeSession.id)}
+                            disabled={finalizingSession || activeSession.students.every(s => s.loading)}
+                            className="rounded-full px-6 h-12 shadow-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white gap-2 text-sm font-bold"
+                        >
+                            {finalizingSession ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Flag className="w-4 h-4" />
+                            )}
+                            Finalizar Sessão
+                        </Button>
+                    </div>
+                )}
             </div>
         )
     }
 
     // ========================================================================
-    // RENDER — SELECTION MODE (checkboxes + start session)
+    // RENDER — SELECTION MODE
     // ========================================================================
     return (
         <div className="space-y-4">
@@ -577,18 +722,24 @@ export default function PresencaPage() {
                 </div>
             </div>
 
-            {/* Active sessions tabs (if any) */}
-            {sessions.length > 0 && (
-                <div className="flex items-center gap-2 overflow-x-auto">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">Sessões ativas:</span>
-                    {sessions.map(tab => (
-                        <button key={tab.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/30 whitespace-nowrap flex-shrink-0 hover:bg-green-500/20 transition-colors"
-                            onClick={() => setActiveTabId(tab.id)}>
-                            <Users className="w-3.5 h-3.5" />
-                            {tab.label}
-                        </button>
-                    ))}
+            {/* Active sessions bar */}
+            {sessions.filter(s => !s.finalized).length > 0 && (
+                <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
+                        🟢 Sessões ativas
+                    </p>
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                        {sessions.filter(s => !s.finalized).map(tab => (
+                            <button key={tab.id}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-green-500/15 to-emerald-500/15 text-green-400 border border-green-500/30 whitespace-nowrap flex-shrink-0 hover:from-green-500/25 hover:to-emerald-500/25 transition-all shadow-sm"
+                                onClick={() => setActiveTabId(tab.id)}>
+                                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                <Users className="w-3.5 h-3.5" />
+                                {tab.label}
+                                <ArrowLeft className="w-3 h-3 rotate-180" />
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -619,7 +770,7 @@ export default function PresencaPage() {
             </Card>
 
             {/* Client List */}
-            <div className="space-y-1">
+            <div className="space-y-1 pb-20">
                 {loadingClients ? (
                     <div className="flex items-center justify-center py-12">
                         <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
@@ -633,8 +784,7 @@ export default function PresencaPage() {
                 ) : (
                     clients.map((client) => {
                         const isSelected = selectedIds.has(client.id)
-                        // Check if already in any active session
-                        const inSession = sessions.some(s => s.students.some(st => st.client.id === client.id))
+                        const inSession = sessions.some(s => !s.finalized && s.students.some(st => st.client.id === client.id))
                         return (
                             <div key={client.id}
                                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-green-500/50 bg-green-500/5'
@@ -650,19 +800,13 @@ export default function PresencaPage() {
                                     {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                                     {inSession && !isSelected && <CheckCircle className="w-3.5 h-3.5 text-blue-400" />}
                                 </div>
-
-                                {/* Avatar */}
                                 <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                                     <span className="text-amber-500 font-bold text-xs">{initials(client.name)}</span>
                                 </div>
-
-                                {/* Info */}
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-sm truncate">{client.name}</p>
                                     <p className="text-xs text-muted-foreground truncate">{client.email || 'Sem email'}</p>
                                 </div>
-
-                                {/* Badge */}
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     {inSession && <Badge variant="outline" className="text-[10px] border-blue-500/50 text-blue-400">Em sessão</Badge>}
                                     {client.level && <Badge variant="outline" className="text-[10px]">{levelLabel(client.level)}</Badge>}
@@ -677,7 +821,7 @@ export default function PresencaPage() {
             {selectedIds.size > 0 && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
                     <Button onClick={startGroupSession} disabled={startingSession} size="lg"
-                        className="bg-green-600 hover:bg-green-700 text-white shadow-2xl rounded-full px-8 h-14 text-lg gap-2">
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-2xl rounded-full px-8 h-14 text-lg gap-2">
                         {startingSession ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
                         Iniciar Sessão ({selectedIds.size})
                     </Button>
