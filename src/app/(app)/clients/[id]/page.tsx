@@ -338,51 +338,6 @@ export default function ClientDetailPage() {
               </div>
             </div>
 
-            {/* Attendance Stats */}
-            {(client as any).attendanceStats && (() => {
-              const s = (client as any).attendanceStats
-              const pct = Math.round(s.attendanceRate * 100)
-              const barColor = pct >= 85 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-              const statusColor = pct >= 85 ? 'text-green-500' : pct >= 60 ? 'text-yellow-500' : 'text-red-500'
-              return (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                      Presença — {s.workoutName || 'Treino Ativo'}
-                    </p>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <div className="rounded-lg border p-2 text-center">
-                        <div className="text-lg font-bold text-green-500">{s.sessionsCompleted}</div>
-                        <div className="text-[10px] text-muted-foreground">Feitas</div>
-                      </div>
-                      <div className="rounded-lg border p-2 text-center">
-                        <div className="text-lg font-bold text-amber-500">{s.remaining}</div>
-                        <div className="text-[10px] text-muted-foreground">Faltam</div>
-                      </div>
-                      <div className="rounded-lg border p-2 text-center">
-                        <div className="text-lg font-bold">{s.totalExpected}</div>
-                        <div className="text-[10px] text-muted-foreground">Total</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Frequência</span>
-                      <span className={`font-bold ${statusColor}`}>{pct}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${barColor}`}
-                        style={{ width: `${Math.min(100, pct)}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {s.sessionsPerWeek}x/semana • {s.targetWeeks} semanas • Meta: 85%
-                    </p>
-                  </div>
-                </>
-              )
-            })()}
-
             <Separator />
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Status</span>
@@ -1039,8 +994,8 @@ export default function ClientDetailPage() {
         <Button
           onClick={() => setFabOpen(!fabOpen)}
           className={`w-14 h-14 rounded-full shadow-2xl transition-all ${fabOpen
-              ? 'bg-muted hover:bg-muted/80 text-foreground rotate-45'
-              : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black'
+            ? 'bg-muted hover:bg-muted/80 text-foreground rotate-45'
+            : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black'
             }`}
         >
           {fabOpen ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
