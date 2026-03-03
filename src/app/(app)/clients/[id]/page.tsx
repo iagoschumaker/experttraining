@@ -510,17 +510,28 @@ export default function ClientDetailPage() {
             // Fall back to saved bodyFat if Pollock can't compute
             if (bf == null && client.bodyFat) bf = Number(client.bodyFat)
 
-            // DEBUG: show what data we have
-            if (!w || bf == null) return (
-              <div className="rounded-lg border border-amber-500 p-3 text-xs space-y-1 bg-amber-500/10">
-                <p className="font-bold text-amber-600">⚠️ Debug Pollock (remover depois):</p>
-                <p>Peso: {w ?? 'NULL'} | Gênero: {gender ?? 'NULL'} | Nascimento: {birthDate ?? 'NULL'}</p>
-                <p>sfTriceps: {client.sfTriceps ?? 'NULL'} | sfSuprailiac: {client.sfSuprailiac ?? 'NULL'} | sfThigh: {client.sfThigh ?? 'NULL'}</p>
-                <p>sfChest: {client.sfChest ?? 'NULL'} | sfAbdomen: {client.sfAbdomen ?? 'NULL'}</p>
-                <p>bodyFat salvo: {client.bodyFat ?? 'NULL'} | bf calculado: {bf ?? 'NULL'}</p>
-                <p className="text-red-500 font-bold">Motivo: {!w ? 'PESO FALTANDO' : 'POLLOCK RETORNOU NULL (dobras insuficientes)'}</p>
-              </div>
-            )
+            // Show helpful message when data is incomplete
+            if (!w || bf == null) {
+              const missing: string[] = []
+              if (!w) missing.push('Peso')
+              if (!gender || (gender !== 'M' && gender !== 'F')) missing.push('Sexo')
+              if (!birthDate) missing.push('Data de Nascimento')
+              if (gender === 'F' && (!client.sfTriceps || !client.sfSuprailiac || !client.sfThigh))
+                missing.push('Dobras: Tríceps, Suprailíaca, Coxa')
+              if (gender === 'M' && (!client.sfChest || !client.sfAbdomen || !client.sfThigh))
+                missing.push('Dobras: Peitoral, Abdômen, Coxa')
+              if (bf == null && !missing.some(m => m.startsWith('Dobras')))
+                missing.push(gender === 'F' ? 'Dobras: Tríceps, Suprailíaca, Coxa' : 'Dobras: Peitoral, Abdômen, Coxa')
+
+              return (
+                <div className="rounded-lg border border-amber-500/50 p-3 text-xs space-y-1 bg-amber-500/5">
+                  <p className="font-semibold text-amber-600">⚠️ Para calcular a Análise Pollock, preencha:</p>
+                  <ul className="list-disc list-inside text-muted-foreground">
+                    {missing.map(m => <li key={m}>{m}</li>)}
+                  </ul>
+                </div>
+              )
+            }
 
             const fatKg = w * bf / 100
             const leanKg = w - fatKg
