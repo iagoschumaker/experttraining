@@ -93,24 +93,85 @@ export async function POST(
         }
 
         const students = (session.studentsJson as any[]) || []
-        const results: { clientId: string; clientName: string; checkedIn: boolean }[] = []
+        const results: { clientId: string; clientName: string; checkedIn: boolean; error?: string }[] = []
 
-        // Check-in each student by POSTing to next-session
+        // Helper: today range in BRT
+        const nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+        const year = nowBRT.getFullYear(), month = nowBRT.getMonth(), day = nowBRT.getDate()
+        const todayStart = new Date(Date.UTC(year, month, day, 3, 0, 0, 0))
+        const todayEnd = new Date(Date.UTC(year, month, day + 1, 2, 59, 59, 999))
+
+        // Check-in each student directly via Prisma
         for (const student of students) {
             try {
-                // Build an internal fetch to the next-session endpoint
-                const baseUrl = request.nextUrl.origin
-                const res = await fetch(`${baseUrl}/api/studio/workouts/${student.workoutId}/next-session`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cookie': request.headers.get('cookie') || '',
+                if (!student.workoutId) {
+                    results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: false, error: 'Sem treino' })
+                    continue
+                }
+
+                // Find the workout
+                const workout = await prisma.workout.findFirst({
+                    where: { id: student.workoutId, studioId, isActive: true },
+                    select: {
+                        id: true, clientId: true, sessionsCompleted: true,
+                        sessionsPerWeek: true, targetWeeks: true,
+                        templateJson: true, startDate: true,
                     },
                 })
-                const data = await res.json()
-                results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: data.success })
-            } catch {
-                results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: false })
+                if (!workout || !workout.templateJson) {
+                    results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: false, error: 'Treino não encontrado' })
+                    continue
+                }
+
+                // Check if already checked in today
+                const alreadyDone = await prisma.lesson.findFirst({
+                    where: { workoutId: workout.id, date: { gte: todayStart, lte: todayEnd }, status: 'COMPLETED' },
+                })
+                if (alreadyDone) {
+                    results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: true, error: 'Já registrado hoje' })
+                    continue
+                }
+
+                // Compute session details
+                const template = workout.templateJson as any
+                const sessions = template.sessions || []
+                const sessionIndex = sessions.length > 0 ? workout.sessionsCompleted % sessions.length : 0
+                const currentWeek = Math.floor(workout.sessionsCompleted / (workout.sessionsPerWeek || 3)) + 1
+                const currentSession = sessions[sessionIndex] || null
+
+                // Create lesson + increment in transaction
+                await prisma.$transaction([
+                    prisma.workout.update({
+                        where: { id: workout.id },
+                        data: { sessionsCompleted: { increment: 1 } },
+                    }),
+                    prisma.lesson.create({
+                        data: {
+                            studioId,
+                            trainerId: userId,
+                            type: 'INDIVIDUAL',
+                            date: new Date(year, month, day, 12, 0, 0),
+                            startedAt: new Date(),
+                            workoutId: workout.id,
+                            weekIndex: currentWeek,
+                            dayIndex: sessionIndex + 1,
+                            sessionIndex,
+                            focus: currentSession?.pillarLabel || null,
+                            status: 'COMPLETED',
+                            endedAt: new Date(),
+                            duration: 60,
+                            clients: {
+                                create: { clientId: workout.clientId, attended: true },
+                            },
+                        },
+                    }),
+                ])
+
+                console.log(`✅ Check-in finalizado: ${student.clientName} (sessão ${workout.sessionsCompleted + 1})`)
+                results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: true })
+            } catch (err) {
+                console.error(`❌ Check-in falhou: ${student.clientName}`, err)
+                results.push({ clientId: student.clientId, clientName: student.clientName, checkedIn: false, error: 'Erro interno' })
             }
         }
 
