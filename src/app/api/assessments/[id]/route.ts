@@ -65,6 +65,7 @@ const updateAssessmentSchema = z.object({
     notes: z.string().optional(),
   }).optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']).optional(),
+  assessmentDate: z.string().optional(),
 })
 
 // GET - Get assessment by ID
@@ -74,7 +75,7 @@ export async function GET(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -83,7 +84,7 @@ export async function GET(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -149,7 +150,7 @@ export async function PUT(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -158,7 +159,7 @@ export async function PUT(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -201,7 +202,7 @@ export async function PUT(
     // Parse and validate body
     const body = await request.json()
     const validation = updateAssessmentSchema.safeParse(body)
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { success: false, error: validation.error.errors[0].message },
@@ -209,7 +210,7 @@ export async function PUT(
       )
     }
 
-    const { inputJson, bodyMetrics, status } = validation.data
+    const { inputJson, bodyMetrics, status, assessmentDate } = validation.data
 
     // Build update data
     const updateData: any = {}
@@ -222,6 +223,9 @@ export async function PUT(
     if (status !== undefined) {
       updateData.status = status
     }
+    if (assessmentDate) {
+      updateData.createdAt = new Date(assessmentDate)
+    }
 
     // Update assessment
     const assessment = await prisma.assessment.update({
@@ -232,7 +236,7 @@ export async function PUT(
     // Auto-update client data if bodyMetrics are provided
     if (bodyMetrics) {
       const clientUpdateData: any = {}
-      
+
       if (bodyMetrics.weight) {
         clientUpdateData.weight = bodyMetrics.weight
       }

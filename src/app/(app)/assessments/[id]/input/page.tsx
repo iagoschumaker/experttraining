@@ -32,6 +32,7 @@ import {
   X,
   Plus,
   Calculator,
+  Calendar,
 } from 'lucide-react'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { SkinfoldsInput, PollockResult } from '@/services/pollock'
@@ -91,6 +92,7 @@ interface BodyMetrics {
 interface Assessment {
   id: string
   status: string
+  createdAt: string
   inputJson: AssessmentInput | null
   client: {
     id: string
@@ -193,6 +195,7 @@ export default function AssessmentInputPage() {
   const [processing, setProcessing] = useState(false)
   const [step, setStep] = useState(1) // 1: Complaints, 2: Pain Map, 3: Movement Tests, 4: Body Metrics, 5: Level
   const [newComplaint, setNewComplaint] = useState('')
+  const [assessmentDate, setAssessmentDate] = useState('')
 
   // Form state
   const [formData, setFormData] = useState<AssessmentInput>({
@@ -231,6 +234,10 @@ export default function AssessmentInputPage() {
           setAssessment(data.data)
           if (data.data.inputJson) {
             setFormData(data.data.inputJson)
+          }
+          // Initialize date from assessment createdAt
+          if (data.data.createdAt) {
+            setAssessmentDate(new Date(data.data.createdAt).toISOString().slice(0, 10))
           }
         } else {
           alert('Avaliação não encontrada')
@@ -303,6 +310,7 @@ export default function AssessmentInputPage() {
         body: JSON.stringify({
           inputJson: formData,
           status: 'IN_PROGRESS',
+          assessmentDate,
         }),
       })
 
@@ -368,6 +376,7 @@ export default function AssessmentInputPage() {
         body: JSON.stringify({
           inputJson: formData,
           bodyMetrics: Object.keys(cleanBodyMetrics).length > 0 ? cleanBodyMetrics : undefined,
+          assessmentDate,
         }),
       })
 
@@ -429,6 +438,19 @@ export default function AssessmentInputPage() {
         </Button>
       </div>
 
+      {/* Assessment date */}
+      <div className="flex items-center gap-3 px-1">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        <Label htmlFor="assessmentDate" className="text-sm text-muted-foreground whitespace-nowrap">Data da Avaliação:</Label>
+        <Input
+          id="assessmentDate"
+          type="date"
+          value={assessmentDate}
+          onChange={(e) => setAssessmentDate(e.target.value)}
+          className="w-auto max-w-[180px] h-8 text-sm"
+        />
+      </div>
+
       {/* Client info */}
       {(assessment.client.history || assessment.client.objectives) && (
         <Card>
@@ -457,13 +479,12 @@ export default function AssessmentInputPage() {
           <button
             key={s}
             onClick={() => setStep(s)}
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors ${
-              step === s
+            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors ${step === s
                 ? 'bg-amber-500 text-white'
                 : step > s
-                ? 'bg-green-500 text-white'
-                : 'bg-muted text-muted-foreground'
-            }`}
+                  ? 'bg-green-500 text-white'
+                  : 'bg-muted text-muted-foreground'
+              }`}
           >
             {step > s ? <CheckCircle className="h-5 w-5" /> : s}
           </button>
@@ -565,15 +586,14 @@ export default function AssessmentInputPage() {
                   <div className="flex items-center justify-between">
                     <Label>{region.label}</Label>
                     <span
-                      className={`text-sm font-medium ${
-                        (formData.painMap[region.id] || 0) === 0
+                      className={`text-sm font-medium ${(formData.painMap[region.id] || 0) === 0
                           ? 'text-green-600'
                           : (formData.painMap[region.id] || 0) <= 3
-                          ? 'text-yellow-600'
-                          : (formData.painMap[region.id] || 0) <= 6
-                          ? 'text-orange-600'
-                          : 'text-red-600'
-                      }`}
+                            ? 'text-yellow-600'
+                            : (formData.painMap[region.id] || 0) <= 6
+                              ? 'text-orange-600'
+                              : 'text-red-600'
+                        }`}
                     >
                       {formData.painMap[region.id] || 0}/10
                     </span>
@@ -618,13 +638,12 @@ export default function AssessmentInputPage() {
                             score.value
                           )
                         }
-                        className={`rounded-lg border-2 p-2 sm:p-3 text-center transition-colors ${
-                          formData.movementTests[
+                        className={`rounded-lg border-2 p-2 sm:p-3 text-center transition-colors ${formData.movementTests[
                             test.id as keyof AssessmentInput['movementTests']
                           ].score === score.value
                             ? `${score.color} border-transparent text-white`
                             : 'border-border hover:border-amber-500'
-                        }`}
+                          }`}
                       >
                         <div className="text-lg sm:text-xl font-bold">{score.value}</div>
                         <div className="text-[10px] sm:text-xs">{score.label}</div>
@@ -1068,11 +1087,10 @@ export default function AssessmentInputPage() {
                       level: level.value as AssessmentInput['level'],
                     })
                   }
-                  className={`rounded-lg border-2 p-4 text-left transition-colors ${
-                    formData.level === level.value
+                  className={`rounded-lg border-2 p-4 text-left transition-colors ${formData.level === level.value
                       ? 'border-amber-500 bg-amber-500/10'
                       : 'border-border hover:border-amber-500'
-                  }`}
+                    }`}
                 >
                   <div className="font-medium">{level.label}</div>
                   <div className="mt-1 text-sm text-muted-foreground">
@@ -1122,8 +1140,8 @@ export default function AssessmentInputPage() {
                     {formData.level === 'BEGINNER'
                       ? 'Iniciante'
                       : formData.level === 'INTERMEDIATE'
-                      ? 'Intermediário'
-                      : 'Avançado'}
+                        ? 'Intermediário'
+                        : 'Avançado'}
                   </span>
                 </div>
               </div>
