@@ -35,7 +35,7 @@ export function ResponsiveTable({ children, className }: ResponsiveTableProps) {
           </table>
         </div>
       </div>
-      
+
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {children}
@@ -54,9 +54,16 @@ export function ResponsiveHeader({ children, className }: ResponsiveHeaderProps)
 
 export function ResponsiveBody({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <tbody className={cn("hidden md:table-row-group", className)}>
-      {children}
-    </tbody>
+    <>
+      {/* Desktop tbody (only visible in the table context) */}
+      <tbody className={cn("hidden md:table-row-group", className)}>
+        {children}
+      </tbody>
+      {/* Mobile wrapper (only visible in the div context) */}
+      <div className={cn("md:hidden", className)}>
+        {children}
+      </div>
+    </>
   )
 }
 
@@ -64,15 +71,15 @@ export function ResponsiveRow({ children, className, onClick }: ResponsiveRowPro
   return (
     <>
       {/* Desktop Row */}
-      <tr 
+      <tr
         className={cn("hidden md:table-row border-b border-border hover:bg-muted/50", className)}
         onClick={onClick}
       >
         {children}
       </tr>
-      
+
       {/* Mobile Card */}
-      <div 
+      <div
         className={cn(
           "md:hidden bg-card border border-border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors",
           className
@@ -92,7 +99,7 @@ export function ResponsiveCell({ children, label, className, priority = 'medium'
       <td className={cn("hidden md:table-cell px-4 py-3 text-sm text-center align-middle last:!text-right", className)}>
         {children}
       </td>
-      
+
       {/* Mobile Field */}
       <div className={cn(
         "md:hidden flex justify-between items-center",
