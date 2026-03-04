@@ -339,6 +339,18 @@ export default function ClientDetailPage() {
               </div>
               <p className="mt-1">{client.history || 'Sem histórico registrado'}</p>
             </div>
+            {client.notes && (
+              <>
+                <Separator />
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Observações
+                  </div>
+                  <p className="mt-1">{client.notes}</p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

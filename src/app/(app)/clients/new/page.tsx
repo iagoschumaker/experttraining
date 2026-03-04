@@ -99,8 +99,8 @@ export default function NewClientPage() {
     try {
       const res = await fetch('/api/studio/users')
       const data = await res.json()
-      if (data.success) {
-        setTrainers(data.users || [])
+      if (data.success && data.data?.items) {
+        setTrainers(data.data.items.map((u: any) => ({ id: u.userId, name: u.name })))
       }
     } catch (err) {
       console.error('Error loading trainers:', err)
