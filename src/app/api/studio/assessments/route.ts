@@ -195,7 +195,11 @@ export async function POST(request: NextRequest) {
     const bodyMetricsJson = data.bodyMetrics || null
 
     // Determine dates
-    const assessmentDate = data.assessmentDate ? new Date(data.assessmentDate) : new Date()
+    // Parse date-only strings as noon to avoid timezone boundary shifts
+    // e.g. "2026-02-16" + T12:00:00 = stays Feb 16 in any timezone
+    const assessmentDate = data.assessmentDate
+      ? new Date(data.assessmentDate.length === 10 ? data.assessmentDate + 'T12:00:00' : data.assessmentDate)
+      : new Date()
 
     // Create assessment
     const assessment = await prisma.assessment.create({

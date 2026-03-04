@@ -235,9 +235,13 @@ export default function AssessmentInputPage() {
           if (data.data.inputJson) {
             setFormData(data.data.inputJson)
           }
-          // Initialize date from assessment createdAt
           if (data.data.createdAt) {
-            setAssessmentDate(new Date(data.data.createdAt).toISOString().slice(0, 10))
+            // Use local date components to avoid UTC shift
+            const d = new Date(data.data.createdAt)
+            const yyyy = d.getFullYear()
+            const mm = String(d.getMonth() + 1).padStart(2, '0')
+            const dd = String(d.getDate()).padStart(2, '0')
+            setAssessmentDate(`${yyyy}-${mm}-${dd}`)
           }
         } else {
           alert('Avaliação não encontrada')
@@ -480,10 +484,10 @@ export default function AssessmentInputPage() {
             key={s}
             onClick={() => setStep(s)}
             className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors ${step === s
-                ? 'bg-amber-500 text-white'
-                : step > s
-                  ? 'bg-green-500 text-white'
-                  : 'bg-muted text-muted-foreground'
+              ? 'bg-amber-500 text-white'
+              : step > s
+                ? 'bg-green-500 text-white'
+                : 'bg-muted text-muted-foreground'
               }`}
           >
             {step > s ? <CheckCircle className="h-5 w-5" /> : s}
@@ -587,12 +591,12 @@ export default function AssessmentInputPage() {
                     <Label>{region.label}</Label>
                     <span
                       className={`text-sm font-medium ${(formData.painMap[region.id] || 0) === 0
-                          ? 'text-green-600'
-                          : (formData.painMap[region.id] || 0) <= 3
-                            ? 'text-yellow-600'
-                            : (formData.painMap[region.id] || 0) <= 6
-                              ? 'text-orange-600'
-                              : 'text-red-600'
+                        ? 'text-green-600'
+                        : (formData.painMap[region.id] || 0) <= 3
+                          ? 'text-yellow-600'
+                          : (formData.painMap[region.id] || 0) <= 6
+                            ? 'text-orange-600'
+                            : 'text-red-600'
                         }`}
                     >
                       {formData.painMap[region.id] || 0}/10
@@ -639,10 +643,10 @@ export default function AssessmentInputPage() {
                           )
                         }
                         className={`rounded-lg border-2 p-2 sm:p-3 text-center transition-colors ${formData.movementTests[
-                            test.id as keyof AssessmentInput['movementTests']
-                          ].score === score.value
-                            ? `${score.color} border-transparent text-white`
-                            : 'border-border hover:border-amber-500'
+                          test.id as keyof AssessmentInput['movementTests']
+                        ].score === score.value
+                          ? `${score.color} border-transparent text-white`
+                          : 'border-border hover:border-amber-500'
                           }`}
                       >
                         <div className="text-lg sm:text-xl font-bold">{score.value}</div>
@@ -1088,8 +1092,8 @@ export default function AssessmentInputPage() {
                     })
                   }
                   className={`rounded-lg border-2 p-4 text-left transition-colors ${formData.level === level.value
-                      ? 'border-amber-500 bg-amber-500/10'
-                      : 'border-border hover:border-amber-500'
+                    ? 'border-amber-500 bg-amber-500/10'
+                    : 'border-border hover:border-amber-500'
                     }`}
                 >
                   <div className="font-medium">{level.label}</div>

@@ -36,7 +36,11 @@ function NewAssessmentForm() {
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
   const [assessmentDate, setAssessmentDate] = useState(() => {
     const now = new Date()
-    return now.toISOString().slice(0, 10)
+    // Use local date components to avoid UTC shift
+    const yyyy = now.getFullYear()
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const dd = String(now.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
   })
 
   // Carregar cliente pré-selecionado

@@ -219,7 +219,8 @@ export async function PUT(
       updateData.status = status
     }
     if (assessmentDate) {
-      updateData.createdAt = new Date(assessmentDate)
+      // Parse date-only strings as noon to avoid timezone boundary shifts
+      updateData.createdAt = new Date(assessmentDate.length === 10 ? assessmentDate + 'T12:00:00' : assessmentDate)
     }
 
     // Update assessment
