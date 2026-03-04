@@ -63,9 +63,7 @@ export async function POST(request: NextRequest) {
     const where: any = { id: assessmentId }
     where.client = { studioId }
 
-    if (role === 'TRAINER') {
-      where.assessorId = userId
-    }
+    // All trainers can access completed assessments for workout generation
 
     const assessment = await prisma.assessment.findFirst({
       where,

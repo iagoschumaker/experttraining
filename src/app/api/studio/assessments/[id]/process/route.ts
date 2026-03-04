@@ -46,12 +46,12 @@ interface Rule {
 function getValueFromPath(obj: any, path: string): any {
   const parts = path.split('.')
   let current = obj
-  
+
   for (const part of parts) {
     if (current === undefined || current === null) return undefined
     current = current[part]
   }
-  
+
   return current
 }
 
@@ -59,9 +59,9 @@ function getValueFromPath(obj: any, path: string): any {
 function evaluateCondition(condition: Condition, inputData: any): boolean {
   const actualValue = getValueFromPath(inputData, condition.field)
   const expectedValue = condition.value
-  
+
   if (actualValue === undefined) return false
-  
+
   switch (condition.operator) {
     case '>=':
       return Number(actualValue) >= Number(expectedValue)
@@ -86,15 +86,15 @@ function evaluateCondition(condition: Condition, inputData: any): boolean {
 // Avalia um conjunto de regras (AND/OR)
 function evaluateRuleCondition(ruleCondition: RuleCondition, inputData: any): boolean {
   const { operator, conditions } = ruleCondition
-  
+
   if (!conditions || conditions.length === 0) return false
-  
+
   if (operator === 'AND') {
     return conditions.every(cond => evaluateCondition(cond, inputData))
   } else if (operator === 'OR') {
     return conditions.some(cond => evaluateCondition(cond, inputData))
   }
-  
+
   return false
 }
 
@@ -118,11 +118,9 @@ export async function POST(
     const where: any = { id: assessmentId }
     where.client = { studioId }
 
-    if (role === 'TRAINER') {
-      where.assessorId = userId
-    }
+    // All trainers in the studio can process any assessment
 
-    const assessment = await prisma.assessment.findFirst({ 
+    const assessment = await prisma.assessment.findFirst({
       where,
       include: { client: true }
     })
@@ -218,21 +216,21 @@ export async function POST(
         const rule = dbRule as unknown as Rule
         const ruleCondition = rule.conditionJson as RuleCondition
         const matches = evaluateRuleCondition(ruleCondition, evaluationData)
-        
+
         if (matches) {
           console.log(`✅ Regra aplicada: ${rule.name} (prioridade: ${rule.priority})`)
           appliedRules.push(rule.name)
-          
+
           // Adicionar blocos permitidos
           for (const blockCode of rule.allowedBlocks) {
             allowedBlocksSet.add(blockCode)
           }
-          
+
           // Adicionar blocos bloqueados
           for (const blockCode of rule.blockedBlocks) {
             blockedBlocksSet.add(blockCode)
           }
-          
+
           // Adicionar recomendações
           allRecommendations.push(...rule.recommendations)
         }
@@ -258,7 +256,7 @@ export async function POST(
         // Verificar blockedIf do bloco
         const blockedConditions = (block.blockedIf || []) as string[]
         let isBlockedByCondition = false
-        
+
         for (const condition of blockedConditions) {
           if (
             (condition === 'dor_lombar' && hasLowerBackPain) ||
@@ -276,7 +274,7 @@ export async function POST(
             break
           }
         }
-        
+
         if (!isBlockedByCondition && !blockedBlocksSet.has(block.code)) {
           allowedBlocksSet.add(block.code)
         }
@@ -393,7 +391,7 @@ export async function POST(
       // Atualizar peso e altura se fornecidos
       if (bodyMetrics.weight) clientUpdateData.weight = bodyMetrics.weight
       if (bodyMetrics.height) clientUpdateData.height = bodyMetrics.height
-      
+
       // Atualizar medidas corporais se fornecidas
       if (bodyMetrics.measurements) {
         const m = bodyMetrics.measurements
@@ -441,8 +439,8 @@ export async function POST(
         action: 'UPDATE',
         entity: 'Assessment',
         entityId: assessmentId,
-        newData: { 
-          status: 'COMPLETED', 
+        newData: {
+          status: 'COMPLETED',
           functionalPattern,
           blocksAllowed: uniqueAllowedBlocks.length,
           blocksBlocked: uniqueBlockedBlocks.length,

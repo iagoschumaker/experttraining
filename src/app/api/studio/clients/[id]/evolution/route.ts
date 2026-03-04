@@ -67,17 +67,17 @@ function calculateEvolution(baseline?: number | null, current?: number | null): 
   if (current === undefined || current === null) {
     return { baseline, current: null, absoluteDelta: null, percentageDelta: null, trend: null }
   }
-  
+
   const absoluteDelta = Math.round((current - baseline) * 100) / 100
-  const percentageDelta = baseline !== 0 
-    ? Math.round(((current - baseline) / baseline) * 1000) / 10 
+  const percentageDelta = baseline !== 0
+    ? Math.round(((current - baseline) / baseline) * 1000) / 10
     : 0
-  
+
   let trend: 'up' | 'down' | 'stable' = 'stable'
   if (Math.abs(percentageDelta) >= 1) {
     trend = absoluteDelta > 0 ? 'up' : 'down'
   }
-  
+
   return { baseline, current, absoluteDelta, percentageDelta, trend }
 }
 
@@ -90,7 +90,7 @@ function extractLevel(resultJson: unknown): string | null {
 function extractMetricsFromAssessment(assessment: any): BodyMetrics | null {
   const bodyMetrics = assessment.bodyMetricsJson as BodyMetrics | null
   if (!bodyMetrics) return null
-  
+
   // Normalizar medidas bilaterais
   const measurements = bodyMetrics.measurements || {}
   return {
@@ -162,13 +162,7 @@ export async function GET(
       )
     }
 
-    // TRAINER só vê seus clientes
-    if (role === 'TRAINER' && client.trainerId !== userId) {
-      return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
-        { status: 403 }
-      )
-    }
+    // All trainers can view any client's evolution in the studio
 
     // ========================================================================
     // 2. BUSCAR TODAS AS AVALIAÇÕES COMPLETADAS (ordenadas por data)
@@ -250,7 +244,7 @@ export async function GET(
     // ========================================================================
     const baselineLevel = extractLevel(baselineAssessment.resultJson)
     const currentLevel = extractLevel(currentAssessment.resultJson)
-    
+
     const levelMap: Record<string, number> = {
       'BEGINNER': 1,
       'INTERMEDIATE': 2,
@@ -262,10 +256,10 @@ export async function GET(
       current: currentLevel,
       baselineNumeric: baselineLevel ? levelMap[baselineLevel] || 0 : null,
       currentNumeric: currentLevel ? levelMap[currentLevel] || 0 : null,
-      improved: baselineLevel && currentLevel 
+      improved: baselineLevel && currentLevel
         ? (levelMap[currentLevel] || 0) > (levelMap[baselineLevel] || 0)
         : false,
-      regressed: baselineLevel && currentLevel 
+      regressed: baselineLevel && currentLevel
         ? (levelMap[currentLevel] || 0) < (levelMap[baselineLevel] || 0)
         : false,
     }

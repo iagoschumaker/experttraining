@@ -80,13 +80,7 @@ export async function GET(
       )
     }
 
-    // TRAINER vê somente seus clientes
-    if (role === 'TRAINER' && client.trainerId !== userId) {
-      return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
-        { status: 403 }
-      )
-    }
+    // All trainers can view any client's evolution in the studio
 
     // ========================================================================
     // 2. ALL COMPLETED ASSESSMENTS (asc)

@@ -39,10 +39,7 @@ export async function GET(
       studioId,
     }
 
-    // TRAINER só vê suas próprias aulas
-    if (role === 'TRAINER') {
-      where.trainerId = userId
-    }
+    // All trainers can view any lesson history in the studio
 
     const lesson = await prisma.lesson.findFirst({
       where,
@@ -122,10 +119,10 @@ export async function PUT(
   // Bloquear atualização de aulas
   if (LESSONS_DEPRECATED) {
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Funcionalidade descontinuada. O controle por aulas foi removido do Método Expert Training.',
-        deprecated: true 
+        deprecated: true
       },
       { status: 410 }
     )
@@ -338,10 +335,10 @@ export async function DELETE(
   // Bloquear cancelamento de aulas
   if (LESSONS_DEPRECATED) {
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Funcionalidade descontinuada. O controle por aulas foi removido do Método Expert Training.',
-        deprecated: true 
+        deprecated: true
       },
       { status: 410 }
     )

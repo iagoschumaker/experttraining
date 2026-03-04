@@ -32,10 +32,7 @@ export async function GET(
     // Build filter for client's studio
     where.client = { studioId }
 
-    // TRAINER só vê suas avaliações
-    if (role === 'TRAINER') {
-      where.assessorId = userId
-    }
+    // All trainers can view any assessment in the studio
 
     const assessment = await prisma.assessment.findFirst({
       where,
@@ -139,9 +136,8 @@ export async function PUT(
     const where: any = { id: assessmentId }
     where.client = { studioId }
 
-    if (role === 'TRAINER') {
-      where.assessorId = userId
-    }
+    // All trainers can edit any assessment in the studio
+    // (immutability rules still apply for COMPLETED assessments)
 
     const existing = await prisma.assessment.findFirst({ where })
 
@@ -209,9 +205,8 @@ export async function DELETE(
     const where: any = { id: assessmentId }
     where.client = { studioId }
 
-    if (role === 'TRAINER') {
-      where.assessorId = userId
-    }
+    // All trainers can delete assessments in the studio
+    // (immutability rules still apply)
 
     const existing = await prisma.assessment.findFirst({ where })
 

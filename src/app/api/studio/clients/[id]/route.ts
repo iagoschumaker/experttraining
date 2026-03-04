@@ -79,10 +79,7 @@ export async function GET(
     // Build where clause
     const where: any = { id: clientId, studioId }
 
-    // TRAINER só vê seus clientes
-    if (role === 'TRAINER') {
-      where.trainerId = userId
-    }
+    // All trainers can view any client in the studio
 
     const client = await prisma.client.findFirst({
       where,
@@ -425,72 +422,8 @@ export async function PUT(
       },
     })
 
-    // Auto-create bodyMetricsJson snapshot when body data changes
-    const bodyFields = ['weight', 'height', 'chest', 'waist', 'hip', 'arm', 'thigh', 'calf'] as const
-    const hasBodyChange = bodyFields.some(f => body[f] !== undefined && body[f] !== null)
-
-    if (hasBodyChange) {
-      // Build snapshot from updated client (cast to any since TS types may be stale)
-      const c = updatedClient as any
-      const snapshot: Record<string, number> = {}
-      if (c.weight) snapshot.weight = Number(c.weight)
-      if (c.height) snapshot.height = Number(c.height)
-      if (c.bodyFat) snapshot.bodyFat = Number(c.bodyFat)
-      if (c.chest) snapshot.chest = Number(c.chest)
-      if (c.waist) snapshot.waist = Number(c.waist)
-      if (c.hip) snapshot.hip = Number(c.hip)
-      if (c.abdomen) snapshot.abdomen = Number(c.abdomen)
-      if (c.armRight) snapshot.arm_right = Number(c.armRight)
-      if (c.armLeft) snapshot.arm_left = Number(c.armLeft)
-      if (c.thighRight) snapshot.thigh_right = Number(c.thighRight)
-      if (c.thighLeft) snapshot.thigh_left = Number(c.thighLeft)
-      if (c.calfRight) snapshot.calf_right = Number(c.calfRight)
-      if (c.calfLeft) snapshot.calf_left = Number(c.calfLeft)
-      if (c.sfChest) snapshot.sf_chest = Number(c.sfChest)
-      if (c.sfAbdomen) snapshot.sf_abdomen = Number(c.sfAbdomen)
-      if (c.sfThigh) snapshot.sf_thigh = Number(c.sfThigh)
-      if (c.sfTriceps) snapshot.sf_triceps = Number(c.sfTriceps)
-      if (c.sfSuprailiac) snapshot.sf_suprailiac = Number(c.sfSuprailiac)
-      if (c.sfSubscapular) snapshot.sf_subscapular = Number(c.sfSubscapular)
-      if (c.sfMidaxillary) snapshot.sf_midaxillary = Number(c.sfMidaxillary)
-
-      if (Object.keys(snapshot).length > 0) {
-        // Upsert: update today's assessment if exists, else create new
-        const todayStart = new Date()
-        todayStart.setHours(0, 0, 0, 0)
-        const todayEnd = new Date()
-        todayEnd.setHours(23, 59, 59, 999)
-
-        const existingToday = await prisma.assessment.findFirst({
-          where: {
-            clientId,
-            createdAt: { gte: todayStart, lte: todayEnd },
-          },
-          orderBy: { createdAt: 'desc' },
-        })
-
-        if (existingToday) {
-          await prisma.assessment.update({
-            where: { id: existingToday.id },
-            data: {
-              bodyMetricsJson: snapshot,
-              completedAt: new Date(),
-            },
-          })
-        } else {
-          await prisma.assessment.create({
-            data: {
-              clientId,
-              assessorId: userId,
-              status: 'COMPLETED',
-              inputJson: {},
-              completedAt: new Date(),
-              bodyMetricsJson: snapshot,
-            },
-          })
-        }
-      }
-    }
+    // NOTE: Body metrics snapshots are only created via the assessment flow.
+    // Editing client data does NOT auto-create assessments (one-way: assessment → client).
 
     return NextResponse.json({
       success: true,

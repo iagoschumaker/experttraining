@@ -51,15 +51,15 @@ function calculateDelta(current?: number | null, previous?: number | null): Metr
   if (previous === undefined || previous === null) {
     return { current, previous: null, delta: null, percentage: null, trend: null }
   }
-  
+
   const delta = current - previous
   const percentage = previous !== 0 ? (delta / previous) * 100 : 0
-  
+
   let trend: 'up' | 'down' | 'stable' = 'stable'
   if (Math.abs(percentage) >= 1) {
     trend = delta > 0 ? 'up' : 'down'
   }
-  
+
   return {
     current,
     previous,
@@ -116,13 +116,7 @@ export async function GET(
       )
     }
 
-    // TRAINER só vê avaliações dos seus clientes
-    if (role === 'TRAINER' && assessment.client.trainerId !== userId) {
-      return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
-        { status: 403 }
-      )
-    }
+    // All trainers can view any assessment evolution in the studio
 
     // Buscar assessor separadamente (não há relation no schema)
     const assessor = await prisma.user.findUnique({
@@ -136,7 +130,7 @@ export async function GET(
     // =========================================================================
     // COMPARAÇÃO DE RESPOSTAS (inputJson - respostas da avaliação)
     // =========================================================================
-    
+
     const currentAnswers = assessment.inputJson as Record<string, unknown> || {}
     const previousAnswers = previousAssessment
       ? (previousAssessment.inputJson as Record<string, unknown> || {})
@@ -160,7 +154,7 @@ export async function GET(
         const prev = previousAnswers[qid]
         const curr = currentAnswers[qid]
         const changed = JSON.stringify(prev) !== JSON.stringify(curr)
-        
+
         if (changed) {
           responseChanges.push({
             questionId: qid,
@@ -175,7 +169,7 @@ export async function GET(
     // =========================================================================
     // COMPARAÇÃO DE MÉTRICAS CORPORAIS
     // =========================================================================
-    
+
     const currentMetrics = assessment.bodyMetricsJson as BodyMetrics | null
     const previousMetrics = previousAssessment
       ? (previousAssessment.bodyMetricsJson as BodyMetrics | null)
@@ -216,10 +210,10 @@ export async function GET(
     // =========================================================================
     // COMPARAÇÃO DE NÍVEL E CONFIANÇA
     // =========================================================================
-    
+
     const currentLevel = extractLevel(assessment.resultJson)
     const previousLevel = previousAssessment ? extractLevel(previousAssessment.resultJson) : null
-    
+
     const levelEvolution = {
       previousLevel,
       currentLevel,
@@ -242,13 +236,13 @@ export async function GET(
     // =========================================================================
     // RESUMO DA EVOLUÇÃO
     // =========================================================================
-    
+
     const daysBetween = previousAssessment
       ? Math.round(
-          (new Date(assessment.createdAt).getTime() -
-            new Date(previousAssessment.createdAt).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
+        (new Date(assessment.createdAt).getTime() -
+          new Date(previousAssessment.createdAt).getTime()) /
+        (1000 * 60 * 60 * 24)
+      )
       : null
 
     // Gerar insights
@@ -277,7 +271,7 @@ export async function GET(
     // =========================================================================
     // RESPOSTA
     // =========================================================================
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -290,11 +284,11 @@ export async function GET(
         },
         previousAssessment: previousAssessment
           ? {
-              id: previousAssessment.id,
-              createdAt: previousAssessment.createdAt,
-              level: previousLevel,
-              confidence: previousConfidence,
-            }
+            id: previousAssessment.id,
+            createdAt: previousAssessment.createdAt,
+            level: previousLevel,
+            confidence: previousConfidence,
+          }
           : null,
         evolution: {
           daysBetween,

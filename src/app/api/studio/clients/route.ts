@@ -78,10 +78,7 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = { studioId }
 
-    // TRAINER só vê seus clientes
-    if (role === 'TRAINER') {
-      where.trainerId = userId
-    }
+    // All trainers can see all clients in the studio
 
     // Status filter
     if (status !== 'all') {
