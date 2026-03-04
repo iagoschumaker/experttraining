@@ -362,71 +362,8 @@ export async function PUT(
       console.log('[POLLOCK DEBUG] SKIPPED - missing data. weight:', pollockWeight, 'birthDate:', pollockBirthDate, 'gender:', pollockGender)
     }
 
-    // Auto-create bodyMetricsJson snapshot when body data changes
-    const bodyFields = ['weight', 'height', 'chest', 'waist', 'hip', 'bodyFat', 'sfChest', 'sfAbdomen', 'sfThigh', 'sfTriceps', 'sfSuprailiac', 'sfSubscapular', 'sfMidaxillary'] as const
-    const hasBodyChange = bodyFields.some(f => body[f] !== undefined && body[f] !== null)
-
-    if (hasBodyChange) {
-      const c = client as any
-      const snapshot: Record<string, number> = {}
-      if (c.weight) snapshot.weight = Number(c.weight)
-      if (c.height) snapshot.height = Number(c.height)
-      if (c.bodyFat) snapshot.bodyFat = Number(c.bodyFat)
-      if (c.chest) snapshot.chest = Number(c.chest)
-      if (c.waist) snapshot.waist = Number(c.waist)
-      if (c.hip) snapshot.hip = Number(c.hip)
-      if (c.abdomen) snapshot.abdomen = Number(c.abdomen)
-      if (c.armRight) snapshot.arm_right = Number(c.armRight)
-      if (c.armLeft) snapshot.arm_left = Number(c.armLeft)
-      if (c.thighRight) snapshot.thigh_right = Number(c.thighRight)
-      if (c.thighLeft) snapshot.thigh_left = Number(c.thighLeft)
-      if (c.calfRight) snapshot.calf_right = Number(c.calfRight)
-      if (c.calfLeft) snapshot.calf_left = Number(c.calfLeft)
-      if (c.sfChest) snapshot.sf_chest = Number(c.sfChest)
-      if (c.sfAbdomen) snapshot.sf_abdomen = Number(c.sfAbdomen)
-      if (c.sfThigh) snapshot.sf_thigh = Number(c.sfThigh)
-      if (c.sfTriceps) snapshot.sf_triceps = Number(c.sfTriceps)
-      if (c.sfSuprailiac) snapshot.sf_suprailiac = Number(c.sfSuprailiac)
-      if (c.sfSubscapular) snapshot.sf_subscapular = Number(c.sfSubscapular)
-      if (c.sfMidaxillary) snapshot.sf_midaxillary = Number(c.sfMidaxillary)
-
-      if (Object.keys(snapshot).length > 0) {
-        // Check if an assessment already exists for today — update it instead of creating a new one
-        const todayStart = new Date()
-        todayStart.setHours(0, 0, 0, 0)
-        const todayEnd = new Date()
-        todayEnd.setHours(23, 59, 59, 999)
-
-        const existingToday = await prisma.assessment.findFirst({
-          where: {
-            clientId: params.id,
-            createdAt: { gte: todayStart, lte: todayEnd },
-          },
-          orderBy: { createdAt: 'desc' },
-        })
-
-        if (existingToday) {
-          await prisma.assessment.update({
-            where: { id: existingToday.id },
-            data: {
-              bodyMetricsJson: snapshot,
-              completedAt: new Date(),
-            },
-          })
-        } else {
-          await prisma.assessment.create({
-            data: {
-              clientId: params.id,
-              assessorId: payload.userId,
-              status: 'COMPLETED',
-              inputJson: {},
-              completedAt: new Date(),
-              bodyMetricsJson: snapshot,
-            },
-          })
-        }
-      }
-    }
+    // NOTE: Body metrics snapshots are only created via the assessment flow.
+    // Editing client data does NOT auto-create assessments (one-way: assessment → client).
 
     // Log audit
     await prisma.auditLog.create({
