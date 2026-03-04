@@ -94,6 +94,13 @@ export default function AssessmentsPage() {
       })
 
       const res = await fetch(`/api/assessments?${params}`)
+
+      if (!res.ok) {
+        console.error('API error:', res.status, res.statusText)
+        setAssessments([])
+        return
+      }
+
       const data: AssessmentsResponse = await res.json()
 
       if (data.success && data.data) {
@@ -156,10 +163,10 @@ export default function AssessmentsPage() {
     const clientAssessments = assessments
       .filter(a => a.client.id === assessment.client.id)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    
+
     const index = clientAssessments.findIndex(a => a.id === assessment.id)
     const total = clientAssessments.length
-    
+
     return `${String(index + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`
   }
 
@@ -303,9 +310,9 @@ export default function AssessmentsPage() {
                                 <Pencil className="h-4 w-4 text-blue-500" />
                               </Button>
                             </Link>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               title="Excluir"
                               onClick={() => handleDelete(assessment.id)}
                               disabled={deleting === assessment.id}
@@ -352,7 +359,7 @@ export default function AssessmentsPage() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* FAB para mobile */}
       <FloatingActionButton
         actions={[

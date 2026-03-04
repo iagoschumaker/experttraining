@@ -34,10 +34,7 @@ export async function GET(request: NextRequest) {
     // Filter by client's studio
     where.client = { studioId }
 
-    // TRAINER só vê avaliações de seus clientes
-    if (role === 'TRAINER') {
-      where.assessorId = userId
-    }
+    // All trainers can see all assessments in the studio
 
     // Client filter
     if (clientId) {
