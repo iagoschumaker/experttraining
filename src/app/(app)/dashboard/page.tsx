@@ -16,9 +16,8 @@ import Link from 'next/link'
 interface ReassessmentAlert {
   clientId: string
   clientName: string
-  lastWorkoutDate: string
-  lastWorkoutName: string
   lastAssessmentDate: string | null
+  daysSinceLastAssessment: number
 }
 
 interface DashboardData {
@@ -132,7 +131,7 @@ export default function DashboardPage() {
                   >
                     <span className="font-medium text-sm">{alert.clientName}</span>
                     <span className="text-xs text-muted-foreground">
-                      Ciclo finalizado em {new Date(alert.lastWorkoutDate).toLocaleDateString('pt-BR')}
+                      {alert.daysSinceLastAssessment} dias sem avaliação
                     </span>
                   </Link>
                 ))}

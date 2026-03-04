@@ -39,6 +39,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // API routes: each route handler manages its own auth via verifyAuth / getAccessTokenCookie.
+  // Don't redirect /api/* to /login — that returns HTML which breaks JSON consumers.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+
   // Get access token from cookie
   const accessToken = request.cookies.get(COOKIES.ACCESS_TOKEN)?.value
   console.log('🔒 Middleware check for:', pathname, '| Token:', accessToken ? 'EXISTS' : 'MISSING')
@@ -67,7 +73,7 @@ export async function middleware(request: NextRequest) {
     if (!payload.isSuperAdmin) {
       return redirectToUnauthorized(request)
     }
-    
+
     // SuperAdmin can access without studio context
     return NextResponse.next()
   }
@@ -100,13 +106,13 @@ export async function middleware(request: NextRequest) {
 
     // Validate studio is still active (call API or check in token)
     // For now, we trust the token - studio status check happens at token generation
-    
+
     // Add studio context to headers for API routes to use
     const response = NextResponse.next()
     response.headers.set('x-studio-id', payload.studioId)
     response.headers.set('x-user-role', payload.role)
     response.headers.set('x-user-id', payload.userId)
-    
+
     return response
   }
 
@@ -121,13 +127,13 @@ export async function middleware(request: NextRequest) {
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL(ROUTES.LOGIN, request.url)
   loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
-  
+
   const response = NextResponse.redirect(loginUrl)
-  
+
   // Clear invalid cookies
   response.cookies.delete(COOKIES.ACCESS_TOKEN)
   response.cookies.delete(COOKIES.REFRESH_TOKEN)
-  
+
   return response
 }
 

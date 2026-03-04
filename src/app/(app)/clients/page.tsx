@@ -34,6 +34,7 @@ import {
   Pencil,
   Trash2,
   ClipboardCheck,
+  AlertTriangle,
 } from 'lucide-react'
 
 interface Client {
@@ -53,6 +54,7 @@ interface Client {
     assessments: number
     workouts: number
   }
+  assessments?: { createdAt: string }[]
 }
 
 interface ClientsResponse {
@@ -80,6 +82,18 @@ export default function ClientsPage() {
   const isAdmin = user?.role === 'STUDIO_ADMIN'
   const canEdit = (client: Client) => isAdmin || client.trainerId === user?.id
   const canDelete = isAdmin // Only admins can delete
+
+  // Check if client needs reassessment (61+ days since last assessment)
+  const needsReassessment = (client: Client) => {
+    if (!client.assessments || client.assessments.length === 0) return false
+    const lastDate = new Date(client.assessments[0].createdAt)
+    const diffDays = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+    return diffDays >= 61
+  }
+  const daysSinceAssessment = (client: Client) => {
+    if (!client.assessments || client.assessments.length === 0) return null
+    return Math.floor((Date.now() - new Date(client.assessments[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  }
 
   // Fetch clients
   const fetchClients = async () => {
@@ -197,7 +211,14 @@ export default function ClientsPage() {
                   <div key={client.id} className="p-4 border rounded-lg bg-card">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <div className="font-medium">{client.name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{client.name}</div>
+                          {needsReassessment(client) && (
+                            <span title={`${daysSinceAssessment(client)} dias sem avaliação`}>
+                              <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{client.email || client.phone || '-'}</div>
                       </div>
                       <Badge variant={client.isActive ? 'default' : 'secondary'}>
@@ -243,11 +264,18 @@ export default function ClientsPage() {
                     {clients.map((client) => (
                       <tr key={client.id}>
                         <td data-label="Nome" className="font-medium">
-                          <div>
-                            {client.name}
-                            <span className="block text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
-                              {client.objectives || '-'}
-                            </span>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              {client.name}
+                              <span className="block text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
+                                {client.objectives || '-'}
+                              </span>
+                            </div>
+                            {needsReassessment(client) && (
+                              <span title={`${daysSinceAssessment(client)} dias sem avaliação`}>
+                                <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse flex-shrink-0" />
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td data-label="Contato">
@@ -348,7 +376,7 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* FAB para mobile */}
       <FloatingActionButton
         actions={[

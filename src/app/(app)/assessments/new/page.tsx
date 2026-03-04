@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, ClipboardCheck, Search, Loader2 } from 'lucide-react'
+import { ArrowLeft, ClipboardCheck, Search, Loader2, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
 interface Client {
@@ -34,6 +34,10 @@ function NewAssessmentForm() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const [assessmentDate, setAssessmentDate] = useState(() => {
+    const now = new Date()
+    return now.toISOString().slice(0, 10)
+  })
 
   // Carregar cliente pré-selecionado
   useEffect(() => {
@@ -117,6 +121,7 @@ function NewAssessmentForm() {
             },
             level: 'BEGINNER',
           },
+          assessmentDate,
         }),
       })
 
@@ -230,6 +235,25 @@ function NewAssessmentForm() {
             {searchTerm.length > 0 && searchTerm.length < 2 && (
               <p className="text-sm text-muted-foreground">Digite pelo menos 2 caracteres para buscar</p>
             )}
+          </div>
+
+          {/* Data da Avaliação */}
+          <div className="space-y-2">
+            <Label htmlFor="assessmentDate">Data da Avaliação</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="assessmentDate"
+                type="date"
+                value={assessmentDate}
+                onChange={(e) => setAssessmentDate(e.target.value)}
+                className="pl-10"
+                max={new Date().toISOString().slice(0, 10)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Selecione a data em que a avaliação foi realizada. Padrão: hoje.
+            </p>
           </div>
 
           <div className="flex gap-3">

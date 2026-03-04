@@ -61,30 +61,13 @@ export async function GET(request: NextRequest) {
     })
 
     // ========================================================================
-    // ALERTAS DE REAVALIAÇÃO - MÉTODO EXPERT PRO TRAINING
+    // ALERTAS DE REAVALIAÇÃO — REGRA DE 61 DIAS
     // ========================================================================
-    // Buscar clientes com cronograma inativo (finalizado) que não têm
-    // avaliação mais recente que o cronograma
-    // ========================================================================
-    const clientsNeedingReassessment = await prisma.client.findMany({
-      where: {
-        studioId,
-        status: 'ACTIVE',
-        workouts: {
-          some: {
-            isActive: false, // Cronograma finalizado
-          },
-        },
-      },
+    const clientsWithAssessments = await prisma.client.findMany({
+      where: { studioId, status: 'ACTIVE' },
       select: {
         id: true,
         name: true,
-        workouts: {
-          where: { isActive: false },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { createdAt: true, name: true },
-        },
         assessments: {
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -93,22 +76,19 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Filtrar apenas os que realmente precisam de reavaliação
-    const reassessmentAlerts = clientsNeedingReassessment
+    const now = new Date()
+    const reassessmentAlerts = clientsWithAssessments
       .filter(client => {
-        if (!client.workouts[0]) return false
-        const lastWorkoutDate = new Date(client.workouts[0].createdAt)
-        const lastAssessmentDate = client.assessments[0]
-          ? new Date(client.assessments[0].createdAt)
-          : new Date(0)
-        return lastAssessmentDate < lastWorkoutDate
+        if (client.assessments.length === 0) return false // no assessments, no alert
+        const lastDate = new Date(client.assessments[0].createdAt)
+        const diffDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+        return diffDays >= 61
       })
       .map(client => ({
         clientId: client.id,
         clientName: client.name,
-        lastWorkoutDate: client.workouts[0]?.createdAt,
-        lastWorkoutName: client.workouts[0]?.name,
         lastAssessmentDate: client.assessments[0]?.createdAt || null,
+        daysSinceLastAssessment: Math.floor((now.getTime() - new Date(client.assessments[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)),
       }))
 
     // Format goals distribution

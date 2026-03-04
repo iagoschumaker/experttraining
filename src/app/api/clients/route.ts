@@ -36,7 +36,7 @@ const createClientSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -110,6 +110,11 @@ export async function GET(request: NextRequest) {
             workouts: true,
           },
         },
+        assessments: {
+          orderBy: { createdAt: 'desc' as const },
+          take: 1,
+          select: { createdAt: true },
+        },
       },
     })
 
@@ -136,7 +141,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -145,7 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -156,7 +161,7 @@ export async function POST(request: NextRequest) {
     // Parse and validate body
     const body = await request.json()
     const validation = createClientSchema.safeParse(body)
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { success: false, error: validation.error.errors[0].message },

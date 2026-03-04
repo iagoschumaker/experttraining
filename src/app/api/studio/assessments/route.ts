@@ -125,7 +125,7 @@ const bodyMetricsSchema = z.object({
 
 const createAssessmentSchema = z.object({
   clientId: z.string().cuid(),
-  
+
   // Input data (OBRIGATÓRIOS)
   complaints: z.array(z.string()).optional().default([]),
   painMap: z.record(z.number().min(0).max(10)).optional().default({}),
@@ -138,9 +138,12 @@ const createAssessmentSchema = z.object({
     gait: movementTestSchema.optional(),
   }),
   level: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
-  
+
   // Dados corporais (OPCIONAIS)
   bodyMetrics: bodyMetricsSchema,
+
+  // Data da avaliação (OPCIONAL - para avaliações retroativas)
+  assessmentDate: z.string().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     // Verify client exists and belongs to studio
     const clientWhere: any = { id: data.clientId, studioId }
-    
+
     // TRAINER só pode avaliar seus clientes
     if (role === 'TRAINER') {
       clientWhere.trainerId = userId
@@ -194,6 +197,9 @@ export async function POST(request: NextRequest) {
     // Build body metrics JSON (dados corporais - opcionais)
     const bodyMetricsJson = data.bodyMetrics || null
 
+    // Determine dates
+    const assessmentDate = data.assessmentDate ? new Date(data.assessmentDate) : new Date()
+
     // Create assessment
     const assessment = await prisma.assessment.create({
       data: {
@@ -202,6 +208,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
         inputJson,
         bodyMetricsJson: bodyMetricsJson as any,
+        createdAt: assessmentDate,
       },
     })
 

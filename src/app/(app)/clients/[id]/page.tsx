@@ -46,6 +46,7 @@ import {
   Activity,
   X,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
@@ -249,6 +250,32 @@ export default function ClientDetailPage() {
         </div>
         {/* Actions moved to floating FAB */}
       </div>
+
+      {/* 61-day reassessment warning */}
+      {(() => {
+        if (!client.assessments || client.assessments.length === 0) return null
+        const lastDate = new Date(client.assessments[0].createdAt)
+        const diffDays = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays < 61) return null
+        return (
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10">
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                Reavaliação necessária — {diffDays} dias desde a última avaliação
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                A última avaliação foi em {lastDate.toLocaleDateString('pt-BR')}. Recomendamos reavaliar a cada 60 dias.
+              </p>
+            </div>
+            <Link href={`/assessments/new?clientId=${client.id}`}>
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black text-xs">
+                Reavaliar
+              </Button>
+            </Link>
+          </div>
+        )
+      })()}
 
       {/* Client Info */}
       <div className="grid gap-6 md:grid-cols-2">
