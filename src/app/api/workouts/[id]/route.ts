@@ -39,7 +39,7 @@ export async function GET(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -48,7 +48,7 @@ export async function GET(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -81,13 +81,8 @@ export async function GET(
       )
     }
 
-    // Check access for trainers
-    if (payload.role === 'TRAINER' && workout.client.trainerId !== payload.userId) {
-      return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
-        { status: 403 }
-      )
-    }
+    // All trainers in the studio can view any workout details
+    // (editing/deleting is restricted to the assigned trainer or admin)
 
     return NextResponse.json({
       success: true,
@@ -109,7 +104,7 @@ export async function PUT(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -118,7 +113,7 @@ export async function PUT(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -161,7 +156,7 @@ export async function PUT(
     // Parse and validate body
     const body = await request.json()
     const validation = updateWorkoutSchema.safeParse(body)
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { success: false, error: validation.error.errors[0].message },
@@ -211,7 +206,7 @@ export async function DELETE(
 ) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -220,7 +215,7 @@ export async function DELETE(
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },

@@ -30,10 +30,8 @@ export async function GET(
   try {
     const where: any = { id: workoutId, studioId }
 
-    // TRAINER só vê seus treinos
-    if (role === 'TRAINER') {
-      where.createdById = userId
-    }
+    // All trainers in the studio can VIEW any workout
+    // (editing is restricted to the creator/assigned trainer or admin)
 
     const workout = await prisma.workout.findFirst({
       where,

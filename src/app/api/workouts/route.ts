@@ -36,7 +36,7 @@ const createWorkoutSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -70,10 +70,7 @@ export async function GET(request: NextRequest) {
       where.clientId = clientId
     }
 
-    // If trainer role, only show their clients' workouts
-    if (payload.role === 'TRAINER') {
-      where.client.trainerId = payload.userId
-    }
+    // All trainers can see all workouts in the studio
 
     // Get total count
     const total = await prisma.workout.count({ where })
@@ -120,7 +117,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const accessToken = await getAccessTokenCookie()
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { success: false, error: 'Não autenticado' },
@@ -129,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = verifyAccessToken(accessToken)
-    
+
     if (!payload || !hasStudioContext(payload)) {
       return NextResponse.json(
         { success: false, error: 'Contexto de studio não encontrado' },
@@ -140,7 +137,7 @@ export async function POST(request: NextRequest) {
     // Parse and validate body
     const body = await request.json()
     const validation = createWorkoutSchema.safeParse(body)
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { success: false, error: validation.error.errors[0].message },

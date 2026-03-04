@@ -122,13 +122,8 @@ export async function GET(
       )
     }
 
-    // Check access for trainers
-    if (payload.role === 'TRAINER' && assessment.client.trainerId !== payload.userId) {
-      return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
-        { status: 403 }
-      )
-    }
+    // All trainers in the studio can view any assessment details
+    // (editing/processing is restricted to the assigned trainer or admin)
 
     return NextResponse.json({
       success: true,
