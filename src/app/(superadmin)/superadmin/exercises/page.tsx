@@ -29,7 +29,7 @@ import {
 import {
   Dumbbell, Plus, Search, Pencil, Trash2, Video, Lock,
   Clock, RotateCcw, Hash, FileText, Target, Activity,
-  ChevronLeft, ChevronRight, Eye, Layers, AlertCircle, Download
+  ChevronLeft, ChevronRight, Eye, Layers, AlertCircle, Download, RefreshCcw
 } from 'lucide-react'
 import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
@@ -144,6 +144,7 @@ export default function SuperAdminExercisesPage() {
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [seeding, setSeeding] = useState(false)
+  const [migrating, setMigrating] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
 
   // Form
@@ -353,6 +354,25 @@ export default function SuperAdminExercisesPage() {
       alert('Erro ao carregar exercícios')
     } finally {
       setSeeding(false)
+    }
+  }
+
+  const handleMigrate = async () => {
+    if (!confirm('Isso vai:\n\n• Regenerar TODOS os treinos ativos com os novos exercícios Juba\n• Excluir treinos inativos/órfãos\n• Excluir avaliações órfãs\n\nContinuar?')) return
+    setMigrating(true)
+    try {
+      const res = await fetch('/api/superadmin/migrate', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        const s = data.data
+        alert(`✅ Migração completa!\n\nTreinos regenerados: ${s.workoutsRegenerated}\nTreinos excluídos: ${s.workoutsDeleted}\nAvaliações excluídas: ${s.assessmentsDeleted}\nAulas excluídas: ${s.lessonsDeleted}${s.errors.length ? '\n\nErros: ' + s.errors.join(', ') : ''}`)
+      } else {
+        alert('Erro: ' + data.error)
+      }
+    } catch {
+      alert('Erro ao migrar')
+    } finally {
+      setMigrating(false)
     }
   }
 
@@ -633,6 +653,15 @@ export default function SuperAdminExercisesPage() {
               {seeding ? 'Carregando...' : 'Carregar Exercícios Juba'}
             </Button>
           )}
+          <Button
+            variant="outline"
+            className="hidden md:flex gap-2 border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+            onClick={handleMigrate}
+            disabled={migrating}
+          >
+            <RefreshCcw className={`h-4 w-4 ${migrating ? 'animate-spin' : ''}`} />
+            {migrating ? 'Migrando...' : 'Migrar Treinos'}
+          </Button>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}>
