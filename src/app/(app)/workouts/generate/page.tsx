@@ -418,13 +418,16 @@ function GenerateWorkoutPage() {
               </Label>
               <Input
                 id="frequency"
-                type="number"
-                min="2"
-                max="6"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="text-center text-lg font-semibold"
                 value={formData.weeklyFrequency}
-                onChange={(e) =>
-                  setFormData({ ...formData, weeklyFrequency: parseInt(e.target.value) || 0 })
-                }
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '')
+                  const num = parseInt(val) || 0
+                  setFormData({ ...formData, weeklyFrequency: num })
+                }}
                 onBlur={() => {
                   const val = formData.weeklyFrequency
                   if (val < 2 || val > 6 || isNaN(val)) {

@@ -26,10 +26,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { 
-  Dumbbell, Plus, Search, Pencil, Trash2, Video, Lock, 
+import {
+  Dumbbell, Plus, Search, Pencil, Trash2, Video, Lock,
   Clock, RotateCcw, Hash, FileText, Target, Activity,
-  ChevronLeft, ChevronRight, Eye, Layers, AlertCircle
+  ChevronLeft, ChevronRight, Eye, Layers, AlertCircle, Download
 } from 'lucide-react'
 import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 
@@ -84,20 +84,20 @@ interface Stats {
 // ============================================================================
 
 const MUSCLE_GROUPS = [
-  'Peitoral', 'Dorsal', 'Deltoides', 'Bíceps', 'Tríceps', 
-  'Core', 'Quadríceps', 'Posterior', 'Glúteos', 'Panturrilha', 
+  'Peitoral', 'Dorsal', 'Deltoides', 'Bíceps', 'Tríceps',
+  'Core', 'Quadríceps', 'Posterior', 'Glúteos', 'Panturrilha',
   'Antebraço', 'Trapézio', 'Full Body', 'Cervical', 'Lombar'
 ]
 
 const EXERCISE_TYPES = [
-  'Força', 'Potência', 'Mobilidade', 'Estabilidade', 
-  'Cardio', 'Aquecimento', 'Alongamento', 'Ativação', 
+  'Força', 'Potência', 'Mobilidade', 'Estabilidade',
+  'Cardio', 'Aquecimento', 'Alongamento', 'Ativação',
   'Funcional', 'Pliométrico', 'Isométrico'
 ]
 
 const EQUIPMENTS = [
-  'Peso Corporal', 'Barra', 'Halteres', 'Kettlebell', 
-  'Cabo', 'Máquina', 'Elástico', 'TRX', 'Medicine Ball', 
+  'Peso Corporal', 'Barra', 'Halteres', 'Kettlebell',
+  'Cabo', 'Máquina', 'Elástico', 'TRX', 'Medicine Ball',
   'Box', 'Foam Roller', 'Mini Band', 'Corda', 'Step', 'Banco'
 ]
 
@@ -125,24 +125,25 @@ export default function SuperAdminExercisesPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [muscleGroups, setMuscleGroups] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // Filters
   const [search, setSearch] = useState('')
   const [filterMuscle, setFilterMuscle] = useState('all')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [filterBlock, setFilterBlock] = useState('all')
   const [showOrphans, setShowOrphans] = useState(false)
-  
+
   // Pagination
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  
+
   // Dialogs
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [seeding, setSeeding] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
 
   // Form
@@ -177,10 +178,10 @@ export default function SuperAdminExercisesPage() {
       if (filterDifficulty && filterDifficulty !== 'all') params.set('difficulty', filterDifficulty)
       if (filterBlock && filterBlock !== 'all') params.set('blockId', filterBlock)
       if (showOrphans) params.set('orphans', 'true')
-      
+
       const res = await fetch(`/api/exercises?${params}`)
       const data = await res.json()
-      
+
       if (data.success) {
         setExercises(data.data.items)
         setTotalPages(data.data.totalPages)
@@ -196,8 +197,8 @@ export default function SuperAdminExercisesPage() {
     }
   }
 
-  useEffect(() => { 
-    fetchExercises() 
+  useEffect(() => {
+    fetchExercises()
   }, [page, search, filterMuscle, filterDifficulty, filterBlock, showOrphans])
 
   // ============================================================================
@@ -205,8 +206,8 @@ export default function SuperAdminExercisesPage() {
   // ============================================================================
 
   const resetForm = () => setFormData({
-    name: '', description: '', type: '', muscleGroup: '', equipment: '', 
-    difficulty: '', defaultSets: '', defaultReps: '', defaultTime: '', 
+    name: '', description: '', type: '', muscleGroup: '', equipment: '',
+    difficulty: '', defaultSets: '', defaultReps: '', defaultTime: '',
     defaultRest: '', technicalNotes: '', instructions: '', videoUrl: '',
     orderInBlock: '', blockId: '',
   })
@@ -232,25 +233,25 @@ export default function SuperAdminExercisesPage() {
         orderInBlock: formData.orderInBlock ? parseInt(formData.orderInBlock) : undefined,
         blockId: formData.blockId || null,
       }
-      
-      const res = await fetch('/api/exercises', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(body) 
+
+      const res = await fetch('/api/exercises', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       })
       const data = await res.json()
-      
-      if (data.success) { 
+
+      if (data.success) {
         setIsCreateOpen(false)
         resetForm()
         fetchExercises()
       } else {
         alert(data.error)
       }
-    } catch { 
-      alert('Erro ao criar') 
-    } finally { 
-      setSaving(false) 
+    } catch {
+      alert('Erro ao criar')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -303,24 +304,24 @@ export default function SuperAdminExercisesPage() {
         orderInBlock: formData.orderInBlock ? parseInt(formData.orderInBlock) : null,
         blockId: formData.blockId || null,
       }
-      
-      const res = await fetch(`/api/exercises/${selectedExercise.id}`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(body) 
+
+      const res = await fetch(`/api/exercises/${selectedExercise.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       })
       const data = await res.json()
-      
-      if (data.success) { 
+
+      if (data.success) {
         setIsEditOpen(false)
         fetchExercises()
       } else {
         alert(data.error)
       }
-    } catch { 
-      alert('Erro ao atualizar') 
-    } finally { 
-      setSaving(false) 
+    } catch {
+      alert('Erro ao atualizar')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -331,8 +332,27 @@ export default function SuperAdminExercisesPage() {
       const data = await res.json()
       if (data.success) fetchExercises()
       else alert(data.error)
-    } catch { 
-      alert('Erro ao excluir') 
+    } catch {
+      alert('Erro ao excluir')
+    }
+  }
+
+  const handleSeed = async () => {
+    if (!confirm('Isso vai substituir TODOS os exercícios pelos do Método Juba. Continuar?')) return
+    setSeeding(true)
+    try {
+      const res = await fetch('/api/superadmin/exercises/seed', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        alert(`✅ ${data.data.created} exercícios do Método Juba carregados!`)
+        fetchExercises()
+      } else {
+        alert('Erro: ' + data.error)
+      }
+    } catch {
+      alert('Erro ao carregar exercícios')
+    } finally {
+      setSeeding(false)
     }
   }
 
@@ -371,21 +391,21 @@ export default function SuperAdminExercisesPage() {
           <TabsTrigger value="prescription">Prescrição</TabsTrigger>
           <TabsTrigger value="notes">Notas</TabsTrigger>
         </TabsList>
-        
+
         {/* Tab Básico */}
         <TabsContent value="basic" className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
               <Label className="text-muted-foreground">Nome *</Label>
-              <Input 
-                value={formData.name} 
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                className="bg-card border-border text-foreground" 
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="bg-card border-border text-foreground"
                 placeholder="Ex: Agachamento Goblet"
-                required 
+                required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Tipo</Label>
               <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
@@ -397,7 +417,7 @@ export default function SuperAdminExercisesPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Bloco</Label>
               <Select value={formData.blockId} onValueChange={(v) => setFormData({ ...formData, blockId: v })}>
@@ -414,7 +434,7 @@ export default function SuperAdminExercisesPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Grupo Muscular</Label>
               <Select value={formData.muscleGroup} onValueChange={(v) => setFormData({ ...formData, muscleGroup: v })}>
@@ -426,7 +446,7 @@ export default function SuperAdminExercisesPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Equipamento</Label>
               <Select value={formData.equipment} onValueChange={(v) => setFormData({ ...formData, equipment: v })}>
@@ -438,7 +458,7 @@ export default function SuperAdminExercisesPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Dificuldade</Label>
               <Select value={formData.difficulty} onValueChange={(v) => setFormData({ ...formData, difficulty: v })}>
@@ -450,32 +470,32 @@ export default function SuperAdminExercisesPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Ordem no Bloco</Label>
-              <Input 
+              <Input
                 type="number"
                 min="1"
-                value={formData.orderInBlock} 
-                onChange={(e) => setFormData({ ...formData, orderInBlock: e.target.value })} 
+                value={formData.orderInBlock}
+                onChange={(e) => setFormData({ ...formData, orderInBlock: e.target.value })}
                 className="bg-card border-border text-foreground"
                 placeholder="1"
               />
             </div>
-            
+
             <div className="col-span-2 space-y-2">
               <Label className="text-muted-foreground">Descrição</Label>
-              <Textarea 
-                value={formData.description} 
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
-                className="bg-card border-border text-foreground" 
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="bg-card border-border text-foreground"
                 rows={2}
                 placeholder="Descrição breve do exercício..."
               />
             </div>
           </div>
         </TabsContent>
-        
+
         {/* Tab Prescrição */}
         <TabsContent value="prescription" className="space-y-4 py-4">
           <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
@@ -484,97 +504,97 @@ export default function SuperAdminExercisesPage() {
               Valores padrão do Método EXPERT PRO TRAINING (podem ser ajustados pelo trainer)
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-muted-foreground flex items-center gap-2">
                 <Hash className="h-4 w-4" /> Séries
               </Label>
-              <Input 
+              <Input
                 type="number"
                 min="1"
                 max="10"
-                value={formData.defaultSets} 
-                onChange={(e) => setFormData({ ...formData, defaultSets: e.target.value })} 
+                value={formData.defaultSets}
+                onChange={(e) => setFormData({ ...formData, defaultSets: e.target.value })}
                 className="bg-card border-border text-foreground"
                 placeholder="3"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground flex items-center gap-2">
                 <RotateCcw className="h-4 w-4" /> Repetições
               </Label>
-              <Input 
-                value={formData.defaultReps} 
-                onChange={(e) => setFormData({ ...formData, defaultReps: e.target.value })} 
+              <Input
+                value={formData.defaultReps}
+                onChange={(e) => setFormData({ ...formData, defaultReps: e.target.value })}
                 className="bg-card border-border text-foreground"
                 placeholder="10-12 ou AMRAP"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Tempo
               </Label>
-              <Input 
-                value={formData.defaultTime} 
-                onChange={(e) => setFormData({ ...formData, defaultTime: e.target.value })} 
+              <Input
+                value={formData.defaultTime}
+                onChange={(e) => setFormData({ ...formData, defaultTime: e.target.value })}
                 className="bg-card border-border text-foreground"
                 placeholder="30s ou 1min"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Descanso
               </Label>
-              <Input 
-                value={formData.defaultRest} 
-                onChange={(e) => setFormData({ ...formData, defaultRest: e.target.value })} 
+              <Input
+                value={formData.defaultRest}
+                onChange={(e) => setFormData({ ...formData, defaultRest: e.target.value })}
                 className="bg-card border-border text-foreground"
                 placeholder="60s"
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label className="text-muted-foreground flex items-center gap-2">
               <Video className="h-4 w-4" /> URL do Vídeo
             </Label>
-            <Input 
-              value={formData.videoUrl} 
-              onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} 
-              placeholder="https://youtube.com/..." 
-              className="bg-card border-border text-foreground" 
+            <Input
+              value={formData.videoUrl}
+              onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+              placeholder="https://youtube.com/..."
+              className="bg-card border-border text-foreground"
             />
           </div>
         </TabsContent>
-        
+
         {/* Tab Notas */}
         <TabsContent value="notes" className="space-y-4 py-4">
           <div className="space-y-2">
             <Label className="text-muted-foreground flex items-center gap-2">
               <Lock className="h-4 w-4 text-amber-500" /> Notas Técnicas do Método
             </Label>
-            <Textarea 
-              value={formData.technicalNotes} 
-              onChange={(e) => setFormData({ ...formData, technicalNotes: e.target.value })} 
-              className="bg-card border-border text-foreground" 
+            <Textarea
+              value={formData.technicalNotes}
+              onChange={(e) => setFormData({ ...formData, technicalNotes: e.target.value })}
+              className="bg-card border-border text-foreground"
               rows={4}
               placeholder="Pontos-chave de execução, cuidados, variações..."
             />
             <p className="text-xs text-muted-foreground">Visível apenas para trainers, não para alunos</p>
           </div>
-          
+
           <div className="space-y-2">
             <Label className="text-muted-foreground flex items-center gap-2">
               <FileText className="h-4 w-4" /> Instruções para Aluno
             </Label>
-            <Textarea 
-              value={formData.instructions} 
-              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })} 
-              className="bg-card border-border text-foreground" 
+            <Textarea
+              value={formData.instructions}
+              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+              className="bg-card border-border text-foreground"
               rows={4}
               placeholder="Instruções simplificadas para o aluno executar..."
             />
@@ -601,35 +621,48 @@ export default function SuperAdminExercisesPage() {
             Exercícios do Método EXPERT PRO TRAINING
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}>
-              <Plus className="h-4 w-4" /> Novo Exercício
+        <div className="flex items-center gap-2">
+          {(!stats || stats.total === 0) && (
+            <Button
+              variant="outline"
+              className="hidden md:flex gap-2 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+              onClick={handleSeed}
+              disabled={seeding}
+            >
+              <Download className="h-4 w-4" />
+              {seeding ? 'Carregando...' : 'Carregar Exercícios Juba'}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-foreground flex items-center gap-2">
-                <Dumbbell className="h-5 w-5 text-amber-500" />
-                Novo Exercício
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Cadastre um novo exercício do método
-              </DialogDescription>
-            </DialogHeader>
-            
-            <FormContent onSubmit={handleCreate} />
-            
-            <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                Cancelar
+          )}
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="hidden md:flex gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}>
+                <Plus className="h-4 w-4" /> Novo Exercício
               </Button>
-              <Button type="submit" form="exercise-form" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                {saving ? 'Salvando...' : 'Criar Exercício'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-foreground flex items-center gap-2">
+                  <Dumbbell className="h-5 w-5 text-amber-500" />
+                  Novo Exercício
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Cadastre um novo exercício do método
+                </DialogDescription>
+              </DialogHeader>
+
+              <FormContent onSubmit={handleCreate} />
+
+              <DialogFooter className="mt-4">
+                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" form="exercise-form" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  {saving ? 'Salvando...' : 'Criar Exercício'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -670,14 +703,14 @@ export default function SuperAdminExercisesPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar exercícios..." 
-                value={search} 
-                onChange={(e) => { setSearch(e.target.value); setPage(1) }} 
-                className="pl-10 bg-background border-border text-foreground" 
+              <Input
+                placeholder="Buscar exercícios..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+                className="pl-10 bg-background border-border text-foreground"
               />
             </div>
-            
+
             <div className="flex flex-wrap gap-2">
               <Select value={filterBlock} onValueChange={(v) => { setFilterBlock(v); setPage(1) }}>
                 <SelectTrigger className="w-[160px] bg-background border-border text-foreground">
@@ -690,7 +723,7 @@ export default function SuperAdminExercisesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              
+
               <Select value={filterMuscle} onValueChange={(v) => { setFilterMuscle(v); setPage(1) }}>
                 <SelectTrigger className="w-[150px] bg-background border-border text-foreground">
                   <SelectValue placeholder="Grupo" />
@@ -700,7 +733,7 @@ export default function SuperAdminExercisesPage() {
                   {muscleGroups.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
-              
+
               <Select value={filterDifficulty} onValueChange={(v) => { setFilterDifficulty(v); setPage(1) }}>
                 <SelectTrigger className="w-[140px] bg-background border-border text-foreground">
                   <SelectValue placeholder="Nível" />
@@ -710,9 +743,9 @@ export default function SuperAdminExercisesPage() {
                   {DIFFICULTIES.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              
-              <Button 
-                variant={showOrphans ? "default" : "outline"} 
+
+              <Button
+                variant={showOrphans ? "default" : "outline"}
                 size="sm"
                 onClick={() => { setShowOrphans(!showOrphans); setPage(1) }}
                 className={showOrphans ? "bg-yellow-500 hover:bg-yellow-600 text-accent-foreground" : "border-border"}
@@ -723,7 +756,7 @@ export default function SuperAdminExercisesPage() {
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           {loading ? (
             <div className="space-y-4">
@@ -735,7 +768,16 @@ export default function SuperAdminExercisesPage() {
             <div className="py-12 text-center">
               <Dumbbell className="mx-auto h-12 w-12 text-muted" />
               <h3 className="mt-4 text-lg font-medium text-foreground">Nenhum exercício encontrado</h3>
-              <p className="text-muted-foreground">Ajuste os filtros ou crie um novo exercício</p>
+              <p className="text-muted-foreground mb-4">Ajuste os filtros ou carregue os exercícios do Método Juba</p>
+              <Button
+                variant="outline"
+                className="gap-2 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                onClick={handleSeed}
+                disabled={seeding}
+              >
+                <Download className="h-4 w-4" />
+                {seeding ? 'Carregando...' : 'Carregar Exercícios do Método Juba'}
+              </Button>
             </div>
           ) : (
             <>
@@ -838,7 +880,7 @@ export default function SuperAdminExercisesPage() {
               </div>
             </>
           )}
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
@@ -846,20 +888,20 @@ export default function SuperAdminExercisesPage() {
                 Página {page} de {totalPages} ({total} exercícios)
               </p>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage((p) => Math.max(1, p - 1))} 
-                  disabled={page === 1} 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
                   className="border-border"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
-                  disabled={page === totalPages} 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
                   className="border-border"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -882,7 +924,7 @@ export default function SuperAdminExercisesPage() {
               {selectedExercise?.block ? `Bloco: ${selectedExercise.block.code}` : 'Sem bloco vinculado'}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedExercise && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -903,7 +945,7 @@ export default function SuperAdminExercisesPage() {
                   {getDifficultyBadge(selectedExercise.difficulty)}
                 </div>
               </div>
-              
+
               {/* Prescrição */}
               <div className="p-3 rounded-lg bg-muted/50">
                 <Label className="text-amber-500 text-xs mb-2 block">Prescrição Padrão</Label>
@@ -926,7 +968,7 @@ export default function SuperAdminExercisesPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Descrição */}
               {selectedExercise.description && (
                 <div>
@@ -934,7 +976,7 @@ export default function SuperAdminExercisesPage() {
                   <p className="text-foreground text-sm">{selectedExercise.description}</p>
                 </div>
               )}
-              
+
               {/* Notas Técnicas */}
               {selectedExercise.technicalNotes && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
@@ -946,7 +988,7 @@ export default function SuperAdminExercisesPage() {
                   </p>
                 </div>
               )}
-              
+
               {/* Instruções */}
               {selectedExercise.instructions && (
                 <div>
@@ -954,13 +996,13 @@ export default function SuperAdminExercisesPage() {
                   <p className="text-foreground text-sm whitespace-pre-wrap">{selectedExercise.instructions}</p>
                 </div>
               )}
-              
+
               {/* Vídeo */}
               {selectedExercise.videoUrl && (
                 <div>
-                  <a 
-                    href={selectedExercise.videoUrl} 
-                    target="_blank" 
+                  <a
+                    href={selectedExercise.videoUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-green-400 hover:text-green-300"
                   >
@@ -986,9 +1028,9 @@ export default function SuperAdminExercisesPage() {
               Atualize os dados do exercício
             </DialogDescription>
           </DialogHeader>
-          
+
           <FormContent onSubmit={handleUpdate} isEdit />
-          
+
           <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancelar
@@ -999,9 +1041,9 @@ export default function SuperAdminExercisesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Floating Action Button for Mobile */}
-      <FloatingActionButton 
+      <FloatingActionButton
         actions={[
           {
             label: 'Novo Exercício',

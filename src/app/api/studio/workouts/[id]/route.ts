@@ -429,9 +429,6 @@ export async function DELETE(
   try {
     // Verificar permissão
     const where: any = { id: workoutId, studioId }
-    if (role === 'TRAINER') {
-      where.createdById = userId
-    }
 
     const existing = await prisma.workout.findFirst({ where })
 

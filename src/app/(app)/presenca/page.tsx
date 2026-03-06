@@ -556,22 +556,29 @@ export default function PresencaPage() {
                                         <p className="font-medium text-sm truncate">{card.entry.clientName}</p>
                                         {card.sessionData && (
                                             <div className="flex items-center gap-1 flex-wrap">
-                                                {(card.sessionData.availableSessions && card.sessionData.availableSessions.length > 1)
-                                                    ? card.sessionData.availableSessions.map((as) => (
-                                                        <button key={as.index}
-                                                            className={`text-[9px] px-1.5 py-0 h-4 rounded-full font-semibold transition-all ${card.sessionData!.session.pillarLabel === as.pillarLabel
-                                                                ? pillarBg(as.pillarLabel) + ' ring-1 ring-white/30'
-                                                                : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
-                                                                }`}
-                                                            onClick={(e) => { e.stopPropagation(); switchPillar(cardIdx, card.entry.workoutId, as.index) }}
-                                                            title={`Trocar para ${as.pillarLabel}`}>
-                                                            {as.pillarLabel}
-                                                        </button>
-                                                    ))
-                                                    : <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(card.sessionData.session.pillarLabel)}`}>
-                                                        {card.sessionData.session.pillarLabel}
-                                                    </Badge>
-                                                }
+                                                {(() => {
+                                                    // Deduplicate by pillarLabel — show only unique pillars
+                                                    const sessions = card.sessionData.availableSessions || []
+                                                    const uniquePillars = sessions.reduce((acc, s) => {
+                                                        if (!acc.find(p => p.pillarLabel === s.pillarLabel)) acc.push(s)
+                                                        return acc
+                                                    }, [] as typeof sessions)
+                                                    return uniquePillars.length > 1
+                                                        ? uniquePillars.map((as) => (
+                                                            <button key={as.index}
+                                                                className={`text-[9px] px-1.5 py-0 h-4 rounded-full font-semibold transition-all ${card.sessionData!.session.pillarLabel === as.pillarLabel
+                                                                        ? pillarBg(as.pillarLabel) + ' ring-1 ring-white/30'
+                                                                        : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                                                                    }`}
+                                                                onClick={(e) => { e.stopPropagation(); switchPillar(cardIdx, card.entry.workoutId, as.index) }}
+                                                                title={`Trocar para ${as.pillarLabel}`}>
+                                                                {as.pillarLabel}
+                                                            </button>
+                                                        ))
+                                                        : <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(card.sessionData.session.pillarLabel)}`}>
+                                                            {card.sessionData.session.pillarLabel}
+                                                        </Badge>
+                                                })()}
                                             </div>
                                         )}
                                     </div>
