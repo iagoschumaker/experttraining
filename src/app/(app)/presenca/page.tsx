@@ -92,9 +92,15 @@ export default function PresencaPage() {
 
     // Student cards (populated client-side from next-session API)
     const [cardsBySession, setCardsBySession] = useState<Map<string, StudentCard[]>>(new Map())
+    const cardsBySessionRef = useRef<Map<string, StudentCard[]>>(new Map())
+
+    // Pillar overrides — persists selected pillar per client across polling
+    // Key: clientId, Value: sessionIndex
+    const pillarOverridesRef = useRef<Map<string, number>>(new Map())
 
     // Active clients in studio (cross-trainer)
-    const [activeClientIds, setActiveClientIds] = useState<Map<string, string>>(new Map()) // clientId → trainerId
+    const activeClientIds = useRef<Map<string, string>>(new Map()) // clientId → trainerId
+    const [activeClientIdsState, setActiveClientIdsState] = useState<Map<string, string>>(new Map())
 
     // UI
     const [showAddStudent, setShowAddStudent] = useState(false)
@@ -104,6 +110,9 @@ export default function PresencaPage() {
 
     const activeSession = serverSessions.find(s => s.id === activeTabId) || null
     const activeCards = activeTabId ? (cardsBySession.get(activeTabId) || []) : []
+
+    // Keep ref in sync with state
+    useEffect(() => { cardsBySessionRef.current = cardsBySession }, [cardsBySession])
 
     // ========================================================================
     // DATA LOADING
@@ -161,7 +170,7 @@ export default function PresencaPage() {
 
                 // Auto-load card data for any session that doesn't have it yet
                 for (const session of sessions) {
-                    if (!cardsBySession.get(session.id)) {
+                    if (!cardsBySessionRef.current.get(session.id)) {
                         loadSessionCards(session)
                     }
                 }
@@ -177,7 +186,8 @@ export default function PresencaPage() {
             if (data.success) {
                 const map = new Map<string, string>()
                 for (const item of data.data) { map.set(item.clientId, item.trainerId) }
-                setActiveClientIds(map)
+                activeClientIds.current = map
+                setActiveClientIdsState(map)
             }
         } catch { }
     }
@@ -192,11 +202,16 @@ export default function PresencaPage() {
         const loaded = await Promise.all(session.students.map(async (entry) => {
             if (!entry.workoutId) return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Sem treino ativo', collapsed: false } as StudentCard
             try {
-                const res = await fetch(`/api/studio/workouts/${entry.workoutId}/next-session`)
+                // Use stored pillar override if it exists
+                const overrideIdx = pillarOverridesRef.current.get(entry.clientId)
+                const url = overrideIdx !== undefined
+                    ? `/api/studio/workouts/${entry.workoutId}/next-session?sessionIndex=${overrideIdx}`
+                    : `/api/studio/workouts/${entry.workoutId}/next-session`
+                const res = await fetch(url)
                 const data = await res.json()
                 if (!data.success) return { entry, sessionData: null, loading: false, checkedIn: false, error: data.error || 'Erro', collapsed: false } as StudentCard
                 const sd = data.data as SessionData
-                return { entry, sessionData: sd, loading: false, checkedIn: sd.checkedInToday || false, error: null, collapsed: false } as StudentCard
+                return { entry, sessionData: sd, loading: false, checkedIn: sd.checkedInToday || false, error: null, collapsed: false, selectedPillarIndex: overrideIdx } as StudentCard
             } catch { return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Erro de conexão', collapsed: false } as StudentCard }
         }))
 
@@ -209,7 +224,7 @@ export default function PresencaPage() {
     function toggleSelect(id: string) {
         setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
     }
-    function selectAll() { setSelectedIds(new Set(clients.filter(c => !activeClientIds.has(c.id)).map(c => c.id))) }
+    function selectAll() { setSelectedIds(new Set(clients.filter(c => !activeClientIdsState.has(c.id)).map(c => c.id))) }
     function deselectAll() { setSelectedIds(new Set()) }
 
     // ========================================================================
@@ -373,6 +388,14 @@ export default function PresencaPage() {
     // Switch pillar/session for a specific student card
     async function switchPillar(cardIdx: number, workoutId: string, sessionIndex: number) {
         if (!activeTabId) return
+        const cards = cardsBySession.get(activeTabId) || []
+        const clientId = cards[cardIdx]?.entry.clientId
+
+        // Store the override so it persists across polling
+        if (clientId) {
+            pillarOverridesRef.current.set(clientId, sessionIndex)
+        }
+
         try {
             const res = await fetch(`/api/studio/workouts/${workoutId}/next-session?sessionIndex=${sessionIndex}`)
             const data = await res.json()
@@ -438,7 +461,7 @@ export default function PresencaPage() {
     if (activeSession) {
         const isFinalized = activeSession.finalized
         const studentsNotInSession = allClients.filter(c =>
-            !activeSession.students.some(s => s.clientId === c.id) && !activeClientIds.has(c.id)
+            !activeSession.students.some(s => s.clientId === c.id) && !activeClientIdsState.has(c.id)
         )
         const filteredAdd = addStudentSearch
             ? studentsNotInSession.filter(c => c.name.toLowerCase().includes(addStudentSearch.toLowerCase()))
@@ -567,8 +590,8 @@ export default function PresencaPage() {
                                                         ? uniquePillars.map((as) => (
                                                             <button key={as.index}
                                                                 className={`text-[9px] px-1.5 py-0 h-4 rounded-full font-semibold transition-all ${card.sessionData!.session.pillarLabel === as.pillarLabel
-                                                                        ? pillarBg(as.pillarLabel) + ' ring-1 ring-white/30'
-                                                                        : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                                                                    ? pillarBg(as.pillarLabel) + ' ring-1 ring-white/30'
+                                                                    : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
                                                                     }`}
                                                                 onClick={(e) => { e.stopPropagation(); switchPillar(cardIdx, card.entry.workoutId, as.index) }}
                                                                 title={`Trocar para ${as.pillarLabel}`}>
@@ -768,7 +791,7 @@ export default function PresencaPage() {
                     <Card><CardContent className="py-8 text-center text-muted-foreground">{searchQuery ? 'Nenhum aluno encontrado' : 'Nenhum aluno ativo'}</CardContent></Card>
                 ) : clients.map((client) => {
                     const isSelected = selectedIds.has(client.id)
-                    const inSession = activeClientIds.has(client.id)
+                    const inSession = activeClientIdsState.has(client.id)
                     return (
                         <div key={client.id}
                             className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-green-500/50 bg-green-500/5'

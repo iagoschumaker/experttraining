@@ -27,6 +27,9 @@ export interface ExercisePrescription {
     reps: string
     rest: string
     role: ExerciseSlot
+    // Weekly progression (Juba method: S1→S6)
+    weeklyReps?: string[]  // e.g. ['12','12','10','10','8','8']
+    weeklyLoad?: string[]  // e.g. ['livre','livre','75%','75%','80%','80%']
 }
 
 export interface PreparationExercise {
@@ -73,77 +76,218 @@ export interface SessionPrescription {
 
 const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
     bloco1: [ // LOWER - Padrão SQUAT (iniciante → avançado)
-        { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento Box Unilateral', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento Salto DB', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Leg Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Agachamento Goblet KB', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'], weeklyLoad: ['livre', 'livre', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
+        },
+        {
+            name: 'Agachamento Box', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'], weeklyLoad: ['livre', 'livre', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
+        },
+        {
+            name: 'Agachamento Box Unilateral', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Agachamento Salto DB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '6', '6', '6'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
+        },
+        {
+            name: 'Leg Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '8', '8']
+        },
     ],
     bloco2: [ // LOWER - Padrão HINGE / UNILATERAL
-        { name: 'Terra KB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Hexa Bar', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Stiff Unilateral KB', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Subida Box 2KB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Terra KB', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '8', '8', '8'], weeklyLoad: ['30%', '30%', '35%', '35%', '35%', '35%']
+        },
+        {
+            name: 'Hexa Bar', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '8', '8', '8', '8'], weeklyLoad: ['progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
+        },
+        {
+            name: 'Stiff Unilateral KB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Subida Box', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '8', '8', '8']
+        },
+        {
+            name: 'Subida Box 2KB', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
+        },
     ],
     bloco3: [ // LOWER - Padrão LUNGE / UNILATERAL
-        { name: 'Afundo', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Lunge Regress', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Retrocesso Alternado', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Reverse Lunge Slide', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Afundo Pliométrico', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Lunge com Salto', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Salto Vertical DB', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Afundo', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '8', '8', '8']
+        },
+        {
+            name: 'Lunge Regress', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Retrocesso Alternado', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '8', '8', '8']
+        },
+        {
+            name: 'Afundo Búlgaro', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Lunge Alternado', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '8', '8', '8', '8']
+        },
+        {
+            name: 'Reverse Lunge Slide', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '8', '8', '8']
+        },
+        {
+            name: 'Afundo Pliométrico', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['5+5', '5+5', '5+5', '5+5', '5+5', '5+5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
+        },
+        {
+            name: 'Lunge com Salto', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['5+5', '5+5', '5+5', '5+5', '5+5', '5+5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
+        },
+        {
+            name: 'Salto Vertical DB', sets: 3, reps: '5', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['5', '5', '5', '5', '5', '5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
+        },
     ],
 }
 
 const FOCO_PUSH: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
     bloco1: [ // PUSH - Horizontal (iniciante → avançado)
-        { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Flexão de Braço BOSU', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Flexão de Braço Pé Box', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Flexão de Braço MB Alternada', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Flexão de Braço com Carga', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Flexão de Braço', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '10', '10', '10']
+        },
+        {
+            name: 'Flexão de Braço TRX', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '10', '10', '10']
+        },
+        {
+            name: 'Flexão de Braço BOSU', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '10', '10']
+        },
+        {
+            name: 'Flexão de Braço Pé Box', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '10', '10', '10']
+        },
+        {
+            name: 'Flexão de Braço MB Alternada', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
+        {
+            name: 'Flexão de Braço com Carga', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '8', '8', '8', '8']
+        },
     ],
     bloco2: [ // PUSH - Vertical / Press (iniciante → avançado)
-        { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push CB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Press DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Press DB Unilateral', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push Press Explosivo', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Desenvolvimento Alternado DB', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Push Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '10', '10']
+        },
+        {
+            name: 'Push CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '10', '10', '10']
+        },
+        {
+            name: 'Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '10', '10']
+        },
+        {
+            name: 'Press DB Unilateral', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
+        {
+            name: 'Desenvolvimento DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '10', '10', '10', '10']
+        },
+        {
+            name: 'Push Press Explosivo', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
+        },
+        {
+            name: 'Desenvolvimento Alternado DB', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
     ],
     bloco3: [ // PUSH - Integração / Combos (avançado)
-        { name: 'Push + Pull', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push + Press', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push Unilateral + Press', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Push + Pull', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
+        {
+            name: 'Push + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
+        {
+            name: 'Push Unilateral + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
     ],
 }
 
 const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
     bloco1: [ // PULL - TRX (iniciante → avançado)
-        { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Fly', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Pé Box', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Y', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
+        {
+            name: 'TRX Inclinado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
+        {
+            name: 'TRX Fly', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
+        {
+            name: 'TRX Pé Box', sets: 3, reps: '20', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['20', '20', '20', '20', '20', '20']
+        },
+        {
+            name: 'TRX Y', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
         { name: 'TRX Isométrico', sets: 3, reps: '20-30s', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Isométrico + Press', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'TRX Isométrico + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
     ],
     bloco2: [ // PULL - Remada (intermediário → avançado)
-        { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Alternada DB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Corda', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Explosiva', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
+        {
+            name: 'Remada Alternada DB', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
+        },
+        {
+            name: 'Remada Corda', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['10', '10', '10', '10', '10', '10']
+        },
+        {
+            name: 'Remada Explosiva', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
+        },
     ],
     bloco3: [ // PULL - Carry / Integração
         { name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        {
+            name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
+        {
+            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            weeklyReps: ['12', '12', '12', '12', '12', '12']
+        },
     ],
 }
 
@@ -506,22 +650,30 @@ function getPeriodizationAdjust(weekPhase: string): PeriodizationAdjust {
     }
 }
 
-function applyPeriodization(exercise: ExercisePrescription, weekPhase: string): ExercisePrescription {
-    const adjust = getPeriodizationAdjust(weekPhase)
+function applyPeriodization(exercise: ExercisePrescription, weekPhase: string, weekIndex?: number): ExercisePrescription {
     const adjusted = { ...exercise }
 
-    // Ajustar séries por fase
+    // If exercise has weekly progression (Juba method), use it
+    if (adjusted.weeklyReps && weekIndex !== undefined) {
+        const weekIdx = Math.min(weekIndex, adjusted.weeklyReps.length - 1)
+        adjusted.reps = adjusted.weeklyReps[weekIdx] || adjusted.reps
+        if (adjusted.weeklyLoad) {
+            const load = adjusted.weeklyLoad[weekIdx]
+            if (load && load !== 'livre' && load !== 'progressiva') {
+                adjusted.rest = `${adjusted.rest} | Carga: ${load}`
+            }
+        }
+        return adjusted
+    }
+
+    // Fallback: use phase-based periodization for secondary/core exercises
     if (weekPhase === 'ADAPTATION') {
         adjusted.sets = Math.max(2, adjusted.sets - 1)
-        // Aumentar reps na adaptação
         adjusted.reps = adjustReps(adjusted.reps, 'up')
-        // Descanso mais longo
         adjusted.rest = adjustRest(adjusted.rest, 'up')
     } else if (weekPhase === 'PEAK') {
         adjusted.sets = Math.min(4, adjusted.sets + 1)
-        // Diminuir reps no pico
         adjusted.reps = adjustReps(adjusted.reps, 'down')
-        // Descanso mais curto
         adjusted.rest = adjustRest(adjusted.rest, 'down')
     }
 
@@ -610,8 +762,8 @@ export function generateBlocks(
         // Ex3: CORE — neutro, diferentes por bloco
         const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum)
 
-        // Aplicar periodização
-        const focoAdjusted = applyPeriodization(foco, weekPhase)
+        // Aplicar periodização (com weekIndex para progressão semanal)
+        const focoAdjusted = applyPeriodization(foco, weekPhase, weekIndex)
         const secundarioAdjusted = applyPeriodization(secundario, weekPhase)
         const coreAdjusted = applyPeriodization(core, weekPhase)
 
