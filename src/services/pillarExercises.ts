@@ -1,6 +1,8 @@
 // ============================================================================
 // MÉTODO EXPERT TRAINING — BANCO DE EXERCÍCIOS POR PILAR
 // ============================================================================
+// MÉTODO JUBA — Exercícios reais das planilhas do Expert Training
+//
 // REGRA: Cada bloco tem 3 exercícios:
 //   Ex1 (Foco)       → Obrigatoriamente do PILAR DO DIA
 //   Ex2 (Secundário) → De um pilar DIFERENTE (opositor)
@@ -67,76 +69,81 @@ export interface SessionPrescription {
 // EXERCÍCIOS DE FOCO PRINCIPAL — POR PILAR × BLOCO
 // ============================================================================
 // Estes são SEMPRE o Ex1 do bloco — devem ser do PILAR DO DIA
+// Exercícios da planilha Juba por nível progressivo
 
 const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // Padrão SQUAT
-        { name: 'Agachamento Goblet', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Box Squat', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento com Pausa', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento Frontal', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento Sumô', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco1: [ // LOWER - Padrão SQUAT (iniciante → avançado)
+        { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Agachamento Box Unilateral', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Agachamento Salto DB', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Leg Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
-    bloco2: [ // Padrão HINGE
-        { name: 'Levantamento Terra Romeno', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Hip Hinge com Kettlebell', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Stiff Unilateral', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Good Morning', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Hip Thrust', sets: 3, reps: '12-15', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco2: [ // LOWER - Padrão HINGE / UNILATERAL
+        { name: 'Terra KB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Hexa Bar', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Stiff Unilateral KB', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Subida Box 2KB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
-    bloco3: [ // Padrão LUNGE / UNILATERAL
-        { name: 'Avanço Búlgaro', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Step-up com Elevação', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Avanço Reverso', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Agachamento Pistol Assistido', sets: 3, reps: '6-8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Avanço Lateral', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco3: [ // LOWER - Padrão LUNGE / UNILATERAL
+        { name: 'Afundo', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Lunge Regress', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Retrocesso Alternado', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Reverse Lunge Slide', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Afundo Pliométrico', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Lunge com Salto', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Salto Vertical DB', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
 }
 
 const FOCO_PUSH: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // PUSH horizontal
-        { name: 'Supino com Halteres', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push-up com Controle', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Floor Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Supino Inclinado', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push-up com Pés Elevados', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco1: [ // PUSH - Horizontal (iniciante → avançado)
+        { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Flexão de Braço BOSU', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Flexão de Braço Pé Box', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Flexão de Braço MB Alternada', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Flexão de Braço com Carga', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
-    bloco2: [ // PUSH vertical
-        { name: 'Desenvolvimento de Ombros', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Arnold Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Push Press', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Elevação Lateral', sets: 3, reps: '12-15', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Desenvolvimento Unilateral', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco2: [ // PUSH - Vertical / Press (iniciante → avançado)
+        { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Push CB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Press DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Press DB Unilateral', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Push Press Explosivo', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Desenvolvimento Alternado DB', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
-    bloco3: [ // PUSH variação/integração
-        { name: 'Dips (Paralela)', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Landmine Press', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Supino com Kettlebell', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Close Grip Push-up', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Thruster', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco3: [ // PUSH - Integração / Combos (avançado)
+        { name: 'Push + Pull', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Push + Press', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Push Unilateral + Press', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
 }
 
 const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // PULL horizontal
-        { name: 'Remada Curvada', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Unilateral', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Invertida', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Cavalinho', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada com Cabo Sentado', sets: 3, reps: '12-15', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco1: [ // PULL - TRX (iniciante → avançado)
+        { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Fly', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Pé Box', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Y', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Isométrico', sets: 3, reps: '20-30s', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Isométrico + Press', sets: 3, reps: '8 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
-    bloco2: [ // PULL vertical
-        { name: 'Puxada na Barra (ou Assistida)', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Pulldown Frontal', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Face Pull', sets: 3, reps: '12-15', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Pulldown Unilateral', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Chin-up (ou Assistido)', sets: 3, reps: '6-8', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco2: [ // PULL - Remada (intermediário → avançado)
+        { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Remada Alternada DB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Remada Corda', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Remada Explosiva', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
-    bloco3: [ // PULL integração
-        { name: 'Remada com Rotação', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Remada Alta', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Pull-apart com Banda', sets: 3, reps: '15', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'Kettlebell Row', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
-        { name: 'TRX Row', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+    bloco3: [ // PULL - Carry / Integração
+        { name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
     ],
 }
 
@@ -152,59 +159,56 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
     LOWER: {
         LOWER: [], // nunca usado (não pode repetir o pilar do dia)
         PUSH: [
-            { name: 'Supino com Halteres', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Push-up com Controle', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Desenvolvimento de Ombros', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Arnold Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Landmine Press Unilateral', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Floor Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
         ],
         PULL: [
-            { name: 'Remada Curvada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Unilateral', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Face Pull', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Pulldown Frontal', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Invertida', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Band Pull-apart', sets: 3, reps: '15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Alternada DB', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Y', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
         ],
     },
     // Dia PUSH → secundários vêm de LOWER ou PULL
     PUSH: {
         LOWER: [
-            { name: 'Agachamento Goblet', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Hip Thrust', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Avanço Reverso', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Levantamento Terra Romeno', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Step-up com Elevação', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Glute Bridge com Peso', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Afundo', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Retrocesso Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
         ],
         PUSH: [], // nunca usado
         PULL: [
-            { name: 'Remada Curvada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Face Pull', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Unilateral', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Puxada na Barra (ou Assistida)', sets: 3, reps: '8-10', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'TRX Row', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Band Pull-apart', sets: 3, reps: '15', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Remada Corda', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Carry', sets: 3, reps: '30-40m', rest: '40-60s', role: 'SECUNDARIO' },
         ],
     },
     // Dia PULL → secundários vêm de LOWER ou PUSH
     PULL: {
         LOWER: [
-            { name: 'Agachamento Goblet', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Hip Hinge com Kettlebell', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Avanço Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Hip Thrust', sets: 3, reps: '12-15', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Box Squat', sets: 3, reps: '8-10', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Avanço Reverso', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
         ],
         PUSH: [
-            { name: 'Supino com Halteres', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Desenvolvimento de Ombros', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Push-up com Controle', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Landmine Press', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Dips (Paralela)', sets: 3, reps: '8-10', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Arnold Press', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Push CB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
         ],
         PULL: [], // nunca usado
     },
@@ -214,113 +218,117 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
 // EXERCÍCIOS DE CORE — POR BLOCO
 // ============================================================================
 // Core é neutro, serve qualquer pilar
+// Exercícios Juba: Core / Estabilidade
 
 const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // Core estável
-        { name: 'Prancha Frontal', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
-        { name: 'Dead Bug', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+    bloco1: [ // Core estável - iniciante
+        { name: 'Prancha Alta', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
         { name: 'Prancha Lateral', sets: 3, reps: '20-30s cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Glute Bridge', sets: 3, reps: '12-15', rest: '20-40s', role: 'CORE' },
-        { name: 'Hollow Hold', sets: 3, reps: '20-30s', rest: '20-40s', role: 'CORE' },
+        { name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+        { name: 'Rigidez Fit Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
+        { name: 'Rigidez Aqua Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
+        { name: 'Rigidez Elástico', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
     ],
-    bloco2: [ // Core anti-rotação
-        { name: 'Pallof Press', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Bird Dog', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Anti-rotation Hold', sets: 3, reps: '20s cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Half Kneeling Chop', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Stir the Pot', sets: 3, reps: '8 cada', rest: '20-40s', role: 'CORE' },
+    bloco2: [ // Core anti-rotação - intermediário
+        { name: 'Prancha Alta com Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+        { name: 'Prancha Dinâmica', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
+        { name: 'Prancha Toque Ombro', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+        { name: 'Rigidez Fit Ball Vai/Volta', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
+        { name: 'Perdigueiro Inverso', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+        { name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
     ],
-    bloco3: [ // Core desafiador
-        { name: 'Ab Wheel Rollout', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE' },
-        { name: 'Hollow Body Hold', sets: 3, reps: '20-30s', rest: '20-40s', role: 'CORE' },
-        { name: 'Hanging Knee Raise', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
-        { name: 'L-Sit (ou progressão)', sets: 3, reps: '15-20s', rest: '20-40s', role: 'CORE' },
-        { name: 'Mountain Climber Lento', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+    bloco3: [ // Core desafiador - avançado
+        { name: 'Ab X-Up', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
+        { name: 'Ab X-Up DB', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE' },
+        { name: 'Rigidez Elástico Passo Lateral', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+        { name: 'Prancha Dinâmica', sets: 3, reps: '12-15', rest: '20-40s', role: 'CORE' },
+        { name: 'Prancha Alta com Alcance', sets: 3, reps: '12 cada', rest: '20-40s', role: 'CORE' },
     ],
 }
 
 // ============================================================================
 // PREPARAÇÃO DO MOVIMENTO — POR PILAR
 // ============================================================================
+// Exercícios Juba: Mobilidade / Preparação
 
 const PREPARACAO_LOWER: PreparationExercise[][] = [
     [
-        { name: 'Círculos de Quadril', sets: 2, reps: '10 cada lado', duration: '2 min' },
-        { name: '90/90 Hip Stretch', sets: 2, reps: '30s cada lado', duration: '2 min' },
-        { name: 'Glute Bridges', sets: 2, reps: '12', duration: '2 min' },
-        { name: 'Monster Walk com Mini Band', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Agachamento sem Peso', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Marcha no Lugar', sets: 1, reps: '60s', duration: '2 min' },
+        { name: 'Mobilidade de Quadril', sets: 2, reps: '10 cada lado', duration: '2 min' },
+        { name: 'Mobilidade Geral', sets: 2, reps: '60s', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Lateral', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Front', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Ativação Neuromuscular', sets: 1, reps: '60s', duration: '2 min' },
     ],
     [
-        { name: 'Mobilização de Tornozelo', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Alongamento de Piriforme', sets: 2, reps: '30s cada', duration: '2 min' },
-        { name: 'Clamshell', sets: 2, reps: '12 cada', duration: '2 min' },
-        { name: 'Prancha com Elevação de Perna', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'Avanço com Rotação', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'Polichinelos', sets: 1, reps: '30', duration: '2 min' },
+        { name: 'Mobilidade de Quadril', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Estabilidade Articular', sets: 2, reps: '12 cada', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Lateral', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Reach Front', sets: 2, reps: '8', duration: '2 min' },
+        { name: 'Skipping', sets: 1, reps: '30s', duration: '2 min' },
     ],
     [
-        { name: 'World Greatest Stretch', sets: 2, reps: '5 cada', duration: '2 min' },
-        { name: 'Leg Swings Frontal', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Fire Hydrants', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Dead Bug (aquecimento)', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Inchworm', sets: 2, reps: '6', duration: '2 min' },
-        { name: 'Skip Baixo', sets: 1, reps: '60s', duration: '2 min' },
+        { name: 'Mobilidade Geral', sets: 2, reps: '60s', duration: '2 min' },
+        { name: 'Mobilidade de Quadril', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Ativação Neuromuscular', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Front', sets: 2, reps: '8', duration: '2 min' },
+        { name: 'Climbers', sets: 1, reps: '30s', duration: '2 min' },
     ],
 ]
 
 const PREPARACAO_PUSH: PreparationExercise[][] = [
     [
-        { name: 'Círculos de Ombro', sets: 2, reps: '10 cada direção', duration: '2 min' },
-        { name: 'Rotação Torácica', sets: 2, reps: '10 cada lado', duration: '2 min' },
-        { name: 'Band Pull-apart', sets: 2, reps: '15', duration: '2 min' },
-        { name: 'Prancha com Toque no Ombro', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Push-up na Parede', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Arm Circles', sets: 1, reps: '30s cada', duration: '2 min' },
+        { name: 'Mobilidade Torácica', sets: 2, reps: '10 cada lado', duration: '2 min' },
+        { name: 'Mobilidade Geral', sets: 2, reps: '60s', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Estabilidade Articular', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Lateral', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Ativação Neuromuscular', sets: 1, reps: '30s', duration: '2 min' },
     ],
     [
-        { name: 'Cat-Cow', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Thread the Needle', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'Face Pull Leve', sets: 2, reps: '15', duration: '2 min' },
-        { name: 'Bird Dog', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'Scapular Push-up', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Jumping Jacks', sets: 1, reps: '30', duration: '2 min' },
+        { name: 'Mobilidade Torácica', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Front', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Estabilidade Articular', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Reach Lateral', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Skipping', sets: 1, reps: '30s', duration: '2 min' },
     ],
     [
-        { name: 'Doorway Pec Stretch', sets: 2, reps: '30s cada', duration: '2 min' },
-        { name: 'YTWL', sets: 2, reps: '8 cada letra', duration: '2 min' },
-        { name: 'External Rotation com Banda', sets: 2, reps: '12 cada', duration: '2 min' },
-        { name: 'Dead Bug', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Push-up Plus', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Bear Crawl', sets: 1, reps: '30s', duration: '2 min' },
+        { name: 'Mobilidade Geral', sets: 2, reps: '60s', duration: '2 min' },
+        { name: 'Mobilidade Torácica', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Ativação Neuromuscular', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Estabilidade Articular', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Climbers', sets: 1, reps: '30s', duration: '2 min' },
     ],
 ]
 
 const PREPARACAO_PULL: PreparationExercise[][] = [
     [
-        { name: 'Rotação Torácica', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Cat-Cow', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Band Pull-apart', sets: 2, reps: '15', duration: '2 min' },
-        { name: 'Scapular Retraction', sets: 2, reps: '12', duration: '2 min' },
-        { name: 'Flexão de Braço na Parede', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Arm Circles Dinâmicos', sets: 1, reps: '30s cada', duration: '2 min' },
+        { name: 'Mobilidade Torácica', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Mobilidade Geral', sets: 2, reps: '60s', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Estabilidade Articular', sets: 2, reps: '12', duration: '2 min' },
+        { name: 'Reach Lateral', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Ativação Neuromuscular', sets: 1, reps: '30s cada', duration: '2 min' },
     ],
     [
-        { name: 'Thread the Needle', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'Swimmer', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Face Pull com Elástico', sets: 2, reps: '15', duration: '2 min' },
-        { name: 'Bird Dog', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'Prone Y Raise', sets: 2, reps: '10', duration: '2 min' },
-        { name: 'Jumping Jacks', sets: 1, reps: '30', duration: '2 min' },
+        { name: 'Mobilidade Torácica', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Reach Front', sets: 2, reps: '10', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Estabilidade Articular', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Reach Lateral', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Skipping', sets: 1, reps: '30s', duration: '2 min' },
     ],
     [
-        { name: 'Foam Rolling Dorsal', sets: 1, reps: '60s', duration: '2 min' },
-        { name: 'Rotação Torácica Quadrúpede', sets: 2, reps: '8 cada', duration: '2 min' },
-        { name: 'External Rotation', sets: 2, reps: '12 cada', duration: '2 min' },
-        { name: 'Dead Bug', sets: 2, reps: '10 cada', duration: '2 min' },
-        { name: 'Lat Stretch', sets: 2, reps: '30s cada', duration: '2 min' },
-        { name: 'Skip Baixo', sets: 1, reps: '30s', duration: '2 min' },
+        { name: 'Mobilidade Geral', sets: 2, reps: '60s', duration: '2 min' },
+        { name: 'Mobilidade Torácica', sets: 2, reps: '8 cada', duration: '2 min' },
+        { name: 'Ativação de Core', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Ativação Neuromuscular', sets: 2, reps: '10 cada', duration: '2 min' },
+        { name: 'Reach Front', sets: 2, reps: '8', duration: '2 min' },
+        { name: 'Climbers', sets: 1, reps: '30s', duration: '2 min' },
     ],
 ]
 
@@ -409,6 +417,7 @@ export function getPreparationExercises(
 
 /**
  * Gera o protocolo final baseado no objetivo do aluno e fase da semana
+ * Exercícios Juba: Condicionamento
  */
 export function generateFinalProtocol(
     goal: string,
@@ -420,10 +429,10 @@ export function generateFinalProtocol(
             totalTime: '8 minutos',
             structure: '30s trabalho / 30s descanso × 8 rounds',
             exercises: [
-                { name: 'Burpees ou variação', duration: '30s', rest: '30s' },
-                { name: 'Mountain Climbers', duration: '30s', rest: '30s' },
-                { name: 'Jump Squats', duration: '30s', rest: '30s' },
-                { name: 'High Knees', duration: '30s', rest: '30s' },
+                { name: 'Corda Naval', duration: '30s', rest: '30s' },
+                { name: 'Climbers', duration: '30s', rest: '30s' },
+                { name: 'Air Bike', duration: '30s', rest: '30s' },
+                { name: 'Skipping', duration: '30s', rest: '30s' },
             ],
         }
     }
@@ -433,9 +442,9 @@ export function generateFinalProtocol(
             totalTime: '6 minutos',
             structure: '20s máximo / 40s recuperação × 6 rounds',
             exercises: [
-                { name: 'Sprints curtos', duration: '20s', rest: '40s' },
-                { name: 'Box Jump', duration: '20s', rest: '40s' },
-                { name: 'Medicine Ball Slam', duration: '20s', rest: '40s' },
+                { name: 'Air Bike', duration: '20s', rest: '40s' },
+                { name: 'Skater com Salto', duration: '20s', rest: '40s' },
+                { name: 'Corda Naval', duration: '20s', rest: '40s' },
             ],
         }
     }
@@ -445,9 +454,9 @@ export function generateFinalProtocol(
             totalTime: '6 minutos',
             structure: 'Movimentos suaves contínuos',
             exercises: [
-                { name: 'Caminhada leve', duration: '2 min', rest: '-' },
-                { name: 'Alongamento dinâmico', duration: '2 min', rest: '-' },
-                { name: 'Respiração diafragmática', duration: '2 min', rest: '-' },
+                { name: 'Tração Esteira', duration: '2 min', rest: '-' },
+                { name: 'Mobilidade Geral', duration: '2 min', rest: '-' },
+                { name: 'Skipping', duration: '2 min', rest: '-' },
             ],
         }
     }
@@ -457,9 +466,9 @@ export function generateFinalProtocol(
             totalTime: '8 minutos',
             structure: '3 séries descendentes com pausa mínima',
             exercises: [
-                { name: 'Exercício composto pesado', duration: '60s', rest: '15s' },
-                { name: 'Exercício composto médio', duration: '60s', rest: '15s' },
-                { name: 'Exercício composto leve', duration: '60s', rest: '15s' },
+                { name: 'Corda Naval', duration: '60s', rest: '15s' },
+                { name: 'Air Bike', duration: '60s', rest: '15s' },
+                { name: 'Climbers', duration: '60s', rest: '15s' },
             ],
         }
     }
@@ -469,9 +478,9 @@ export function generateFinalProtocol(
         totalTime: '6 minutos',
         structure: '40s trabalho / 20s descanso × 6 rounds',
         exercises: [
-            { name: 'Polichinelos', duration: '40s', rest: '20s' },
-            { name: 'Agachamento livre', duration: '40s', rest: '20s' },
-            { name: 'Corrida estacionária', duration: '40s', rest: '20s' },
+            { name: 'Climbers', duration: '40s', rest: '20s' },
+            { name: 'Skipping', duration: '40s', rest: '20s' },
+            { name: 'Air Bike', duration: '40s', rest: '20s' },
         ],
     }
 }

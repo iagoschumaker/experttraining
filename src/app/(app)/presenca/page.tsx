@@ -33,6 +33,10 @@ interface SessionExercise {
     weight?: string | null; blockIdx?: number; exerciseIdx?: number
 }
 
+interface AvailableSession {
+    index: number; pillarLabel: string; pillar: string
+}
+
 interface SessionData {
     session: {
         dayIndex: number; pillarLabel: string; exercises: SessionExercise[]
@@ -48,6 +52,7 @@ interface SessionData {
         canReassess: boolean; mustExtend: boolean; isComplete: boolean
     }
     client: { id: string; name: string }; workoutName: string; checkedInToday?: boolean
+    availableSessions?: AvailableSession[]
     todayLesson?: { id: string; date: string; startedAt: string; endedAt: string; focus: string | null; sessionIndex: number; weekIndex: number } | null
 }
 
@@ -63,6 +68,7 @@ interface StudentCard {
     entry: StudentEntry
     sessionData: SessionData | null
     loading: boolean; checkedIn: boolean; error: string | null; collapsed: boolean
+    selectedPillarIndex?: number | null
 }
 
 // ============================================================================
@@ -104,9 +110,10 @@ export default function PresencaPage() {
     // ========================================================================
     useEffect(() => { loadClients(); loadSessions(); loadActiveClients() }, [])
 
-    // Poll for active sessions + active clients every 10s
+    // Poll for active sessions + active clients every 30s
+    // Only update state when data actually changes to prevent scroll reset
     useEffect(() => {
-        const interval = setInterval(() => { loadSessions(); loadActiveClients() }, 10000)
+        const interval = setInterval(() => { loadSessions(); loadActiveClients() }, 30000)
         return () => clearInterval(interval)
     }, [])
 
@@ -146,7 +153,11 @@ export default function PresencaPage() {
             const data = await res.json()
             if (data.success) {
                 const sessions = data.data as ServerSession[]
-                setServerSessions(sessions)
+                // Only update state if data actually changed (prevents scroll reset)
+                setServerSessions(prev => {
+                    if (JSON.stringify(prev) === JSON.stringify(sessions)) return prev
+                    return sessions
+                })
 
                 // Auto-load card data for any session that doesn't have it yet
                 for (const session of sessions) {
@@ -359,6 +370,27 @@ export default function PresencaPage() {
         })
     }
 
+    // Switch pillar/session for a specific student card
+    async function switchPillar(cardIdx: number, workoutId: string, sessionIndex: number) {
+        if (!activeTabId) return
+        try {
+            const res = await fetch(`/api/studio/workouts/${workoutId}/next-session?sessionIndex=${sessionIndex}`)
+            const data = await res.json()
+            if (!data.success) return
+
+            const sd = data.data as SessionData
+            setCardsBySession(prev => {
+                const m = new Map(prev)
+                const cards = [...(m.get(activeTabId!) || [])]
+                if (cards[cardIdx]) {
+                    cards[cardIdx] = { ...cards[cardIdx], sessionData: sd, selectedPillarIndex: sessionIndex }
+                }
+                m.set(activeTabId!, cards)
+                return m
+            })
+        } catch (err) { console.error('Switch pillar error:', err) }
+    }
+
     async function saveWeight(studentIdx: number, workoutId: string, weekIdx: number, sessionIdx: number, blockIdx: number, exerciseIdx: number, weight: string) {
         if (!activeTabId) return
         const key = `${activeTabId}-${studentIdx}-${blockIdx}-${exerciseIdx}`
@@ -523,11 +555,23 @@ export default function PresencaPage() {
                                     <div className="min-w-0">
                                         <p className="font-medium text-sm truncate">{card.entry.clientName}</p>
                                         {card.sessionData && (
-                                            <div className="flex items-center gap-1.5">
-                                                <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(card.sessionData.session.pillarLabel)}`}>
-                                                    {card.sessionData.session.pillarLabel}
-                                                </Badge>
-                                                <span className="text-[10px] text-muted-foreground">Dia {card.sessionData.session.dayIndex + 1}</span>
+                                            <div className="flex items-center gap-1 flex-wrap">
+                                                {(card.sessionData.availableSessions && card.sessionData.availableSessions.length > 1)
+                                                    ? card.sessionData.availableSessions.map((as) => (
+                                                        <button key={as.index}
+                                                            className={`text-[9px] px-1.5 py-0 h-4 rounded-full font-semibold transition-all ${card.sessionData!.session.pillarLabel === as.pillarLabel
+                                                                ? pillarBg(as.pillarLabel) + ' ring-1 ring-white/30'
+                                                                : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                                                                }`}
+                                                            onClick={(e) => { e.stopPropagation(); switchPillar(cardIdx, card.entry.workoutId, as.index) }}
+                                                            title={`Trocar para ${as.pillarLabel}`}>
+                                                            {as.pillarLabel}
+                                                        </button>
+                                                    ))
+                                                    : <Badge className={`text-[9px] px-1.5 py-0 h-4 ${pillarBg(card.sessionData.session.pillarLabel)}`}>
+                                                        {card.sessionData.session.pillarLabel}
+                                                    </Badge>
+                                                }
                                             </div>
                                         )}
                                     </div>

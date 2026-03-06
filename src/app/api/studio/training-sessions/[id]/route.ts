@@ -86,7 +86,7 @@ export async function POST(
 
     try {
         const session = await prisma.trainingSession.findFirst({
-            where: { id: params.id, studioId, trainerId: userId, finalized: false },
+            where: { id: params.id, studioId, finalized: false },
         })
         if (!session) {
             return NextResponse.json({ success: false, error: 'Sessão não encontrada' }, { status: 404 })

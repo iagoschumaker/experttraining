@@ -107,15 +107,32 @@ export async function GET(
             workout.startDate,
         )
 
+        // Check if a specific session index was requested (pillar selector)
+        const url = new URL(request.url)
+        const requestedIndex = url.searchParams.get('sessionIndex')
+
         // Se já fez check-in hoje, mostrar a sessão que completou (não a próxima)
         let displaySession = session
-        if (checkedInToday) {
+        if (requestedIndex !== null) {
+            // Trainer manually selected a pillar/session
+            const idx = parseInt(requestedIndex, 10)
+            if (idx >= 0 && idx < template.sessions.length) {
+                displaySession = JSON.parse(JSON.stringify(template.sessions[idx]))
+            }
+        } else if (checkedInToday) {
             // sessionsCompleted já foi incrementado, então a sessão de hoje é a anterior
             const completedIdx = (workout.sessionsCompleted - 1) % template.sessions.length
             if (completedIdx >= 0 && completedIdx < template.sessions.length) {
                 displaySession = template.sessions[completedIdx]
             }
         }
+
+        // Build available sessions list for pillar selector
+        const availableSessions = template.sessions.map((s, i) => ({
+            index: i,
+            pillarLabel: s.pillarLabel,
+            pillar: s.pillar,
+        }))
 
         return NextResponse.json({
             success: true,
@@ -125,6 +142,7 @@ export async function GET(
                 client: workout.client,
                 workoutName: workout.name,
                 checkedInToday,
+                availableSessions,
                 todayLesson: todayLesson ? {
                     id: todayLesson.id,
                     date: todayLesson.date,
