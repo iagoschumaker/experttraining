@@ -95,8 +95,8 @@ export function generateWorkoutTemplate(
         // A periodização será aplicada DEPOIS, em runtime
         const blocks = generateBlocks(pillar, 0, sessionIndex, 'DEVELOPMENT', clientLevel, pain)
 
-        // Protocolo final baseado no objetivo
-        const finalProtocol = generateFinalProtocol(primaryGoal, 'DEVELOPMENT')
+        // Protocolo final baseado no objetivo e pilar do dia
+        const finalProtocol = generateFinalProtocol(primaryGoal, 'DEVELOPMENT', pillar)
 
         return {
             sessionIndex,

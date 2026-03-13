@@ -536,30 +536,37 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
     ],
-    // BLOCO 3 — CARRY + INTEGRAÇÃO
-    // BEGINNER:     TRX Remada / Remada Curvada / Carry
-    // INTERMEDIATE: Meio Arremesso DB 3x 10/10/10/10/8/8
+    // BLOCO 3 — REMADA DOMINANTE (foco claro de puxada)
+    // BEGINNER:     Remada Curvada DB / TRX Remada
+    // INTERMEDIATE: Remada Unilateral DB / Meio Arremesso DB
     // ADVANCED:     Remada Corda / TRX Pé Box
     bloco3: [
         // ── BEGINNER ──
         {
+            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
+        {
             name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
-        { name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER' },
         // ── INTERMEDIATE ──
+        {
+            name: 'Remada Unilateral DB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['10 cada', '10 cada', '8 cada', '8 cada', '8 cada', '8 cada'],
+        },
         {
             name: 'Meio Arremesso DB', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['10', '10', '10', '10', '8', '8'],
-        },
-        {
-            name: 'Remada Alternada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
         // ── ADVANCED ──
         {
             name: 'Remada Corda', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
+        },
+        {
+            name: 'TRX Pé Box', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            weeklyReps: ['10', '10', '8', '8', '8', '8'],
         },
     ],
 }
@@ -728,6 +735,50 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
         },
     ],
 }
+
+// ============================================================================
+// INTEGRAÇÃO PUSH + PULL — BLOCO 3 SECUNDÁRIO (todos os pilares)
+// ============================================================================
+// Exercícios que integram genuinamente padrões de empurrar e puxar
+// Estes são os únicos usados como Ex2 no Bloco 3
+
+const INTEGRACAO_PUSH_PULL: ExercisePrescription[] = [
+    // ── BEGINNER ──
+    {
+        name: 'Remo + Press Alternado DB', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        weeklyReps: ['10', '10', '10', '8', '8', '8'],
+    },
+    {
+        name: 'Clean and Press KB', sets: 3, reps: '8 cada', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        weeklyReps: ['8 cada', '8 cada', '8 cada', '6 cada', '6 cada', '6 cada'],
+        contraindications: ['SHOULDER', 'WRIST'],
+    },
+    {
+        name: 'Swing KB + Press', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        weeklyReps: ['10', '10', '10', '8', '8', '8'],
+    },
+    // ── INTERMEDIATE ──
+    {
+        name: 'Bear Complex DB', sets: 3, reps: '6', rest: '90-120s', role: 'SECUNDARIO', level: 'INTERMEDIATE',
+        weeklyReps: ['6', '6', '5', '5', '4', '4'],
+        contraindications: ['LOWER_BACK', 'SHOULDER'],
+    },
+    {
+        name: 'Turkish Get Up KB', sets: 3, reps: '4 cada', rest: '90-120s', role: 'SECUNDARIO', level: 'INTERMEDIATE',
+        weeklyReps: ['4 cada', '4 cada', '4 cada', '3 cada', '3 cada', '3 cada'],
+        contraindications: ['SHOULDER', 'WRIST'],
+    },
+    // ── ADVANCED ──
+    {
+        name: 'Man Maker DB', sets: 3, reps: '6', rest: '90-120s', role: 'SECUNDARIO', level: 'ADVANCED',
+        weeklyReps: ['6', '6', '5', '5', '4', '4'],
+        contraindications: ['SHOULDER', 'WRIST', 'LOWER_BACK'],
+    },
+    {
+        name: 'Complexo Remada + Thruster DB', sets: 3, reps: '6', rest: '90-120s', role: 'SECUNDARIO', level: 'ADVANCED',
+        weeklyReps: ['6', '6', '5', '5', '4', '4'],
+    },
+]
 
 // ============================================================================
 // PREPARAÇÃO DO MOVIMENTO — POR PILAR
@@ -917,8 +968,8 @@ export function getCoreExercise(
 }
 
 /**
- * Seleciona exercícios de preparação do movimento por pilar
- * (Preparação é neutra — não tem filtro de nível)
+ * Seleciona exercícios de preparação do movimento por pilar.
+ * Retorna TODOS os exercícios da preparação (sem truncar).
  */
 export function getPreparationExercises(
     pillar: Pillar,
@@ -930,16 +981,43 @@ export function getPreparationExercises(
 }
 
 /**
- * Gera o protocolo final baseado no objetivo do aluno e fase da semana
- * Exercícios Juba: Condicionamento
+ * Seleciona exercício de INTEGRAÇÃO PUSH+PULL para o Bloco 3 secundário.
+ * Usado em TODOS os pilares — o Ex2 do Bloco 3 é sempre integração real.
+ */
+export function getIntegracaoExercise(
+    sessionIndex: number,
+    weekIndex: number,
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext,
+    usedNames?: Set<string>
+): ExercisePrescription {
+    const options = filterExercises(INTEGRACAO_PUSH_PULL, clientLevel, pain)
+    const baseIdx = (sessionIndex + weekIndex) % options.length
+    if (!usedNames || usedNames.size === 0) {
+        return { ...options[baseIdx] }
+    }
+    for (let offset = 0; offset < options.length; offset++) {
+        const candidate = options[(baseIdx + offset) % options.length]
+        if (!usedNames.has(candidate.name)) {
+            return { ...candidate }
+        }
+    }
+    return { ...options[baseIdx] }
+}
+
+/**
+ * Gera o protocolo final variando por PILAR + OBJETIVO + FASE
+ * Cada combinação tem um protocolo distinto e coerente com o dia.
  */
 export function generateFinalProtocol(
     goal: string,
-    weekPhase: string
+    weekPhase: string,
+    pillar?: Pillar
 ): SessionPrescription['finalProtocol'] {
-    if (goal === 'emagrecimento' || weekPhase === 'PEAK') {
+    // PEAK: sempre HIIT independente do pilar
+    if (weekPhase === 'PEAK') {
         return {
-            name: 'HIIT Metabólico',
+            name: 'HIIT Pico de Intensidade',
             totalTime: '8 minutos',
             structure: '30s trabalho / 30s descanso × 8 rounds',
             exercises: [
@@ -950,6 +1028,101 @@ export function generateFinalProtocol(
             ],
         }
     }
+
+    // ADAPTATION: regenerativo independente do pilar
+    if (weekPhase === 'ADAPTATION') {
+        return {
+            name: 'Circuito Regenerativo',
+            totalTime: '6 minutos',
+            structure: 'Movimentos suaves contínuos × 3 rodadas',
+            exercises: [
+                { name: 'Tração Esteira', duration: '2 min', rest: '-' },
+                { name: 'Mobilidade Geral', duration: '2 min', rest: '-' },
+                { name: 'Skipping Leve', duration: '2 min', rest: '-' },
+            ],
+        }
+    }
+
+    // DEVELOPMENT (semanas 3-5): variar por PILAR
+    if (pillar === 'LOWER') {
+        if (goal === 'emagrecimento') {
+            return {
+                name: 'Sprint Metabólico — Perna & Quadril',
+                totalTime: '8 minutos',
+                structure: '20s sprint / 40s recuperação × 8 rounds',
+                exercises: [
+                    { name: 'Skipping', duration: '20s', rest: '40s' },
+                    { name: 'Lateral Shuffle', duration: '20s', rest: '40s' },
+                    { name: 'Air Bike', duration: '20s', rest: '40s' },
+                    { name: 'Jump Squat', duration: '20s', rest: '40s' },
+                ],
+            }
+        }
+        return {
+            name: 'Circuito Metabólico — Membros Inferiores',
+            totalTime: '6 minutos',
+            structure: '40s trabalho / 20s descanso × 6 rounds',
+            exercises: [
+                { name: 'Skipping', duration: '40s', rest: '20s' },
+                { name: 'Lateral Shuffle', duration: '40s', rest: '20s' },
+                { name: 'Air Bike', duration: '40s', rest: '20s' },
+            ],
+        }
+    }
+
+    if (pillar === 'PUSH') {
+        if (goal === 'emagrecimento') {
+            return {
+                name: 'Empurrada Metabólica — Circuito Push',
+                totalTime: '8 minutos',
+                structure: '30s trabalho / 30s descanso × 8 rounds',
+                exercises: [
+                    { name: 'Climbers', duration: '30s', rest: '30s' },
+                    { name: 'Flexão de Braço', duration: '30s', rest: '30s' },
+                    { name: 'Air Bike', duration: '30s', rest: '30s' },
+                    { name: 'Skipping', duration: '30s', rest: '30s' },
+                ],
+            }
+        }
+        return {
+            name: 'Finalizador Empurrada',
+            totalTime: '6 minutos',
+            structure: '40s trabalho / 20s descanso × 6 rounds',
+            exercises: [
+                { name: 'Climbers', duration: '40s', rest: '20s' },
+                { name: 'Flexão de Braço', duration: '40s', rest: '20s' },
+                { name: 'Air Bike', duration: '40s', rest: '20s' },
+            ],
+        }
+    }
+
+    if (pillar === 'PULL') {
+        if (goal === 'emagrecimento') {
+            return {
+                name: 'Circuito Corda Naval — Puxada Metabólica',
+                totalTime: '8 minutos',
+                structure: '30s trabalho / 30s descanso × 8 rounds',
+                exercises: [
+                    { name: 'Corda Naval', duration: '30s', rest: '30s' },
+                    { name: 'TRX Remada Explosiva', duration: '30s', rest: '30s' },
+                    { name: 'Air Bike', duration: '30s', rest: '30s' },
+                    { name: 'Climbers', duration: '30s', rest: '30s' },
+                ],
+            }
+        }
+        return {
+            name: 'Finalizador Puxada — Corda Naval',
+            totalTime: '6 minutos',
+            structure: '40s trabalho / 20s descanso × 6 rounds',
+            exercises: [
+                { name: 'Corda Naval', duration: '40s', rest: '20s' },
+                { name: 'TRX Remada Explosiva', duration: '40s', rest: '20s' },
+                { name: 'Air Bike', duration: '40s', rest: '20s' },
+            ],
+        }
+    }
+
+    // Fallback padrão por objetivo
     if (goal === 'performance') {
         return {
             name: 'Potência Explosiva',
@@ -962,31 +1135,6 @@ export function generateFinalProtocol(
             ],
         }
     }
-    if (goal === 'recondicionamento' || weekPhase === 'ADAPTATION') {
-        return {
-            name: 'Circuito Regenerativo',
-            totalTime: '6 minutos',
-            structure: 'Movimentos suaves contínuos',
-            exercises: [
-                { name: 'Tração Esteira', duration: '2 min', rest: '-' },
-                { name: 'Mobilidade Geral', duration: '2 min', rest: '-' },
-                { name: 'Skipping', duration: '2 min', rest: '-' },
-            ],
-        }
-    }
-    if (goal === 'hipertrofia_funcional') {
-        return {
-            name: 'Drop Set Funcional',
-            totalTime: '8 minutos',
-            structure: '3 séries descendentes com pausa mínima',
-            exercises: [
-                { name: 'Corda Naval', duration: '60s', rest: '15s' },
-                { name: 'Air Bike', duration: '60s', rest: '15s' },
-                { name: 'Climbers', duration: '60s', rest: '15s' },
-            ],
-        }
-    }
-    // Default: Protocolo Metabólico Moderado
     return {
         name: 'Protocolo Metabólico Moderado',
         totalTime: '6 minutos',
@@ -1006,7 +1154,10 @@ export function generateFinalProtocol(
 function applyPeriodization(exercise: ExercisePrescription, weekPhase: string, weekIndex?: number): ExercisePrescription {
     const adjusted = { ...exercise }
 
-    // If exercise has weekly progression (Juba method), use it
+    // REGRA JUBA: séries são SEMPRE 3. Nunca reduzir.
+    adjusted.sets = 3
+
+    // Se tem weeklyReps (progressão semanal Juba), aplicar reps da semana
     if (adjusted.weeklyReps && weekIndex !== undefined) {
         const weekIdx = Math.min(weekIndex, adjusted.weeklyReps.length - 1)
         adjusted.reps = adjusted.weeklyReps[weekIdx] || adjusted.reps
@@ -1019,13 +1170,11 @@ function applyPeriodization(exercise: ExercisePrescription, weekPhase: string, w
         return adjusted
     }
 
-    // Fallback: use phase-based periodization for secondary/core exercises
+    // Exercícios sem weeklyReps — apenas ajustar descanso por fase (NÃO séries)
     if (weekPhase === 'ADAPTATION') {
-        adjusted.sets = Math.max(2, adjusted.sets - 1)
         adjusted.reps = adjustReps(adjusted.reps, 'up')
         adjusted.rest = adjustRest(adjusted.rest, 'up')
     } else if (weekPhase === 'PEAK') {
-        adjusted.sets = Math.min(4, adjusted.sets + 1)
         adjusted.reps = adjustReps(adjusted.reps, 'down')
         adjusted.rest = adjustRest(adjusted.rest, 'down')
     }
@@ -1098,35 +1247,45 @@ export function generateBlocks(
     return blockKeys.map((blockKey, idx) => {
         const blockNum = idx + 1
 
-        // Ex1: FOCO — sempre do pilar do dia, com deduplicação entre blocos
+        // ── Ex1: FOCO — pilar do dia, deduplicado ──
         const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex, clientLevel, pain, usedNames)
         usedNames.add(foco.name)
 
-        // Ex2: SECUNDÁRIO — de pilar opositor, FILTRADO POR NÍVEL + LESÕES
-        let opposingPillar: Pillar
-        if (blockNum === 1) {
-            opposingPillar = opositorA
-        } else if (blockNum === 2) {
-            opposingPillar = opositorB
+        // ── Ex2: COMPLEMENTAR ──
+        // Bloco 1 → opositor A (empurrada para LOWER/PULL; lower para PUSH)
+        // Bloco 2 → opositor B
+        // Bloco 3 → SEMPRE integração Push+Pull (nunca exercício isolado)
+        let secundario: ExercisePrescription
+        if (blockNum === 3) {
+            // REGRA MÉTODO: Bloco 3 Ex2 = exercício integrado Push+Pull real
+            secundario = getIntegracaoExercise(sessionIndex, weekIndex, clientLevel, pain, usedNames)
         } else {
-            opposingPillar = (sessionIndex) % 2 === 0 ? opositorA : opositorB
+            let opposingPillar: Pillar
+            if (blockNum === 1) {
+                opposingPillar = opositorA
+            } else {
+                opposingPillar = opositorB
+            }
+            secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum, clientLevel, pain)
         }
-        const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum, clientLevel, pain)
         usedNames.add(secundario.name)
 
-        // Ex3: CORE — neutro, FILTRADO POR NÍVEL + LESÕES
+        // ── Ex3: CORE — neutro, progressão por bloco ──
+        // Bloco 1 → core estável (prancha/rigidez básico)
+        // Bloco 2 → core anti-rotação (pollof, perdigueiro)
+        // Bloco 3 → core desafiador (dinâmico, Ab X-Up)
         const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum, clientLevel, pain)
         usedNames.add(core.name)
 
-        // Aplicar periodização (com weekIndex para progressão semanal Juba)
+        // Aplicar progressão semanal Juba (weekIndex determina reps)
         const focoAdjusted = applyPeriodization(foco, weekPhase, weekIndex)
-        const secundarioAdjusted = applyPeriodization(secundario, weekPhase)
-        const coreAdjusted = applyPeriodization(core, weekPhase)
+        const secundarioAdjusted = applyPeriodization(secundario, weekPhase, weekIndex)
+        const coreAdjusted = applyPeriodization(core, weekPhase, weekIndex)
 
         const blockDescriptions: Record<number, string> = {
-            1: `Foco ${pillar} + ${opposingPillar} + Core Estável`,
-            2: `Foco ${pillar} + ${opposingPillar} + Core Anti-Rotação`,
-            3: `Foco ${pillar} + ${opposingPillar} + Core Desafiador`,
+            1: `Foco ${pillar} + Complementar + Core Estável`,
+            2: `Foco ${pillar} + Complementar + Core Anti-Rotação`,
+            3: `Foco ${pillar} + Integração Push+Pull + Core Desafiador`,
         }
 
         return {
