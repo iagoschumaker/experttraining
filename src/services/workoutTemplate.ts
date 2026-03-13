@@ -259,6 +259,8 @@ export function getNextSessionWithPeriodization(
 
 /**
  * Aplica periodização a um exercício baseado na fase.
+ * REGRA JUBA: se tem weeklyReps, NUNCA ajusta séries (sempre 3x).
+ * Ajuste de fase só se aplica a exercícios sem progressão semanal definida.
  */
 function applyPhasePeriodization(
     exercise: any,
@@ -266,6 +268,14 @@ function applyPhasePeriodization(
 ): any {
     const adjusted = { ...exercise }
 
+    // Exercícios Juba com progressão semanal (weeklyReps) → séries FIXAS = 3
+    // A progressão de repetições já está embutida no weeklyReps
+    if (adjusted.weeklyReps) {
+        adjusted.sets = 3  // SEMPRE 3 séries — nunca reduzir
+        return adjusted
+    }
+
+    // Exercícios sem weeklyReps (secundário, core) → periodização tradicional
     if (phase === 'ADAPTATION') {
         adjusted.sets = Math.max(2, (adjusted.sets || 3) - 1)
         adjusted.reps = adjustRepsForPhase(adjusted.reps, 'up')

@@ -840,8 +840,12 @@ function getOpposingPillars(pillar: Pillar): [Pillar, Pillar] {
 }
 
 /**
- * Seleciona exercício de foco do pilar com variação determinística.
- * FILTRA POR NÍVEL DO ALUNO E LESÕES — nunca retorna exercício incompatível.
+ * Seleciona exercício de foco do pilar com seleção ESTÁVEL e DETERMINÍSTICA.
+ * O mesmo bloco (bloco1/2/3) do mesmo pilar sempre retorna o mesmo exercício
+ * independente da semana → garante que ao voltar ao pilar, o exercício é igual.
+ *
+ * @param blockAnchor    Índice offset do bloco (0,1,2) — estável por bloco dentro do template
+ * @param usedNames      Conjunto de nomes já usados nesta sessão — para deduplicação
  */
 export function getFocoExercise(
     pillar: Pillar,
@@ -849,12 +853,27 @@ export function getFocoExercise(
     sessionIndex: number,
     weekIndex: number,
     clientLevel: ExerciseLevel = 'BEGINNER',
-    pain?: PainContext
+    pain?: PainContext,
+    usedNames?: Set<string>
 ): ExercisePrescription {
     const allOptions = FOCO_MAP[pillar][blockKey]
     const options = filterExercises(allOptions, clientLevel, pain)
-    const idx = (sessionIndex + weekIndex * 2) % options.length
-    return { ...options[idx] }
+    // Seleção estável: baseada apenas no índice do bloco dentro do template
+    // (sessionIndex aqui é o índice ABSOLUTO no pillarSchedule, não a semana)
+    // Sem usar weekIndex para evitar que o exercício mude a cada semana nova
+    const baseIdx = sessionIndex % options.length
+    if (!usedNames || usedNames.size === 0) {
+        return { ...options[baseIdx] }
+    }
+    // Evitar nome já usado nesta sessão
+    for (let offset = 0; offset < options.length; offset++) {
+        const candidate = options[(baseIdx + offset) % options.length]
+        if (!usedNames.has(candidate.name)) {
+            return { ...candidate }
+        }
+    }
+    // Fallback: retornar o baseIdx mesmo se duplicado (não há alternativas)
+    return { ...options[baseIdx] }
 }
 
 /**
@@ -1073,11 +1092,15 @@ export function generateBlocks(
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
     const [opositorA, opositorB] = getOpposingPillars(pillar)
 
+    // Rastrear nomes usados nesta sessão para deduplicação cross-bloco
+    const usedNames = new Set<string>()
+
     return blockKeys.map((blockKey, idx) => {
         const blockNum = idx + 1
 
-        // Ex1: FOCO — sempre do pilar do dia, FILTRADO POR NÍVEL + LESÕES
-        const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex, clientLevel, pain)
+        // Ex1: FOCO — sempre do pilar do dia, com deduplicação entre blocos
+        const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex, clientLevel, pain, usedNames)
+        usedNames.add(foco.name)
 
         // Ex2: SECUNDÁRIO — de pilar opositor, FILTRADO POR NÍVEL + LESÕES
         let opposingPillar: Pillar
@@ -1086,14 +1109,16 @@ export function generateBlocks(
         } else if (blockNum === 2) {
             opposingPillar = opositorB
         } else {
-            opposingPillar = (sessionIndex + weekIndex) % 2 === 0 ? opositorA : opositorB
+            opposingPillar = (sessionIndex) % 2 === 0 ? opositorA : opositorB
         }
         const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum, clientLevel, pain)
+        usedNames.add(secundario.name)
 
         // Ex3: CORE — neutro, FILTRADO POR NÍVEL + LESÕES
         const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum, clientLevel, pain)
+        usedNames.add(core.name)
 
-        // Aplicar periodização (com weekIndex para progressão semanal)
+        // Aplicar periodização (com weekIndex para progressão semanal Juba)
         const focoAdjusted = applyPeriodization(foco, weekPhase, weekIndex)
         const secundarioAdjusted = applyPeriodization(secundario, weekPhase)
         const coreAdjusted = applyPeriodization(core, weekPhase)
