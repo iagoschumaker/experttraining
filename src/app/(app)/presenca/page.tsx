@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -137,7 +138,7 @@ export default function PresencaPage() {
     async function loadClients() {
         setLoadingClients(true)
         try {
-            const res = await fetch('/api/studio/workouts?status=ACTIVE&limit=500')
+            const res = await fetchWithAuth('/api/studio/workouts?status=ACTIVE&limit=500')
             const data = await res.json()
             if (data.success) {
                 const cMap = new Map<string, Client>()
@@ -158,7 +159,7 @@ export default function PresencaPage() {
 
     async function loadSessions() {
         try {
-            const res = await fetch('/api/studio/training-sessions')
+            const res = await fetchWithAuth('/api/studio/training-sessions')
             const data = await res.json()
             if (data.success) {
                 const sessions = data.data as ServerSession[]
@@ -181,7 +182,7 @@ export default function PresencaPage() {
 
     async function loadActiveClients() {
         try {
-            const res = await fetch('/api/studio/training-sessions/active-clients')
+            const res = await fetchWithAuth('/api/studio/training-sessions/active-clients')
             const data = await res.json()
             if (data.success) {
                 const map = new Map<string, string>()
@@ -207,7 +208,7 @@ export default function PresencaPage() {
                 const url = overrideIdx !== undefined
                     ? `/api/studio/workouts/${entry.workoutId}/next-session?sessionIndex=${overrideIdx}`
                     : `/api/studio/workouts/${entry.workoutId}/next-session`
-                const res = await fetch(url)
+                const res = await fetchWithAuth(url)
                 const data = await res.json()
                 if (!data.success) return { entry, sessionData: null, loading: false, checkedIn: false, error: data.error || 'Erro', collapsed: false } as StudentCard
                 const sd = data.data as SessionData
@@ -241,7 +242,7 @@ export default function PresencaPage() {
         const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
         try {
-            const res = await fetch('/api/studio/training-sessions', {
+            const res = await fetchWithAuth('/api/studio/training-sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ students, label: `${time} · ${selected.length} alunos` }),
@@ -270,7 +271,7 @@ export default function PresencaPage() {
         const entry: StudentEntry = { clientId: client.id, workoutId, clientName: client.name }
 
         try {
-            const res = await fetch(`/api/studio/training-sessions/${activeTabId}`, {
+            const res = await fetchWithAuth(`/api/studio/training-sessions/${activeTabId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ addStudent: entry }),
@@ -292,7 +293,7 @@ export default function PresencaPage() {
             })
 
             try {
-                const wRes = await fetch(`/api/studio/workouts/${workoutId}/next-session`)
+                const wRes = await fetchWithAuth(`/api/studio/workouts/${workoutId}/next-session`)
                 const wData = await wRes.json()
                 const card: StudentCard = wData.success
                     ? { entry, sessionData: wData.data, loading: false, checkedIn: wData.data.checkedInToday || false, error: null, collapsed: false }
@@ -310,7 +311,7 @@ export default function PresencaPage() {
     async function removeFromSession(clientId: string) {
         if (!activeTabId) return
         try {
-            const res = await fetch(`/api/studio/training-sessions/${activeTabId}`, {
+            const res = await fetchWithAuth(`/api/studio/training-sessions/${activeTabId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ removeClientId: clientId }),
@@ -333,7 +334,7 @@ export default function PresencaPage() {
         if (!activeTabId) return
         setFinalizingSession(true)
         try {
-            const res = await fetch(`/api/studio/training-sessions/${activeTabId}`, {
+            const res = await fetchWithAuth(`/api/studio/training-sessions/${activeTabId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             })
@@ -364,7 +365,7 @@ export default function PresencaPage() {
 
     async function closeSession(tabId: string) {
         try {
-            await fetch(`/api/studio/training-sessions/${tabId}`, { method: 'DELETE' })
+            await fetchWithAuth(`/api/studio/training-sessions/${tabId}`, { method: 'DELETE' })
         } catch { }
         setServerSessions(prev => prev.filter(s => s.id !== tabId))
         setCardsBySession(prev => { const m = new Map(prev); m.delete(tabId); return m })
@@ -397,7 +398,7 @@ export default function PresencaPage() {
         }
 
         try {
-            const res = await fetch(`/api/studio/workouts/${workoutId}/next-session?sessionIndex=${sessionIndex}`)
+            const res = await fetchWithAuth(`/api/studio/workouts/${workoutId}/next-session?sessionIndex=${sessionIndex}`)
             const data = await res.json()
             if (!data.success) return
 
@@ -419,7 +420,7 @@ export default function PresencaPage() {
         const key = `${activeTabId}-${studentIdx}-${blockIdx}-${exerciseIdx}`
         setSavingWeightKey(key)
         try {
-            await fetch(`/api/studio/workouts/${workoutId}/exercise-weight`, {
+            await fetchWithAuth(`/api/studio/workouts/${workoutId}/exercise-weight`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ weekIdx, sessionIdx, blockIdx, exerciseIdx, weight: weight || null }),
             })

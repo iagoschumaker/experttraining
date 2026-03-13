@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - COOKIES SERVICE
 // ============================================================================
 // Gerenciamento de cookies HTTP-only para tokens
@@ -28,7 +28,7 @@ export async function setAccessTokenCookie(token: string): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.set(COOKIES.ACCESS_TOKEN, token, {
     ...BASE_OPTIONS,
-    maxAge: 15 * 60, // 15 minutes
+    maxAge: 60 * 60, // 1 hour (match JWT expiration)
   })
 }
 
