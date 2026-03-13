@@ -28,6 +28,42 @@ export type ExerciseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
 
 export type ExerciseSlot = 'FOCO_PRINCIPAL' | 'SECUNDARIO' | 'CORE'
 
+// Regiões corporais para contraindications
+export type BodyRegion = 'KNEE' | 'LOWER_BACK' | 'SHOULDER' | 'HIP' | 'ANKLE' | 'WRIST' | 'NECK' | 'IMPACT'
+
+/**
+ * Contexto de dor/lesão do aluno (vem do painMap da avaliação).
+ * Valores de 0-10. Valores >= 5 são considerados significativos.
+ */
+export interface PainContext {
+    knee: number       // max(knee_left, knee_right)
+    lowerBack: number  // lower_back
+    shoulder: number   // max(shoulder_left, shoulder_right)
+    hip: number        // max(hip_left, hip_right)
+    ankle: number      // max(ankle_left, ankle_right)
+    wrist: number      // max(wrist_left, wrist_right)
+    neck: number       // neck
+}
+
+/** Limiar de dor para bloquear exercício */
+const PAIN_THRESHOLD = 5
+
+/**
+ * Cria PainContext a partir do painMap da avaliação.
+ */
+export function buildPainContext(painMap: Record<string, number> | null | undefined): PainContext {
+    const pm = painMap || {}
+    return {
+        knee: Math.max(pm.knee_left || 0, pm.knee_right || 0, pm.knee || 0),
+        lowerBack: pm.lower_back || 0,
+        shoulder: Math.max(pm.shoulder_left || 0, pm.shoulder_right || 0, pm.shoulder || 0),
+        hip: Math.max(pm.hip_left || 0, pm.hip_right || 0),
+        ankle: Math.max(pm.ankle_left || 0, pm.ankle_right || 0),
+        wrist: Math.max(pm.wrist_left || 0, pm.wrist_right || 0),
+        neck: pm.neck || 0,
+    }
+}
+
 export interface ExercisePrescription {
     name: string
     sets: number
@@ -35,6 +71,8 @@ export interface ExercisePrescription {
     rest: string
     role: ExerciseSlot
     level: ExerciseLevel
+    /** Regiões corporais que contraindicam este exercício */
+    contraindications?: BodyRegion[]
     // Weekly progression (Juba method: S1→S6)
     weeklyReps?: string[]  // e.g. ['12','12','10','10','8','8']
     weeklyLoad?: string[]  // e.g. ['livre','livre','75%','75%','80%','80%']
@@ -133,6 +171,56 @@ function filterByLevel(
     return exercises.slice(0, 1)
 }
 
+/**
+ * Filtra exercícios que são contraindicados pelas dores/lesões do aluno.
+ * Um exercício é bloqueado se tem uma contraindication cuja dor >= PAIN_THRESHOLD.
+ */
+function filterByInjuries(
+    exercises: ExercisePrescription[],
+    pain: PainContext | undefined
+): ExercisePrescription[] {
+    if (!pain) return exercises
+
+    const regionToScore: Record<BodyRegion, number> = {
+        KNEE: pain.knee,
+        LOWER_BACK: pain.lowerBack,
+        SHOULDER: pain.shoulder,
+        HIP: pain.hip,
+        ANKLE: pain.ankle,
+        WRIST: pain.wrist,
+        NECK: pain.neck,
+        IMPACT: Math.max(pain.knee, pain.ankle, pain.hip), // impacto afeta joelho/tornozelo/quadril
+    }
+
+    const filtered = exercises.filter(ex => {
+        if (!ex.contraindications || ex.contraindications.length === 0) return true
+        // Bloquear se QUALQUER contraindication tem dor >= threshold
+        return !ex.contraindications.some(region => regionToScore[region] >= PAIN_THRESHOLD)
+    })
+
+    if (filtered.length > 0) return filtered
+
+    // Fallback: se todos foram removidos, retornar os sem contraindications
+    const safe = exercises.filter(ex => !ex.contraindications || ex.contraindications.length === 0)
+    if (safe.length > 0) return safe
+
+    // Último recurso: retornar o primeiro
+    console.warn('⚠️ filterByInjuries: todos os exercícios contraindicados, usando fallback')
+    return exercises.slice(0, 1)
+}
+
+/**
+ * Filtro combinado: primeiro por nível, depois por lesões.
+ */
+function filterExercises(
+    exercises: ExercisePrescription[],
+    clientLevel: ExerciseLevel,
+    pain?: PainContext
+): ExercisePrescription[] {
+    const byLevel = filterByLevel(exercises, clientLevel)
+    return filterByInjuries(byLevel, pain)
+}
+
 // ============================================================================
 // EXERCÍCIOS DE FOCO PRINCIPAL — POR PILAR × BLOCO
 // ============================================================================
@@ -143,40 +231,49 @@ const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]>
     bloco1: [ // LOWER - Padrão SQUAT
         {
             name: 'Agachamento Goblet KB', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            contraindications: ['KNEE', 'HIP'],
             weeklyReps: ['12', '12', '10', '10', '8', '8'], weeklyLoad: ['livre', 'livre', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
         },
         {
             name: 'Agachamento Box', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            contraindications: ['KNEE'],
             weeklyReps: ['12', '12', '10', '10', '8', '8'], weeklyLoad: ['livre', 'livre', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
         },
         {
             name: 'Leg Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            contraindications: ['KNEE'],
             weeklyReps: ['12', '12', '10', '10', '8', '8']
         },
         {
             name: 'Agachamento Box Unilateral', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            contraindications: ['KNEE', 'HIP'],
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
         },
         {
             name: 'Agachamento Salto DB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            contraindications: ['KNEE', 'HIP', 'LOWER_BACK', 'IMPACT'],
             weeklyReps: ['8', '8', '8', '6', '6', '6'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
         },
     ],
     bloco2: [ // LOWER - Padrão HINGE / UNILATERAL
         {
             name: 'Terra KB', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            contraindications: ['LOWER_BACK'],
             weeklyReps: ['10', '10', '10', '8', '8', '8'], weeklyLoad: ['30%', '30%', '35%', '35%', '35%', '35%']
         },
         {
             name: 'Subida Box', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            contraindications: ['KNEE'],
             weeklyReps: ['10', '10', '10', '8', '8', '8']
         },
         {
             name: 'Hexa Bar', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            contraindications: ['LOWER_BACK'],
             weeklyReps: ['10', '10', '8', '8', '8', '8'], weeklyLoad: ['progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
         },
         {
             name: 'Stiff Unilateral KB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            contraindications: ['LOWER_BACK'],
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
         },
         {
@@ -207,18 +304,22 @@ const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]>
         },
         {
             name: 'Afundo Búlgaro', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            contraindications: ['KNEE', 'HIP'],
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
         },
         {
             name: 'Afundo Pliométrico', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            contraindications: ['KNEE', 'HIP', 'ANKLE', 'IMPACT'],
             weeklyReps: ['5+5', '5+5', '5+5', '5+5', '5+5', '5+5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
         },
         {
             name: 'Lunge com Salto', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            contraindications: ['KNEE', 'HIP', 'ANKLE', 'IMPACT'],
             weeklyReps: ['5+5', '5+5', '5+5', '5+5', '5+5', '5+5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
         },
         {
             name: 'Salto Vertical DB', sets: 3, reps: '5', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            contraindications: ['KNEE', 'HIP', 'ANKLE', 'LOWER_BACK', 'IMPACT'],
             weeklyReps: ['5', '5', '5', '5', '5', '5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
         },
     ],
@@ -278,6 +379,7 @@ const FOCO_PUSH: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
         },
         {
             name: 'Push Press Explosivo', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            contraindications: ['SHOULDER', 'WRIST'],
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
         },
     ],
@@ -348,6 +450,7 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
         },
         {
             name: 'Remada Explosiva', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            contraindications: ['LOWER_BACK', 'SHOULDER'],
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
         },
     ],
@@ -394,13 +497,13 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
     // Dia PUSH → secundários vêm de LOWER ou PULL
     PUSH: {
         LOWER: [
-            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Afundo', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE', 'HIP'] },
+            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE'] },
+            { name: 'Afundo', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE'] },
+            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['LOWER_BACK'] },
+            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE'] },
             { name: 'Retrocesso Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
+            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE', contraindications: ['KNEE', 'HIP'] },
         ],
         PUSH: [], // nunca usado
         PULL: [
@@ -414,12 +517,12 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
     // Dia PULL → secundários vêm de LOWER ou PUSH
     PULL: {
         LOWER: [
-            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
-            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
-            { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE', 'HIP'] },
+            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['LOWER_BACK'] },
+            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE'] },
+            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE'] },
+            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE', contraindications: ['KNEE', 'HIP'] },
+            { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER', contraindications: ['KNEE'] },
         ],
         PUSH: [
             { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
@@ -587,24 +690,25 @@ function getOpposingPillars(pillar: Pillar): [Pillar, Pillar] {
 
 /**
  * Seleciona exercício de foco do pilar com variação determinística.
- * FILTRA POR NÍVEL DO ALUNO — nunca retorna exercício acima do nível.
+ * FILTRA POR NÍVEL DO ALUNO E LESÕES — nunca retorna exercício incompatível.
  */
 export function getFocoExercise(
     pillar: Pillar,
     blockKey: 'bloco1' | 'bloco2' | 'bloco3',
     sessionIndex: number,
     weekIndex: number,
-    clientLevel: ExerciseLevel = 'BEGINNER'
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext
 ): ExercisePrescription {
     const allOptions = FOCO_MAP[pillar][blockKey]
-    const options = filterByLevel(allOptions, clientLevel)
+    const options = filterExercises(allOptions, clientLevel, pain)
     const idx = (sessionIndex + weekIndex * 2) % options.length
     return { ...options[idx] }
 }
 
 /**
  * Seleciona exercício secundário de um pilar OPOSITOR ao pilar do dia.
- * FILTRA POR NÍVEL DO ALUNO.
+ * FILTRA POR NÍVEL DO ALUNO E LESÕES.
  */
 export function getSecundarioExercise(
     dayPillar: Pillar,
@@ -612,30 +716,32 @@ export function getSecundarioExercise(
     sessionIndex: number,
     weekIndex: number,
     blockNum: number,
-    clientLevel: ExerciseLevel = 'BEGINNER'
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext
 ): ExercisePrescription {
     const allOptions = SECUNDARIO[dayPillar][opposingPillar]
     if (allOptions.length === 0) {
         throw new Error(`Pilar opositor ${opposingPillar} é igual ao pilar do dia ${dayPillar}`)
     }
-    const options = filterByLevel(allOptions, clientLevel)
+    const options = filterExercises(allOptions, clientLevel, pain)
     const idx = (sessionIndex + blockNum + weekIndex) % options.length
     return { ...options[idx] }
 }
 
 /**
  * Seleciona exercício de core com variação.
- * FILTRA POR NÍVEL DO ALUNO.
+ * FILTRA POR NÍVEL DO ALUNO E LESÕES.
  */
 export function getCoreExercise(
     blockKey: 'bloco1' | 'bloco2' | 'bloco3',
     sessionIndex: number,
     weekIndex: number,
     blockNum: number,
-    clientLevel: ExerciseLevel = 'BEGINNER'
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext
 ): ExercisePrescription {
     const allOptions = CORE[blockKey]
-    const options = filterByLevel(allOptions, clientLevel)
+    const options = filterExercises(allOptions, clientLevel, pain)
     const idx = (sessionIndex + blockNum + weekIndex * 2) % options.length
     return { ...options[idx] }
 }
@@ -797,9 +903,9 @@ function adjustRest(rest: string, direction: 'up' | 'down'): string {
 
 /**
  * Gera os 3 blocos de treino para uma sessão, respeitando a regra:
- *   Ex1 = FOCO do pilar do dia (FILTRADO POR NÍVEL)
- *   Ex2 = SECUNDÁRIO de pilar OPOSITOR (FILTRADO POR NÍVEL)
- *   Ex3 = CORE (FILTRADO POR NÍVEL)
+ *   Ex1 = FOCO do pilar do dia (FILTRADO POR NÍVEL + LESÕES)
+ *   Ex2 = SECUNDÁRIO de pilar OPOSITOR (FILTRADO POR NÍVEL + LESÕES)
+ *   Ex3 = CORE (FILTRADO POR NÍVEL + LESÕES)
  *
  * Bloco 1 → Ex2 do opositor A (ex: PUSH quando dia=LOWER)
  * Bloco 2 → Ex2 do opositor B (ex: PULL quando dia=LOWER)
@@ -810,7 +916,8 @@ export function generateBlocks(
     weekIndex: number,
     sessionIndex: number,
     weekPhase: string = 'DEVELOPMENT',
-    clientLevel: ExerciseLevel = 'BEGINNER'
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext
 ): BlockPrescription[] {
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
     const [opositorA, opositorB] = getOpposingPillars(pillar)
@@ -818,10 +925,10 @@ export function generateBlocks(
     return blockKeys.map((blockKey, idx) => {
         const blockNum = idx + 1
 
-        // Ex1: FOCO — sempre do pilar do dia, FILTRADO POR NÍVEL
-        const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex, clientLevel)
+        // Ex1: FOCO — sempre do pilar do dia, FILTRADO POR NÍVEL + LESÕES
+        const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex, clientLevel, pain)
 
-        // Ex2: SECUNDÁRIO — de pilar opositor, FILTRADO POR NÍVEL
+        // Ex2: SECUNDÁRIO — de pilar opositor, FILTRADO POR NÍVEL + LESÕES
         let opposingPillar: Pillar
         if (blockNum === 1) {
             opposingPillar = opositorA
@@ -830,10 +937,10 @@ export function generateBlocks(
         } else {
             opposingPillar = (sessionIndex + weekIndex) % 2 === 0 ? opositorA : opositorB
         }
-        const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum, clientLevel)
+        const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum, clientLevel, pain)
 
-        // Ex3: CORE — neutro, FILTRADO POR NÍVEL
-        const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum, clientLevel)
+        // Ex3: CORE — neutro, FILTRADO POR NÍVEL + LESÕES
+        const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum, clientLevel, pain)
 
         // Aplicar periodização (com weekIndex para progressão semanal)
         const focoAdjusted = applyPeriodization(foco, weekPhase, weekIndex)

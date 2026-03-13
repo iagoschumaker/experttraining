@@ -11,7 +11,7 @@ import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
 import { generatePillarRotation, PILLAR_LABELS } from '@/services/pillarRotation'
-import { mapClientLevel } from '@/services/pillarExercises'
+import { mapClientLevel, buildPainContext } from '@/services/pillarExercises'
 import {
   generateWorkoutTemplate,
   expandTemplateToSchedule,
@@ -222,16 +222,21 @@ export async function POST(request: NextRequest) {
 
     // 4. Mapear nível do aluno para filtro de exercícios
     const exerciseLevel = mapClientLevel(newLevel)
-    console.log(`🎯 NÍVEL DO ALUNO: ${newLevel} → exerciseLevel: ${exerciseLevel}`)
+
+    // 4b. Construir contexto de dor/lesão do aluno a partir da avaliação
+    const painMap = inputData?.painMap || null
+    const painContext = buildPainContext(painMap)
+    console.log(`🎯 NÍVEL: ${newLevel} → ${exerciseLevel} | DOR: joelho=${painContext.knee}, lombar=${painContext.lowerBack}, ombro=${painContext.shoulder}, quadril=${painContext.hip}`)
 
     // 5. Gerar TEMPLATE (exercícios fixos, TODAS as sessões do programa)
-    //    FILTRADO POR NÍVEL — nunca exercício acima do nível do aluno
+    //    FILTRADO POR NÍVEL + LESÕES — nunca exercício incompatível
     const template = generateWorkoutTemplate(
       allPillars,
       primaryGoal,
       weeklyFrequency,
       targetWeeks,
       exerciseLevel,
+      painContext,
     )
 
     // 5. Expandir template em schedule completo (para compatibilidade UI/PDF)

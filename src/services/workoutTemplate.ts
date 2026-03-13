@@ -7,6 +7,7 @@
 import { Pillar, PILLAR_LABELS } from './pillarRotation'
 import {
     ExerciseLevel,
+    PainContext,
     generateBlocks,
     getPreparationExercises,
     generateFinalProtocol,
@@ -84,6 +85,7 @@ export function generateWorkoutTemplate(
     sessionsPerWeek: number,
     targetWeeks: number = MAX_WEEKS,
     clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext,
 ): WorkoutTemplate {
     const sessions: SessionTemplate[] = pillarSchedule.map((pillar, sessionIndex) => {
         // Preparação contextualizada ao pilar
@@ -91,7 +93,7 @@ export function generateWorkoutTemplate(
 
         // 3 Blocos — gerados com weekIndex=0, sessão fixa
         // A periodização será aplicada DEPOIS, em runtime
-        const blocks = generateBlocks(pillar, 0, sessionIndex, 'DEVELOPMENT', clientLevel)
+        const blocks = generateBlocks(pillar, 0, sessionIndex, 'DEVELOPMENT', clientLevel, pain)
 
         // Protocolo final baseado no objetivo
         const finalProtocol = generateFinalProtocol(primaryGoal, 'DEVELOPMENT')
