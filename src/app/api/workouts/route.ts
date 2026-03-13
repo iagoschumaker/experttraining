@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - WORKOUTS API
 // ============================================================================
 // GET /api/workouts - Lista treinos
@@ -72,8 +72,12 @@ export async function GET(request: NextRequest) {
 
     // All trainers can see all workouts in the studio
 
-    // Get total count
-    const total = await prisma.workout.count({ where })
+    // Get total count + active/inactive counts (real totals, not just current page)
+    const [total, totalActive, totalInactive] = await Promise.all([
+      prisma.workout.count({ where }),
+      prisma.workout.count({ where: { ...where, isActive: true } }),
+      prisma.workout.count({ where: { ...where, isActive: false } }),
+    ])
 
     // Get workouts with pagination
     const workouts = await prisma.workout.findMany({
@@ -84,6 +88,10 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        isActive: true,
+        sessionsCompleted: true,
+        sessionsPerWeek: true,
+        targetWeeks: true,
         createdAt: true,
         client: {
           select: {
@@ -99,6 +107,8 @@ export async function GET(request: NextRequest) {
       data: {
         items: workouts,
         total,
+        totalActive,
+        totalInactive,
         page,
         pageSize,
         totalPages: Math.ceil(total / pageSize),

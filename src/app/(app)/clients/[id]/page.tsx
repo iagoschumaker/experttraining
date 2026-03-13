@@ -47,6 +47,8 @@ import {
   X,
   Loader2,
   AlertTriangle,
+  Clock,
+  FileDown,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientEvolution } from '@/components/clients/client-evolution'
@@ -130,6 +132,15 @@ export default function ClientDetailPage() {
   const [compareIdxA, setCompareIdxA] = useState(0) // first assessment
   const [compareIdxB, setCompareIdxB] = useState(-1) // -1 = "Dados atuais"
 
+  // Manual check-in state
+  const [isCheckinOpen, setIsCheckinOpen] = useState(false)
+  const [checkinDate, setCheckinDate] = useState(
+    new Date().toISOString().split('T')[0] // today in YYYY-MM-DD
+  )
+  const [checkinTime, setCheckinTime] = useState('08:00')
+  const [checkinFocus, setCheckinFocus] = useState('')
+  const [savingCheckin, setSavingCheckin] = useState(false)
+
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
   const canEdit = isAdmin || (client?.trainerId === user?.id)
@@ -197,6 +208,58 @@ export default function ClientDetailPage() {
       alert('Erro ao atualizar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Manual check-in handler
+  const handleManualCheckin = async () => {
+    if (!checkinDate) return
+    setSavingCheckin(true)
+    try {
+      const res = await fetch(`/api/studio/clients/${clientId}/manual-checkin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: checkinDate,
+          time: checkinTime,
+          focus: checkinFocus || null,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setIsCheckinOpen(false)
+        // Reload client to refresh check-in history
+        const refresh = await fetch(`/api/clients/${clientId}`)
+        const refreshed = await refresh.json()
+        if (refreshed.success) setClient(refreshed.data)
+      } else {
+        alert(data.error || 'Erro ao registrar check-in')
+      }
+    } catch (error) {
+      alert('Erro ao registrar check-in')
+    } finally {
+      setSavingCheckin(false)
+    }
+  }
+
+  // PDF body composition handler
+  const handleBodyCompositionPDF = async () => {
+    try {
+      const element = document.getElementById('body-composition-section')
+      if (!element) return
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true })
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const imgWidth = pageWidth - 20
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight)
+      pdf.save(`composicao-corporal-${client?.name?.replace(/\s+/g, '-') ?? 'aluno'}.pdf`)
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      alert('Erro ao gerar PDF da composição corporal')
     }
   }
 
@@ -400,11 +463,68 @@ export default function ClientDetailPage() {
 
         return (
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-green-500" />
-                Presença & Check-in
+                Presen&ccedil;a &amp; Check-in
               </CardTitle>
+              <Dialog open={isCheckinOpen} onOpenChange={setIsCheckinOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-1 text-xs">
+                    <Plus className="h-3 w-3" />
+                    Check-in Manual
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Registrar Check-in Manual</DialogTitle>
+                    <DialogDescription>
+                      Registre uma presen&ccedil;a retroativa para {client.name}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="checkin-date">Data</Label>
+                      <Input
+                        id="checkin-date"
+                        type="date"
+                        value={checkinDate}
+                        onChange={(e) => setCheckinDate(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="checkin-time">Hor&aacute;rio</Label>
+                      <div className="relative">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="checkin-time"
+                          type="time"
+                          value={checkinTime}
+                          onChange={(e) => setCheckinTime(e.target.value)}
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="checkin-focus">Foco do Treino (opcional)</Label>
+                      <Input
+                        id="checkin-focus"
+                        placeholder="Ex: LOWER, PUSH, PULL..."
+                        value={checkinFocus}
+                        onChange={(e) => setCheckinFocus(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCheckinOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleManualCheckin} disabled={savingCheckin || !checkinDate}>
+                      {savingCheckin ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Registrar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="space-y-4">
               {stats && (
@@ -534,20 +654,31 @@ export default function ClientDetailPage() {
 
 
       {/* Composição Corporal — Pollock & Comparação */}
-      <Card>
+      <Card id="body-composition-section">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-amber-500" />
             Composição Corporal & Medidas
           </CardTitle>
-          {canEdit && (
-            <Link href={`/clients/${client.id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Pencil className="mr-1 h-4 w-4" />
-                Atualizar
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBodyCompositionPDF}
+              title="Exportar PDF"
+            >
+              <FileDown className="mr-1 h-4 w-4 text-amber-500" />
+              PDF
+            </Button>
+            {canEdit && (
+              <Link href={`/clients/${client.id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Pencil className="mr-1 h-4 w-4" />
+                  Atualizar
+                </Button>
+              </Link>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
 

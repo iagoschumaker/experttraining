@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -14,16 +14,15 @@ import { generateWorkoutPDF } from '@/lib/pdf-generator'
 interface Workout {
   id: string
   name: string
-  description: string | null
+  isActive: boolean
+  sessionsCompleted: number
+  sessionsPerWeek: number
+  targetWeeks: number
   createdAt: string
   client: {
     id: string
     name: string
   }
-  assessment: {
-    id: string
-    completedAt: string | null
-  } | null
 }
 
 interface WorkoutsResponse {
@@ -31,6 +30,8 @@ interface WorkoutsResponse {
   data: {
     items: Workout[]
     total: number
+    totalActive: number
+    totalInactive: number
     page: number
     pageSize: number
     totalPages: number
@@ -45,6 +46,8 @@ export default function WorkoutsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [totalActive, setTotalActive] = useState(0)
+  const [totalInactive, setTotalInactive] = useState(0)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const fetchWorkouts = async () => {
@@ -62,6 +65,8 @@ export default function WorkoutsPage() {
         setWorkouts(data.data.items)
         setTotalPages(data.data.totalPages)
         setTotal(data.data.total)
+        setTotalActive(data.data.totalActive)
+        setTotalInactive(data.data.totalInactive)
       }
     } catch (error) {
       console.error('Error fetching workouts:', error)
@@ -156,15 +161,15 @@ export default function WorkoutsPage() {
           iconBgColor="bg-amber-500/10"
         />
         <StatsCard
-          title="Com Avaliação"
-          value={workouts.filter(w => w.assessment?.completedAt).length}
+          title="Treinos Ativos"
+          value={totalActive}
           icon={<FileText className="h-4 w-4" />}
           iconColor="text-green-500"
           iconBgColor="bg-green-500/10"
         />
         <StatsCard
-          title="Pendentes"
-          value={workouts.filter(w => !w.assessment?.completedAt).length}
+          title="Concluídos"
+          value={totalInactive}
           icon={<FileText className="h-4 w-4" />}
           iconColor="text-orange-500"
           iconBgColor="bg-orange-500/10"
@@ -218,23 +223,18 @@ export default function WorkoutsPage() {
                         <p className="text-sm text-muted-foreground truncate">
                           Cliente: {workout.client.name}
                         </p>
-                        {workout.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {workout.description}
-                          </p>
-                        )}
                         <p className="text-xs text-muted-foreground">
-                          Criado em {formatDate(workout.createdAt)}
+                          {workout.sessionsCompleted}/{workout.sessionsPerWeek * workout.targetWeeks} sessões · Criado em {formatDate(workout.createdAt)}
                         </p>
                       </div>
                       <div className="flex-shrink-0">
-                        {workout.assessment?.completedAt ? (
+                        {workout.isActive ? (
                           <span className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-1 rounded-full whitespace-nowrap">
-                            Avaliado
+                            Ativo
                           </span>
                         ) : (
-                          <span className="text-xs bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2 py-1 rounded-full whitespace-nowrap">
-                            Pendente
+                          <span className="text-xs bg-gray-500/10 text-gray-500 border border-gray-500/20 px-2 py-1 rounded-full whitespace-nowrap">
+                            Concluído
                           </span>
                         )}
                       </div>
