@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - WORKOUT GENERATION API
 // ============================================================================
 // POST /api/studio/workouts/generate - Gerar treino baseado em avaliação
@@ -11,6 +11,7 @@ import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
 import { generatePillarRotation, PILLAR_LABELS } from '@/services/pillarRotation'
+import { mapClientLevel } from '@/services/pillarExercises'
 import {
   generateWorkoutTemplate,
   expandTemplateToSchedule,
@@ -219,12 +220,18 @@ export async function POST(request: NextRequest) {
     // 3. Determinar objetivo do aluno
     const primaryGoal = result.primaryGoal || inputData?.primaryGoal || 'saude'
 
-    // 4. Gerar TEMPLATE (exercícios fixos, TODAS as sessões do programa)
+    // 4. Mapear nível do aluno para filtro de exercícios
+    const exerciseLevel = mapClientLevel(newLevel)
+    console.log(`🎯 NÍVEL DO ALUNO: ${newLevel} → exerciseLevel: ${exerciseLevel}`)
+
+    // 5. Gerar TEMPLATE (exercícios fixos, TODAS as sessões do programa)
+    //    FILTRADO POR NÍVEL — nunca exercício acima do nível do aluno
     const template = generateWorkoutTemplate(
       allPillars,
       primaryGoal,
       weeklyFrequency,
       targetWeeks,
+      exerciseLevel,
     )
 
     // 5. Expandir template em schedule completo (para compatibilidade UI/PDF)

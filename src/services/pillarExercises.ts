@@ -3,7 +3,12 @@
 // ============================================================================
 // MÉTODO JUBA — Exercícios reais das planilhas do Expert Training
 //
-// REGRA: Cada bloco tem 3 exercícios:
+// REGRA DE NÍVEL (OBRIGATÓRIA):
+//   BEGINNER     → só exercícios level='BEGINNER'
+//   INTERMEDIATE → level='BEGINNER' + 'INTERMEDIATE'
+//   ADVANCED     → level='BEGINNER' + 'INTERMEDIATE' + 'ADVANCED'
+//
+// REGRA DE BLOCOS: Cada bloco tem 3 exercícios:
 //   Ex1 (Foco)       → Obrigatoriamente do PILAR DO DIA
 //   Ex2 (Secundário) → De um pilar DIFERENTE (opositor)
 //   Ex3 (Core)       → Exercício neutro de core/estabilidade
@@ -19,6 +24,8 @@ import { Pillar, PILLARS } from './pillarRotation'
 // TIPOS
 // ============================================================================
 
+export type ExerciseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+
 export type ExerciseSlot = 'FOCO_PRINCIPAL' | 'SECUNDARIO' | 'CORE'
 
 export interface ExercisePrescription {
@@ -27,6 +34,7 @@ export interface ExercisePrescription {
     reps: string
     rest: string
     role: ExerciseSlot
+    level: ExerciseLevel
     // Weekly progression (Juba method: S1→S6)
     weeklyReps?: string[]  // e.g. ['12','12','10','10','8','8']
     weeklyLoad?: string[]  // e.g. ['livre','livre','75%','75%','80%','80%']
@@ -69,223 +77,288 @@ export interface SessionPrescription {
 }
 
 // ============================================================================
+// FILTRAGEM POR NÍVEL — REGRA OBRIGATÓRIA
+// ============================================================================
+
+/**
+ * Mapeia nível do cliente (PT-BR) para nível de exercício (EN)
+ */
+export function mapClientLevel(clientLevel: string): ExerciseLevel {
+    switch (clientLevel) {
+        case 'AVANCADO': return 'ADVANCED'
+        case 'INTERMEDIARIO': return 'INTERMEDIATE'
+        case 'INICIANTE':
+        default: return 'BEGINNER'
+    }
+}
+
+/**
+ * Retorna os níveis de exercício permitidos para o nível do aluno.
+ *
+ * REGRA DE OURO:
+ *   BEGINNER     → só ['BEGINNER']
+ *   INTERMEDIATE → ['BEGINNER', 'INTERMEDIATE']
+ *   ADVANCED     → ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+ *
+ * NUNCA usar exercício ADVANCED para aluno BEGINNER ou INTERMEDIATE.
+ */
+function getAllowedLevels(clientLevel: ExerciseLevel): ExerciseLevel[] {
+    switch (clientLevel) {
+        case 'ADVANCED': return ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+        case 'INTERMEDIATE': return ['BEGINNER', 'INTERMEDIATE']
+        case 'BEGINNER':
+        default: return ['BEGINNER']
+    }
+}
+
+/**
+ * Filtra exercícios por nível do aluno. Se não houver exercícios no nível
+ * permitido, retorna os de nível mais próximo inferior (fallback seguro).
+ */
+function filterByLevel(
+    exercises: ExercisePrescription[],
+    clientLevel: ExerciseLevel
+): ExercisePrescription[] {
+    const allowed = getAllowedLevels(clientLevel)
+    const filtered = exercises.filter(ex => allowed.includes(ex.level))
+
+    if (filtered.length > 0) return filtered
+
+    // Fallback: se não há exercícios no nível, usar BEGINNER
+    const fallback = exercises.filter(ex => ex.level === 'BEGINNER')
+    if (fallback.length > 0) return fallback
+
+    // Último recurso: retornar o primeiro exercício (não deveria chegar aqui)
+    console.warn('⚠️ filterByLevel: sem exercícios compatíveis, usando fallback')
+    return exercises.slice(0, 1)
+}
+
+// ============================================================================
 // EXERCÍCIOS DE FOCO PRINCIPAL — POR PILAR × BLOCO
 // ============================================================================
 // Estes são SEMPRE o Ex1 do bloco — devem ser do PILAR DO DIA
 // Exercícios da planilha Juba por nível progressivo
 
 const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // LOWER - Padrão SQUAT (iniciante → avançado)
+    bloco1: [ // LOWER - Padrão SQUAT
         {
-            name: 'Agachamento Goblet KB', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Agachamento Goblet KB', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'], weeklyLoad: ['livre', 'livre', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
         },
         {
-            name: 'Agachamento Box', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Agachamento Box', sets: 4, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'], weeklyLoad: ['livre', 'livre', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
         },
         {
-            name: 'Agachamento Box Unilateral', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Leg Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '8', '8']
+        },
+        {
+            name: 'Agachamento Box Unilateral', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
         },
         {
-            name: 'Agachamento Salto DB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Agachamento Salto DB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['8', '8', '8', '6', '6', '6'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
-        },
-        {
-            name: 'Leg Press', sets: 3, reps: '10-12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['12', '12', '10', '10', '8', '8']
         },
     ],
     bloco2: [ // LOWER - Padrão HINGE / UNILATERAL
         {
-            name: 'Terra KB', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Terra KB', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['10', '10', '10', '8', '8', '8'], weeklyLoad: ['30%', '30%', '35%', '35%', '35%', '35%']
         },
         {
-            name: 'Hexa Bar', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['10', '10', '8', '8', '8', '8'], weeklyLoad: ['progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
-        },
-        {
-            name: 'Stiff Unilateral KB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
-        },
-        {
-            name: 'Subida Box', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Subida Box', sets: 4, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['10', '10', '10', '8', '8', '8']
         },
         {
-            name: 'Subida Box 2KB', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Hexa Bar', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['10', '10', '8', '8', '8', '8'], weeklyLoad: ['progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva', 'progressiva']
+        },
+        {
+            name: 'Stiff Unilateral KB', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Subida Box 2KB', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['10', '10', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
         },
     ],
     bloco3: [ // LOWER - Padrão LUNGE / UNILATERAL
         {
-            name: 'Afundo', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Afundo', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['10', '10', '10', '8', '8', '8']
         },
         {
-            name: 'Lunge Regress', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
-        },
-        {
-            name: 'Retrocesso Alternado', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Retrocesso Alternado', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['10', '10', '10', '8', '8', '8']
         },
         {
-            name: 'Afundo Búlgaro', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
-        },
-        {
-            name: 'Lunge Alternado', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Lunge Alternado', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['10', '10', '8', '8', '8', '8']
         },
         {
-            name: 'Reverse Lunge Slide', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Reverse Lunge Slide', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['10', '10', '10', '8', '8', '8']
         },
         {
-            name: 'Afundo Pliométrico', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Lunge Regress', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Afundo Búlgaro', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['75%', '75%', '80%', '80%', '85%', '85%']
+        },
+        {
+            name: 'Afundo Pliométrico', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['5+5', '5+5', '5+5', '5+5', '5+5', '5+5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
         },
         {
-            name: 'Lunge com Salto', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Lunge com Salto', sets: 3, reps: '5+5', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['5+5', '5+5', '5+5', '5+5', '5+5', '5+5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
         },
         {
-            name: 'Salto Vertical DB', sets: 3, reps: '5', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Salto Vertical DB', sets: 3, reps: '5', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['5', '5', '5', '5', '5', '5'], weeklyLoad: ['85%', '85%', '85%', '85%', '85%', '85%']
         },
     ],
 }
 
 const FOCO_PUSH: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // PUSH - Horizontal (iniciante → avançado)
+    bloco1: [ // PUSH - Horizontal
         {
-            name: 'Flexão de Braço', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Flexão de Braço', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '10', '10', '10']
         },
         {
-            name: 'Flexão de Braço TRX', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Flexão de Braço TRX', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '10', '10', '10']
         },
         {
-            name: 'Flexão de Braço BOSU', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Flexão de Braço BOSU', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '10', '10']
         },
         {
-            name: 'Flexão de Braço Pé Box', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Flexão de Braço Pé Box', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['10', '10', '10', '10', '10', '10']
         },
         {
-            name: 'Flexão de Braço MB Alternada', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Flexão de Braço MB Alternada', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
         {
-            name: 'Flexão de Braço com Carga', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Flexão de Braço com Carga', sets: 3, reps: '8-10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['10', '10', '8', '8', '8', '8']
         },
     ],
-    bloco2: [ // PUSH - Vertical / Press (iniciante → avançado)
+    bloco2: [ // PUSH - Vertical / Press
         {
-            name: 'Push Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Push Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '10', '10']
         },
         {
-            name: 'Push CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Push CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '10', '10', '10']
         },
         {
-            name: 'Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '10', '10']
         },
         {
-            name: 'Press DB Unilateral', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Desenvolvimento DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '10', '10']
+        },
+        {
+            name: 'Press DB Unilateral', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
         {
-            name: 'Desenvolvimento DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['12', '12', '10', '10', '10', '10']
+            name: 'Desenvolvimento Alternado DB', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
         {
-            name: 'Push Press Explosivo', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Push Press Explosivo', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
         },
-        {
-            name: 'Desenvolvimento Alternado DB', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
-            weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
-        },
     ],
-    bloco3: [ // PUSH - Integração / Combos (avançado)
+    bloco3: [ // PUSH - Integração / Combos
         {
-            name: 'Push + Pull', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Push Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '10', '10']
+        },
+        {
+            name: 'Flexão de Braço', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '12', '10', '10', '10']
+        },
+        {
+            name: 'Push + Pull', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
         {
-            name: 'Push + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Push + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
         {
-            name: 'Push Unilateral + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Push Unilateral + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
     ],
 }
 
 const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // PULL - TRX (iniciante → avançado)
+    bloco1: [ // PULL - TRX
         {
-            name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
         {
-            name: 'TRX Inclinado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Inclinado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
         {
-            name: 'TRX Fly', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Fly', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
         {
-            name: 'TRX Pé Box', sets: 3, reps: '20', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Pé Box', sets: 3, reps: '20', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['20', '20', '20', '20', '20', '20']
         },
         {
-            name: 'TRX Y', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Y', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
-        { name: 'TRX Isométrico', sets: 3, reps: '20-30s', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'TRX Isométrico', sets: 3, reps: '20-30s', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE' },
         {
-            name: 'TRX Isométrico + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Isométrico + Press', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
     ],
-    bloco2: [ // PULL - Remada (intermediário → avançado)
+    bloco2: [ // PULL - Remada
         {
-            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
         {
-            name: 'Remada Alternada DB', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Remada Alternada DB', sets: 3, reps: '10/10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['10/10', '10/10', '10/10', '10/10', '10/10', '10/10']
         },
         {
-            name: 'Remada Corda', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Remada Corda', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['10', '10', '10', '10', '10', '10']
         },
         {
-            name: 'Remada Explosiva', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Remada Explosiva', sets: 3, reps: '8', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['8', '8', '8', '8', '8', '8'], weeklyLoad: ['85%', '85%', '85%', '90%', '90%', '90%']
         },
     ],
     bloco3: [ // PULL - Carry / Integração
-        { name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL' },
+        { name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER' },
         {
-            name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
         {
-            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL',
+            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '12', '12', '12', '12']
         },
     ],
@@ -303,56 +376,58 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
     LOWER: {
         LOWER: [], // nunca usado (não pode repetir o pilar do dia)
         PUSH: [
-            { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Press DB Unilateral', sets: 3, reps: '10/10', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
         ],
         PULL: [
-            { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Alternada DB', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'TRX Y', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'TRX Y', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
+            { name: 'Remada Alternada DB', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
         ],
     },
     // Dia PUSH → secundários vêm de LOWER ou PULL
     PUSH: {
         LOWER: [
-            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Afundo', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Retrocesso Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Afundo', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Retrocesso Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
         ],
         PUSH: [], // nunca usado
         PULL: [
-            { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Remada Corda', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Carry', sets: 3, reps: '30-40m', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'TRX Remada', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'TRX Inclinado', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Remada Curvada DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Carry', sets: 3, reps: '30-40m', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Remada Corda', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
         ],
     },
     // Dia PULL → secundários vêm de LOWER ou PUSH
     PULL: {
         LOWER: [
-            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Agachamento Goblet KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Terra KB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Subida Box', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Agachamento Box', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Afundo Búlgaro', sets: 3, reps: '8 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'INTERMEDIATE' },
+            { name: 'Lunge Alternado', sets: 3, reps: '10 cada', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
         ],
         PUSH: [
-            { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
-            { name: 'Push CB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO' },
+            { name: 'Flexão de Braço', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Push Press DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Desenvolvimento DB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Flexão de Braço TRX', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
+            { name: 'Push CB', sets: 3, reps: '10-12', rest: '40-60s', role: 'SECUNDARIO', level: 'BEGINNER' },
         ],
         PULL: [], // nunca usado
     },
@@ -362,38 +437,48 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
 // EXERCÍCIOS DE CORE — POR BLOCO
 // ============================================================================
 // Core é neutro, serve qualquer pilar
-// Exercícios Juba: Core / Estabilidade
+// Nível associado ao bloco (bloco1=BEGINNER, bloco2=INTERMEDIATE, bloco3=ADVANCED)
 
 const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    bloco1: [ // Core estável - iniciante
-        { name: 'Prancha Alta', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
-        { name: 'Prancha Lateral', sets: 3, reps: '20-30s cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Rigidez Fit Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
-        { name: 'Rigidez Aqua Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
-        { name: 'Rigidez Elástico', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE' },
+    bloco1: [ // Core estável — BEGINNER
+        { name: 'Prancha Alta', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Prancha Lateral', sets: 3, reps: '20-30s cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Rigidez Fit Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Rigidez Aqua Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Rigidez Elástico', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
     ],
-    bloco2: [ // Core anti-rotação - intermediário
-        { name: 'Prancha Alta com Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Prancha Dinâmica', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
-        { name: 'Prancha Toque Ombro', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Rigidez Fit Ball Vai/Volta', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
-        { name: 'Perdigueiro Inverso', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
+    bloco2: [ // Core anti-rotação — INTERMEDIATE
+        { name: 'Prancha Alta com Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Prancha Dinâmica', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Prancha Toque Ombro', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Rigidez Fit Ball Vai/Volta', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Perdigueiro Inverso', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        // Fallback BEGINNER para core bloco2 de alunos iniciantes
+        { name: 'Prancha Alta', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Prancha Lateral', sets: 3, reps: '20-30s cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Rigidez Fit Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
     ],
-    bloco3: [ // Core desafiador - avançado
-        { name: 'Ab X-Up', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE' },
-        { name: 'Ab X-Up DB', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE' },
-        { name: 'Rigidez Elástico Passo Lateral', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE' },
-        { name: 'Prancha Dinâmica', sets: 3, reps: '12-15', rest: '20-40s', role: 'CORE' },
-        { name: 'Prancha Alta com Alcance', sets: 3, reps: '12 cada', rest: '20-40s', role: 'CORE' },
+    bloco3: [ // Core desafiador — ADVANCED
+        { name: 'Ab X-Up', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'ADVANCED' },
+        { name: 'Ab X-Up DB', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE', level: 'ADVANCED' },
+        { name: 'Rigidez Elástico Passo Lateral', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'ADVANCED' },
+        // Fallback INTERMEDIATE para alunos intermediários
+        { name: 'Prancha Dinâmica', sets: 3, reps: '12-15', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Prancha Alta com Alcance', sets: 3, reps: '12 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        { name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
+        // Fallback BEGINNER para alunos iniciantes
+        { name: 'Prancha Alta', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Rigidez Aqua Ball', sets: 3, reps: '30-45s', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
     ],
 }
 
 // ============================================================================
 // PREPARAÇÃO DO MOVIMENTO — POR PILAR
 // ============================================================================
-// Exercícios Juba: Mobilidade / Preparação
+// Exercícios Juba: Mobilidade / Preparação (neutros, sem filtro de nível)
 
 const PREPARACAO_LOWER: PreparationExercise[][] = [
     [
@@ -501,54 +586,63 @@ function getOpposingPillars(pillar: Pillar): [Pillar, Pillar] {
 }
 
 /**
- * Seleciona exercício de foco do pilar com variação determinística
+ * Seleciona exercício de foco do pilar com variação determinística.
+ * FILTRA POR NÍVEL DO ALUNO — nunca retorna exercício acima do nível.
  */
 export function getFocoExercise(
     pillar: Pillar,
     blockKey: 'bloco1' | 'bloco2' | 'bloco3',
     sessionIndex: number,
-    weekIndex: number
+    weekIndex: number,
+    clientLevel: ExerciseLevel = 'BEGINNER'
 ): ExercisePrescription {
-    const options = FOCO_MAP[pillar][blockKey]
+    const allOptions = FOCO_MAP[pillar][blockKey]
+    const options = filterByLevel(allOptions, clientLevel)
     const idx = (sessionIndex + weekIndex * 2) % options.length
     return { ...options[idx] }
 }
 
 /**
- * Seleciona exercício secundário de um pilar OPOSITOR ao pilar do dia
+ * Seleciona exercício secundário de um pilar OPOSITOR ao pilar do dia.
+ * FILTRA POR NÍVEL DO ALUNO.
  */
 export function getSecundarioExercise(
     dayPillar: Pillar,
     opposingPillar: Pillar,
     sessionIndex: number,
     weekIndex: number,
-    blockNum: number
+    blockNum: number,
+    clientLevel: ExerciseLevel = 'BEGINNER'
 ): ExercisePrescription {
-    const options = SECUNDARIO[dayPillar][opposingPillar]
-    if (options.length === 0) {
-        // Fallback: nunca deveria acontecer se a lógica está correta
+    const allOptions = SECUNDARIO[dayPillar][opposingPillar]
+    if (allOptions.length === 0) {
         throw new Error(`Pilar opositor ${opposingPillar} é igual ao pilar do dia ${dayPillar}`)
     }
+    const options = filterByLevel(allOptions, clientLevel)
     const idx = (sessionIndex + blockNum + weekIndex) % options.length
     return { ...options[idx] }
 }
 
 /**
- * Seleciona exercício de core com variação
+ * Seleciona exercício de core com variação.
+ * FILTRA POR NÍVEL DO ALUNO.
  */
 export function getCoreExercise(
     blockKey: 'bloco1' | 'bloco2' | 'bloco3',
     sessionIndex: number,
     weekIndex: number,
-    blockNum: number
+    blockNum: number,
+    clientLevel: ExerciseLevel = 'BEGINNER'
 ): ExercisePrescription {
-    const options = CORE[blockKey]
+    const allOptions = CORE[blockKey]
+    const options = filterByLevel(allOptions, clientLevel)
     const idx = (sessionIndex + blockNum + weekIndex * 2) % options.length
     return { ...options[idx] }
 }
 
 /**
  * Seleciona exercícios de preparação do movimento por pilar
+ * (Preparação é neutra — não tem filtro de nível)
  */
 export function getPreparationExercises(
     pillar: Pillar,
@@ -633,23 +727,6 @@ export function generateFinalProtocol(
 // PERIODIZAÇÃO — AJUSTES POR FASE
 // ============================================================================
 
-interface PeriodizationAdjust {
-    setsMultiplier: number
-    repsLabel: string
-    restLabel: string
-}
-
-function getPeriodizationAdjust(weekPhase: string): PeriodizationAdjust {
-    switch (weekPhase) {
-        case 'ADAPTATION':
-            return { setsMultiplier: 0.85, repsLabel: 'alta (12-15)', restLabel: 'amplo' }
-        case 'PEAK':
-            return { setsMultiplier: 1.15, repsLabel: 'baixa (6-8)', restLabel: 'reduzido' }
-        default: // DEVELOPMENT
-            return { setsMultiplier: 1, repsLabel: 'média (8-12)', restLabel: 'padrão' }
-    }
-}
-
 function applyPeriodization(exercise: ExercisePrescription, weekPhase: string, weekIndex?: number): ExercisePrescription {
     const adjusted = { ...exercise }
 
@@ -681,7 +758,6 @@ function applyPeriodization(exercise: ExercisePrescription, weekPhase: string, w
 }
 
 function adjustReps(reps: string, direction: 'up' | 'down'): string {
-    // Para reps com formato "X-Y", ajustar
     const match = reps.match(/^(\d+)-(\d+)$/)
     if (match) {
         const low = parseInt(match[1])
@@ -692,19 +768,16 @@ function adjustReps(reps: string, direction: 'up' | 'down'): string {
             return `${Math.max(4, low - 2)}-${Math.max(6, high - 2)}`
         }
     }
-    // Para reps com "X cada"
     const matchEach = reps.match(/^(\d+)\s+cada$/)
     if (matchEach) {
         const val = parseInt(matchEach[1])
         if (direction === 'up') return `${val + 2} cada`
         return `${Math.max(4, val - 2)} cada`
     }
-    // Para outros formatos (tempo, etc.), manter
     return reps
 }
 
 function adjustRest(rest: string, direction: 'up' | 'down'): string {
-    // Para rests com formato "Xs-Ys"
     const match = rest.match(/^(\d+)-(\d+)s$/)
     if (match) {
         const low = parseInt(match[1])
@@ -724,9 +797,9 @@ function adjustRest(rest: string, direction: 'up' | 'down'): string {
 
 /**
  * Gera os 3 blocos de treino para uma sessão, respeitando a regra:
- *   Ex1 = FOCO do pilar do dia
- *   Ex2 = SECUNDÁRIO de pilar OPOSITOR (alterna entre blocos)
- *   Ex3 = CORE (neutro)
+ *   Ex1 = FOCO do pilar do dia (FILTRADO POR NÍVEL)
+ *   Ex2 = SECUNDÁRIO de pilar OPOSITOR (FILTRADO POR NÍVEL)
+ *   Ex3 = CORE (FILTRADO POR NÍVEL)
  *
  * Bloco 1 → Ex2 do opositor A (ex: PUSH quando dia=LOWER)
  * Bloco 2 → Ex2 do opositor B (ex: PULL quando dia=LOWER)
@@ -736,7 +809,8 @@ export function generateBlocks(
     pillar: Pillar,
     weekIndex: number,
     sessionIndex: number,
-    weekPhase: string = 'DEVELOPMENT'
+    weekPhase: string = 'DEVELOPMENT',
+    clientLevel: ExerciseLevel = 'BEGINNER'
 ): BlockPrescription[] {
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
     const [opositorA, opositorB] = getOpposingPillars(pillar)
@@ -744,23 +818,22 @@ export function generateBlocks(
     return blockKeys.map((blockKey, idx) => {
         const blockNum = idx + 1
 
-        // Ex1: FOCO — sempre do pilar do dia
-        const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex)
+        // Ex1: FOCO — sempre do pilar do dia, FILTRADO POR NÍVEL
+        const foco = getFocoExercise(pillar, blockKey, sessionIndex, weekIndex, clientLevel)
 
-        // Ex2: SECUNDÁRIO — de pilar opositor, alternando por bloco
+        // Ex2: SECUNDÁRIO — de pilar opositor, FILTRADO POR NÍVEL
         let opposingPillar: Pillar
         if (blockNum === 1) {
             opposingPillar = opositorA
         } else if (blockNum === 2) {
             opposingPillar = opositorB
         } else {
-            // Bloco 3: alterna baseado na semana+sessão para variação
             opposingPillar = (sessionIndex + weekIndex) % 2 === 0 ? opositorA : opositorB
         }
-        const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum)
+        const secundario = getSecundarioExercise(pillar, opposingPillar, sessionIndex, weekIndex, blockNum, clientLevel)
 
-        // Ex3: CORE — neutro, diferentes por bloco
-        const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum)
+        // Ex3: CORE — neutro, FILTRADO POR NÍVEL
+        const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum, clientLevel)
 
         // Aplicar periodização (com weekIndex para progressão semanal)
         const focoAdjusted = applyPeriodization(foco, weekPhase, weekIndex)
