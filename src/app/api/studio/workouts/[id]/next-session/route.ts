@@ -101,6 +101,17 @@ export async function GET(
 
         const checkedInToday = !!todayLesson
 
+        // Buscar última sessão ANTERIOR a hoje para mostrar ao professor
+        const lastLesson = await prisma.lesson.findFirst({
+            where: {
+                workoutId: workout.id,
+                date: { lt: start },   // antes do início do dia de hoje
+                status: 'COMPLETED',
+            },
+            orderBy: { date: 'desc' },
+            select: { id: true, date: true, focus: true, sessionIndex: true },
+        })
+
         const { session, progress } = getNextSessionWithPeriodization(
             template,
             workout.sessionsCompleted,
@@ -151,6 +162,12 @@ export async function GET(
                     focus: todayLesson.focus,
                     sessionIndex: todayLesson.sessionIndex,
                     weekIndex: todayLesson.weekIndex,
+                } : null,
+                lastLesson: lastLesson ? {
+                    id: lastLesson.id,
+                    date: lastLesson.date,
+                    focus: lastLesson.focus,
+                    sessionIndex: lastLesson.sessionIndex,
                 } : null,
             },
         })

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 // ============================================================================
 // EXPERT PRO TRAINING - CLIENTS PAGE
@@ -45,6 +45,7 @@ interface Client {
   objectives: string | null
   isActive: boolean
   createdAt: string
+  birthDate: string | null
   trainerId: string | null
   trainer?: {
     id: string
@@ -93,6 +94,14 @@ export default function ClientsPage() {
   const daysSinceAssessment = (client: Client) => {
     if (!client.assessments || client.assessments.length === 0) return null
     return Math.floor((Date.now() - new Date(client.assessments[0].createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  // Birthday check — compares only month+day (ignores year)
+  const isBirthdayToday = (client: Client) => {
+    if (!client.birthDate) return false
+    const today = new Date()
+    const bd = new Date(client.birthDate)
+    return bd.getMonth() === today.getMonth() && bd.getDate() === today.getDate()
   }
 
   // Fetch clients
@@ -155,6 +164,23 @@ export default function ClientsPage() {
         </div>
       </div>
 
+      {/* Birthday Banner */}
+      {(() => {
+        const birthdayKids = clients.filter(isBirthdayToday)
+        if (birthdayKids.length === 0) return null
+        return (
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-pink-500/30 bg-pink-500/10 animate-pulse">
+            <span className="text-2xl flex-shrink-0">🎂</span>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-pink-500">Aniversário hoje!</p>
+              <p className="text-xs text-muted-foreground">
+                {birthdayKids.map(c => c.name).join(', ')}
+              </p>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Stats */}
       <StatsGrid columns={4}>
         <StatsCard
@@ -213,6 +239,9 @@ export default function ClientsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <div className="font-medium">{client.name}</div>
+                          {isBirthdayToday(client) && (
+                            <span title="Aniversário hoje!">🎂</span>
+                          )}
                           {needsReassessment(client) && (
                             <span title={`${daysSinceAssessment(client)} dias sem avaliação`}>
                               <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />
@@ -267,6 +296,7 @@ export default function ClientsPage() {
                           <div className="flex items-center gap-2">
                             <div>
                               {client.name}
+                              {isBirthdayToday(client) && <span className="ml-1" title="Aniversário hoje!">🎂</span>}
                               <span className="block text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
                                 {client.objectives || '-'}
                               </span>

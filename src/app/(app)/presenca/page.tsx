@@ -55,6 +55,7 @@ interface SessionData {
     client: { id: string; name: string }; workoutName: string; checkedInToday?: boolean
     availableSessions?: AvailableSession[]
     todayLesson?: { id: string; date: string; startedAt: string; endedAt: string; focus: string | null; sessionIndex: number; weekIndex: number } | null
+    lastLesson?: { id: string; date: string; focus: string | null; sessionIndex: number } | null
 }
 
 interface StudentEntry { clientId: string; workoutId: string; clientName: string }
@@ -578,6 +579,13 @@ export default function PresencaPage() {
                                         }`}>{initials(card.entry.clientName)}</div>
                                     <div className="min-w-0">
                                         <p className="font-medium text-sm truncate">{card.entry.clientName}</p>
+                                        {/* Last pillar badge — shown BEFORE today’s pillar selector */}
+                                        {card.sessionData?.lastLesson?.focus && (
+                                            <p className="text-[9px] text-muted-foreground truncate">
+                                                ↩ Último: <span className="font-semibold text-orange-400">{card.sessionData.lastLesson.focus}</span>
+                                                {' '}({new Date(card.sessionData.lastLesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit' })})
+                                            </p>
+                                        )}
                                         {card.sessionData && (
                                             <div className="flex items-center gap-1 flex-wrap">
                                                 {(() => {
