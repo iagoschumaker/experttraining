@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 // ============================================================================
 // EXPERT PRO TRAINING - SUPERADMIN MÉTODO PAGE
@@ -29,7 +29,8 @@ import {
 import { 
   Pyramid, Brain, Boxes, Dumbbell, GitBranch, Plus, Search, 
   Pencil, Trash2, Lock, Eye, CheckCircle, XCircle, Activity,
-  Zap, Target, FileText, AlertTriangle, Settings, BarChart3
+  Zap, Target, FileText, AlertTriangle, Settings, BarChart3,
+  Download, RefreshCcw
 } from 'lucide-react'
 import { FloatingActionButton, StatsCard, StatsGrid } from '@/components/ui'
 import {
@@ -147,6 +148,8 @@ export default function SuperAdminMetodoPage() {
   const [isEditExerciseOpen, setIsEditExerciseOpen] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [saving, setSaving] = useState(false)
+  const [seeding, setSeeding] = useState(false)
+  const [migrating, setMigrating] = useState(false)
 
   const [exerciseForm, setExerciseForm] = useState({
     name: '',
@@ -337,6 +340,44 @@ export default function SuperAdminMetodoPage() {
       blockId: exercise.block?.id || '',
     })
     setIsEditExerciseOpen(true)
+  }
+
+  const handleSeed = async () => {
+    if (!confirm('Isso vai substituir TODOS os exercícios pelos do Método Juba. Continuar?')) return
+    setSeeding(true)
+    try {
+      const res = await fetch('/api/superadmin/exercises/seed', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        alert(`✅ ${data.data.created} exercícios do Método Juba carregados!`)
+        fetchAllData()
+      } else {
+        alert('Erro: ' + data.error)
+      }
+    } catch {
+      alert('Erro ao carregar exercícios')
+    } finally {
+      setSeeding(false)
+    }
+  }
+
+  const handleMigrate = async () => {
+    if (!confirm('Isso vai:\n\n• Regenerar TODOS os treinos ativos com os novos exercícios Juba\n• Excluir treinos inativos/órfãos\n• Excluir avaliações órfãs\n\nContinuar?')) return
+    setMigrating(true)
+    try {
+      const res = await fetch('/api/superadmin/migrate', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        const s = data.data
+        alert(`✅ Migração completa!\n\nTreinos regenerados: ${s.workoutsRegenerated}\nTreinos excluídos: ${s.workoutsDeleted}\nAvaliações excluídas: ${s.assessmentsDeleted}\nAulas excluídas: ${s.lessonsDeleted}${s.errors.length ? '\n\nErros: ' + s.errors.join(', ') : ''}`)
+      } else {
+        alert('Erro: ' + data.error)
+      }
+    } catch {
+      alert('Erro ao migrar')
+    } finally {
+      setMigrating(false)
+    }
   }
 
   // ============================================================================
@@ -708,13 +749,37 @@ export default function SuperAdminMetodoPage() {
                     <Dumbbell className="h-5 w-5 text-green-400" />
                     Exercícios
                   </CardTitle>
-                  <Button 
-                    onClick={() => { resetExerciseForm(); setIsCreateExerciseOpen(true); }}
-                    className="bg-accent text-accent-foreground hover:bg-accent/90"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {exercises.length === 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                        onClick={handleSeed}
+                        disabled={seeding}
+                      >
+                        <Download className="h-4 w-4" />
+                        {seeding ? 'Carregando...' : 'Carregar Juba'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1 border-blue-500/50 text-blue-500 hover:bg-blue-500/10"
+                      onClick={handleMigrate}
+                      disabled={migrating}
+                    >
+                      <RefreshCcw className={`h-4 w-4 ${migrating ? 'animate-spin' : ''}`} />
+                      {migrating ? 'Migrando...' : 'Migrar Treinos'}
+                    </Button>
+                    <Button 
+                      onClick={() => { resetExerciseForm(); setIsCreateExerciseOpen(true); }}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <Input
                   placeholder="Buscar exercícios..."
