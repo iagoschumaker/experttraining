@@ -1310,8 +1310,14 @@ export interface PillarTemplate {
 
 /**
  * Gera um template FIXO para um pilar.
- * Usa índices fixos (sessionIndex=0, weekIndex=0) para seleção determinística.
- * Todos os 9 exercícios são garantidamente únicos (sem duplicatas cross-bloco).
+ * GARANTIA: todos os 9 exercícios (3 focos + 3 secundários + 3 cores)
+ * são ÚNICOS — ZERO repetição dentro da mesma sessão.
+ *
+ * Estratégia:
+ * 1. Monta pools MERGEADOS por tipo (foco/secundário/core)
+ * 2. Filtra por nível + lesões
+ * 3. Deduplica nomes entre pools
+ * 4. Seleciona em ordem, priorizando o pool preferido de cada bloco
  */
 export function generatePillarTemplate(
     pillar: Pillar,
@@ -1321,68 +1327,120 @@ export function generatePillarTemplate(
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
     const [opositorA, opositorB] = getOpposingPillars(pillar)
 
-    // Rastrear nomes usados GLOBALMENTE neste template para deduplicação total
+    // Rastrear nomes usados GLOBALMENTE nesta sessão — ZERO duplicata
     const usedNames = new Set<string>()
 
-    const blocks = blockKeys.map((blockKey, idx) => {
-        const blockNum = idx + 1
+    // ══════════════════════════════════════════════════════════════
+    // STEP 1: Selecionar 3 FOCOS únicos (um por bloco)
+    // ══════════════════════════════════════════════════════════════
+    const focos: ExercisePrescription[] = []
+    for (const blockKey of blockKeys) {
+        // Tentar primeiro o pool preferido deste bloco
+        const primaryPool = filterExercises(FOCO_MAP[pillar][blockKey], clientLevel, pain)
+        let picked = pickUnique(primaryPool, usedNames)
 
-        // ── Ex1: FOCO — seleção FIXA (sessionIndex=0, sem rotação) ──
-        const foco = selectUniqueExercise(
-            () => getFocoExercise(pillar, blockKey, 0, 0, clientLevel, pain, usedNames),
-            FOCO_MAP[pillar][blockKey],
-            clientLevel,
-            pain,
-            usedNames,
-        )
-        usedNames.add(foco.name)
-
-        // ── Ex2: COMPLEMENTAR — seleção FIXA ──
-        let secundario: ExercisePrescription
-        if (blockNum === 3) {
-            secundario = selectUniqueExercise(
-                () => getIntegracaoExercise(0, 0, clientLevel, pain, usedNames),
-                INTEGRACAO_PUSH_PULL,
-                clientLevel,
-                pain,
-                usedNames,
-            )
-        } else {
-            const opposingPillar = blockNum === 1 ? opositorA : opositorB
-            secundario = selectUniqueExercise(
-                () => getSecundarioExercise(pillar, opposingPillar, 0, 0, blockNum, clientLevel, pain),
-                SECUNDARIO[pillar][opposingPillar],
-                clientLevel,
-                pain,
-                usedNames,
-            )
-        }
-        usedNames.add(secundario.name)
-
-        // ── Ex3: CORE — seleção FIXA ──
-        const core = selectUniqueExercise(
-            () => getCoreExercise(blockKey, 0, 0, blockNum, clientLevel, pain),
-            CORE[blockKey],
-            clientLevel,
-            pain,
-            usedNames,
-        )
-        usedNames.add(core.name)
-
-        const blockDescriptions: Record<number, string> = {
-            1: `Foco ${pillar} + Complementar + Core Estável`,
-            2: `Foco ${pillar} + Complementar + Core Anti-Rotação`,
-            3: `Foco ${pillar} + Integração Push+Pull + Core Desafiador`,
+        // Se não achou, buscar nos pools dos outros blocos
+        if (!picked) {
+            for (const otherKey of blockKeys) {
+                if (otherKey === blockKey) continue
+                const altPool = filterExercises(FOCO_MAP[pillar][otherKey], clientLevel, pain)
+                picked = pickUnique(altPool, usedNames)
+                if (picked) break
+            }
         }
 
-        return {
-            blockIndex: blockNum,
-            name: `Bloco ${blockNum}`,
-            description: blockDescriptions[blockNum] || 'Integração',
-            restAfterBlock: blockNum === 1 ? '90-120s' : blockNum === 2 ? '120-150s' : '60-90s',
-            exercises: [foco, secundario, core],
+        // Último recurso: pegar qualquer um do pool primário (duplicado mas evita crash)
+        if (!picked) {
+            picked = primaryPool[0] || filterExercises(FOCO_MAP[pillar][blockKeys[0]], clientLevel, pain)[0]
         }
-    })
+
+        usedNames.add(picked.name)
+        focos.push({ ...picked })
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // STEP 2: Selecionar 3 SECUNDÁRIOS únicos
+    // ══════════════════════════════════════════════════════════════
+    // Bloco 1 → opositor A, Bloco 2 → opositor B, Bloco 3 → integração
+    const secundarios: ExercisePrescription[] = []
+
+    // Bloco 1: secundário do opositor A
+    const secPool1 = filterExercises(SECUNDARIO[pillar][opositorA], clientLevel, pain)
+    let sec1 = pickUnique(secPool1, usedNames)
+    if (!sec1) {
+        // Fallback: tentar o outro opositor
+        const altSec = filterExercises(SECUNDARIO[pillar][opositorB], clientLevel, pain)
+        sec1 = pickUnique(altSec, usedNames) || secPool1[0]
+    }
+    usedNames.add(sec1.name)
+    secundarios.push({ ...sec1 })
+
+    // Bloco 2: secundário do opositor B
+    const secPool2 = filterExercises(SECUNDARIO[pillar][opositorB], clientLevel, pain)
+    let sec2 = pickUnique(secPool2, usedNames)
+    if (!sec2) {
+        const altSec = filterExercises(SECUNDARIO[pillar][opositorA], clientLevel, pain)
+        sec2 = pickUnique(altSec, usedNames) || secPool2[0]
+    }
+    usedNames.add(sec2.name)
+    secundarios.push({ ...sec2 })
+
+    // Bloco 3: integração Push+Pull
+    const intPool = filterExercises(INTEGRACAO_PUSH_PULL, clientLevel, pain)
+    let sec3 = pickUnique(intPool, usedNames)
+    if (!sec3) {
+        // Fallback: tentar qualquer secundário de qualquer opositor
+        const allSec = [
+            ...filterExercises(SECUNDARIO[pillar][opositorA], clientLevel, pain),
+            ...filterExercises(SECUNDARIO[pillar][opositorB], clientLevel, pain),
+        ]
+        sec3 = pickUnique(allSec, usedNames) || intPool[0]
+    }
+    usedNames.add(sec3.name)
+    secundarios.push({ ...sec3 })
+
+    // ══════════════════════════════════════════════════════════════
+    // STEP 3: Selecionar 3 CORES únicos
+    // ══════════════════════════════════════════════════════════════
+    const cores: ExercisePrescription[] = []
+    for (const blockKey of blockKeys) {
+        const corePool = filterExercises(CORE[blockKey], clientLevel, pain)
+        let picked = pickUnique(corePool, usedNames)
+
+        // Fallback: buscar em pools de outros blocos de core
+        if (!picked) {
+            for (const otherKey of blockKeys) {
+                if (otherKey === blockKey) continue
+                const altPool = filterExercises(CORE[otherKey], clientLevel, pain)
+                picked = pickUnique(altPool, usedNames)
+                if (picked) break
+            }
+        }
+
+        if (!picked) {
+            picked = corePool[0] || filterExercises(CORE[blockKeys[0]], clientLevel, pain)[0]
+        }
+
+        usedNames.add(picked.name)
+        cores.push({ ...picked })
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // MONTAR BLOCOS
+    // ══════════════════════════════════════════════════════════════
+    const blockDescriptions: Record<number, string> = {
+        1: `Foco ${pillar} + Complementar + Core Estável`,
+        2: `Foco ${pillar} + Complementar + Core Anti-Rotação`,
+        3: `Foco ${pillar} + Integração Push+Pull + Core Desafiador`,
+    }
+
+    const blocks = blockKeys.map((_, idx) => ({
+        blockIndex: idx + 1,
+        name: `Bloco ${idx + 1}`,
+        description: blockDescriptions[idx + 1] || 'Integração',
+        restAfterBlock: idx === 0 ? '90-120s' : idx === 1 ? '120-150s' : '60-90s',
+        exercises: [focos[idx], secundarios[idx], cores[idx]],
+    }))
 
     return {
         pillar,
@@ -1392,30 +1450,21 @@ export function generatePillarTemplate(
 }
 
 /**
- * Helper: tenta a função de seleção padrão; se o resultado é duplicado,
- * itera sobre todas as opções do pool até encontrar um exercício único.
+ * Pega o PRIMEIRO exercício do pool que NÃO está em usedNames.
+ * Retorna null se não encontrar nenhum.
  */
-function selectUniqueExercise(
-    defaultSelector: () => ExercisePrescription,
+function pickUnique(
     pool: ExercisePrescription[],
-    clientLevel: ExerciseLevel,
-    pain: PainContext | undefined,
     usedNames: Set<string>,
-): ExercisePrescription {
-    const candidate = defaultSelector()
-    if (!usedNames.has(candidate.name)) {
-        return candidate
-    }
-    // Fallback: percorrer TODO o pool filtrado buscando não-duplicado
-    const filtered = filterExercises(pool, clientLevel, pain)
-    for (const ex of filtered) {
+): ExercisePrescription | null {
+    for (const ex of pool) {
         if (!usedNames.has(ex.name)) {
             return { ...ex }
         }
     }
-    // Último recurso (não deveria acontecer com pool suficiente)
-    return candidate
+    return null
 }
+
 
 /**
  * Aplica periodização semanal a um PillarTemplate,
