@@ -179,7 +179,7 @@ export default function SuperAdminMetodoPage() {
         fetch('/api/superadmin/hierarchy'),
         fetch('/api/superadmin/decisions'),
         fetch('/api/superadmin/blocks'),
-        fetch('/api/superadmin/exercises'),
+        fetch('/api/superadmin/exercises?pageSize=500'),
         fetch('/api/superadmin/rules'),
       ])
 
@@ -750,18 +750,16 @@ export default function SuperAdminMetodoPage() {
                     Exercícios
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    {exercises.length === 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
-                        onClick={handleSeed}
-                        disabled={seeding}
-                      >
-                        <Download className="h-4 w-4" />
-                        {seeding ? 'Carregando...' : 'Carregar Juba'}
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                      onClick={handleSeed}
+                      disabled={seeding}
+                    >
+                      <Download className="h-4 w-4" />
+                      {seeding ? 'Carregando...' : 'Carregar Juba'}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
