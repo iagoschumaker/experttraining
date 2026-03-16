@@ -194,7 +194,7 @@ export default function SuperAdminMetodoPage() {
       if (hierarchyJson.success) setHierarchyData(hierarchyJson.data)
       if (decisionJson.success) setDecisionData(decisionJson.data)
       if (blocksJson.success) setBlocks(blocksJson.data.items || [])
-      if (exercisesJson.success) setExercises(exercisesJson.data || [])
+      if (exercisesJson.success) setExercises(exercisesJson.data?.items || [])
       if (rulesJson.success) setRules(rulesJson.data.rules || [])
     } catch (error) {
       console.error('Error fetching data:', error)
