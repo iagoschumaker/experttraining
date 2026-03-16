@@ -1252,12 +1252,8 @@ export function generateBlocks(
         usedNames.add(foco.name)
 
         // ── Ex2: COMPLEMENTAR ──
-        // Bloco 1 → opositor A (empurrada para LOWER/PULL; lower para PUSH)
-        // Bloco 2 → opositor B
-        // Bloco 3 → SEMPRE integração Push+Pull (nunca exercício isolado)
         let secundario: ExercisePrescription
         if (blockNum === 3) {
-            // REGRA MÉTODO: Bloco 3 Ex2 = exercício integrado Push+Pull real
             secundario = getIntegracaoExercise(sessionIndex, weekIndex, clientLevel, pain, usedNames)
         } else {
             let opposingPillar: Pillar
@@ -1270,10 +1266,7 @@ export function generateBlocks(
         }
         usedNames.add(secundario.name)
 
-        // ── Ex3: CORE — neutro, progressão por bloco ──
-        // Bloco 1 → core estável (prancha/rigidez básico)
-        // Bloco 2 → core anti-rotação (pollof, perdigueiro)
-        // Bloco 3 → core desafiador (dinâmico, Ab X-Up)
+        // ── Ex3: CORE — neutro ──
         const core = getCoreExercise(blockKey, sessionIndex, weekIndex, blockNum, clientLevel, pain)
         usedNames.add(core.name)
 
@@ -1297,3 +1290,184 @@ export function generateBlocks(
         }
     })
 }
+
+// ============================================================================
+// TEMPLATE FIXO POR PILAR — REGRA DE CONSISTÊNCIA
+// ============================================================================
+// Gera UM template fixo por pilar (LOWER, PUSH, PULL).
+// Os exercícios são selecionados UMA VEZ e reutilizados em TODAS as
+// ocorrências dessa categoria no ciclo inteiro.
+// Apenas variáveis de progressão (reps, load, rest) mudam por semana.
+// ============================================================================
+
+export interface PillarTemplate {
+    pillar: Pillar
+    /** 3 blocos com exercícios BASE (sem periodização, sem weeklyReps aplicados) */
+    blocks: BlockPrescription[]
+    /** Lista de nomes dos 9 exercícios — para validação rápida */
+    exerciseNames: string[]
+}
+
+/**
+ * Gera um template FIXO para um pilar.
+ * Usa índices fixos (sessionIndex=0, weekIndex=0) para seleção determinística.
+ * Todos os 9 exercícios são garantidamente únicos (sem duplicatas cross-bloco).
+ */
+export function generatePillarTemplate(
+    pillar: Pillar,
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext,
+): PillarTemplate {
+    const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
+    const [opositorA, opositorB] = getOpposingPillars(pillar)
+
+    // Rastrear nomes usados GLOBALMENTE neste template para deduplicação total
+    const usedNames = new Set<string>()
+
+    const blocks = blockKeys.map((blockKey, idx) => {
+        const blockNum = idx + 1
+
+        // ── Ex1: FOCO — seleção FIXA (sessionIndex=0, sem rotação) ──
+        const foco = selectUniqueExercise(
+            () => getFocoExercise(pillar, blockKey, 0, 0, clientLevel, pain, usedNames),
+            FOCO_MAP[pillar][blockKey],
+            clientLevel,
+            pain,
+            usedNames,
+        )
+        usedNames.add(foco.name)
+
+        // ── Ex2: COMPLEMENTAR — seleção FIXA ──
+        let secundario: ExercisePrescription
+        if (blockNum === 3) {
+            secundario = selectUniqueExercise(
+                () => getIntegracaoExercise(0, 0, clientLevel, pain, usedNames),
+                INTEGRACAO_PUSH_PULL,
+                clientLevel,
+                pain,
+                usedNames,
+            )
+        } else {
+            const opposingPillar = blockNum === 1 ? opositorA : opositorB
+            secundario = selectUniqueExercise(
+                () => getSecundarioExercise(pillar, opposingPillar, 0, 0, blockNum, clientLevel, pain),
+                SECUNDARIO[pillar][opposingPillar],
+                clientLevel,
+                pain,
+                usedNames,
+            )
+        }
+        usedNames.add(secundario.name)
+
+        // ── Ex3: CORE — seleção FIXA ──
+        const core = selectUniqueExercise(
+            () => getCoreExercise(blockKey, 0, 0, blockNum, clientLevel, pain),
+            CORE[blockKey],
+            clientLevel,
+            pain,
+            usedNames,
+        )
+        usedNames.add(core.name)
+
+        const blockDescriptions: Record<number, string> = {
+            1: `Foco ${pillar} + Complementar + Core Estável`,
+            2: `Foco ${pillar} + Complementar + Core Anti-Rotação`,
+            3: `Foco ${pillar} + Integração Push+Pull + Core Desafiador`,
+        }
+
+        return {
+            blockIndex: blockNum,
+            name: `Bloco ${blockNum}`,
+            description: blockDescriptions[blockNum] || 'Integração',
+            restAfterBlock: blockNum === 1 ? '90-120s' : blockNum === 2 ? '120-150s' : '60-90s',
+            exercises: [foco, secundario, core],
+        }
+    })
+
+    return {
+        pillar,
+        blocks,
+        exerciseNames: Array.from(usedNames),
+    }
+}
+
+/**
+ * Helper: tenta a função de seleção padrão; se o resultado é duplicado,
+ * itera sobre todas as opções do pool até encontrar um exercício único.
+ */
+function selectUniqueExercise(
+    defaultSelector: () => ExercisePrescription,
+    pool: ExercisePrescription[],
+    clientLevel: ExerciseLevel,
+    pain: PainContext | undefined,
+    usedNames: Set<string>,
+): ExercisePrescription {
+    const candidate = defaultSelector()
+    if (!usedNames.has(candidate.name)) {
+        return candidate
+    }
+    // Fallback: percorrer TODO o pool filtrado buscando não-duplicado
+    const filtered = filterExercises(pool, clientLevel, pain)
+    for (const ex of filtered) {
+        if (!usedNames.has(ex.name)) {
+            return { ...ex }
+        }
+    }
+    // Último recurso (não deveria acontecer com pool suficiente)
+    return candidate
+}
+
+/**
+ * Aplica periodização semanal a um PillarTemplate,
+ * retornando blocos com reps/load/rest ajustados para a semana.
+ * Os EXERCÍCIOS permanecem os mesmos — apenas variáveis de progressão mudam.
+ */
+export function applyWeeklyProgression(
+    template: PillarTemplate,
+    weekIndex: number,
+    weekPhase: string,
+): BlockPrescription[] {
+    return template.blocks.map(block => ({
+        ...block,
+        exercises: block.exercises.map(ex => applyPeriodization({ ...ex }, weekPhase, weekIndex)),
+    }))
+}
+
+// ============================================================================
+// VALIDAÇÃO ANTI-DUPLICIDADE
+// ============================================================================
+
+export interface ValidationResult {
+    valid: boolean
+    errors: string[]
+}
+
+/**
+ * Valida que uma sessão não tem exercícios duplicados e segue a estrutura correta.
+ */
+export function validateSessionExercises(blocks: BlockPrescription[]): ValidationResult {
+    const errors: string[] = []
+    const allNames = new Set<string>()
+
+    for (const block of blocks) {
+        for (const ex of block.exercises) {
+            if (allNames.has(ex.name)) {
+                errors.push(`Exercício duplicado na sessão: "${ex.name}" (Bloco ${block.blockIndex})`)
+            }
+            allNames.add(ex.name)
+        }
+    }
+
+    if (blocks.length !== 3) {
+        errors.push(`Sessão deve ter exatamente 3 blocos, encontrou ${blocks.length}`)
+    }
+
+    for (const block of blocks) {
+        if (block.exercises.length !== 3) {
+            errors.push(`Bloco ${block.blockIndex} deve ter 3 exercícios, encontrou ${block.exercises.length}`)
+        }
+    }
+
+    return { valid: errors.length === 0, errors }
+}
+
