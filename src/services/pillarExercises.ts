@@ -648,7 +648,6 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
 
 const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
     // BLOCO 1 — Core BEGINNER: Rigidez + Prancha Reta
-    // Rigidez: 15/15/12/12/10/10 | Prancha Reta: 20/20/25/25/30/30s
     bloco1: [
         // ── BEGINNER ──
         {
@@ -682,16 +681,17 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
             weeklyReps: ['25s', '25s', '30s', '30s', '30s', '30s'],
         },
     ],
-    // BLOCO 2 — Core INTERMEDIATE: Rigidez Fit Ball Vai/Volta + Prancha Reta
-    // Rigidez Vai/Volta: 15/15/12/12/10/10 | Prancha: 20/20/25/25/30/30s
+    // BLOCO 2 — Core INTERMEDIATE: Anti-rotação
     bloco2: [
-        // ── BEGINNER (fallback) ──
+        // ── BEGINNER ──
         {
-            name: 'Prancha Reta', sets: 3, reps: '20s', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
-            weeklyReps: ['20s', '20s', '25s', '25s', '30s', '30s'],
+            name: 'Dead Bug', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
         },
         {
-            name: 'Rigidez Elástico', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+            name: 'Prancha com Elevação', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+        },
+        {
+            name: 'Rigidez MB', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
             weeklyReps: ['15', '15', '12', '12', '10', '10'],
         },
         // ── INTERMEDIATE ──
@@ -712,15 +712,15 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
             weeklyReps: ['25s', '25s', '30s', '30s', '30s', '30s'],
         },
     ],
-    // BLOCO 3 — Core ADVANCED: Ab X-Up + Prancha Lateral
-    // Prancha Lateral: 20/20/25/25/30/30s
+    // BLOCO 3 — Core ADVANCED: Dinâmico
     bloco3: [
-        // ── BEGINNER (fallback) ──
+        // ── BEGINNER ──
         {
             name: 'Prancha Lateral', sets: 3, reps: '20s', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
             weeklyReps: ['20s', '20s', '25s', '25s', '30s', '30s'],
         },
         { name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
+        { name: 'Dead Bug Alternado', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
         // ── INTERMEDIATE ──
         { name: 'Prancha Dinâmica', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
         { name: 'Prancha Alta com Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
@@ -756,6 +756,10 @@ const INTEGRACAO_PUSH_PULL: ExercisePrescription[] = [
     {
         name: 'Swing KB + Press', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
         weeklyReps: ['10', '10', '10', '8', '8', '8'],
+    },
+    {
+        name: 'Push + TRX Remada Alternado', sets: 3, reps: '8 cada', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        weeklyReps: ['8 cada', '8 cada', '8 cada', '6 cada', '6 cada', '6 cada'],
     },
     // ── INTERMEDIATE ──
     {
@@ -1323,12 +1327,13 @@ export function generatePillarTemplate(
     pillar: Pillar,
     clientLevel: ExerciseLevel = 'BEGINNER',
     pain?: PainContext,
+    globalUsedNames?: Set<string>,
 ): PillarTemplate {
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
     const [opositorA, opositorB] = getOpposingPillars(pillar)
 
-    // Rastrear nomes usados GLOBALMENTE nesta sessão — ZERO duplicata
-    const usedNames = new Set<string>()
+    // Rastrear nomes GLOBALMENTE — inclui exercícios de OUTROS pilares
+    const usedNames = new Set<string>(globalUsedNames || [])
 
     // ══════════════════════════════════════════════════════════════
     // STEP 1: Selecionar 3 FOCOS únicos (um por bloco)

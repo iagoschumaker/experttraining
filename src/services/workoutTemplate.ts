@@ -108,11 +108,20 @@ export function generateWorkoutTemplate(
     // ======================================================================
     // STEP 1: Gerar UM template fixo por pilar (LOWER, PUSH, PULL)
     // ======================================================================
-    const uniquePillars = [...new Set(pillarSchedule)] as Pillar[]
+    const uniquePillars = Array.from(new Set(pillarSchedule)) as Pillar[]
     const pillarTemplates: Record<string, PillarTemplate> = {}
 
+    // Set GLOBAL que rastreia TODOS os exercícios usados em TODOS os pilares
+    // Garante que NENHUM exercício repete entre dias diferentes
+    const globalUsedNames = new Set<string>()
+
     for (const pillar of uniquePillars) {
-        const template = generatePillarTemplate(pillar, clientLevel, pain)
+        const template = generatePillarTemplate(pillar, clientLevel, pain, globalUsedNames)
+        
+        // Adicionar todos os exercícios deste pilar ao set global
+        for (const name of template.exerciseNames) {
+            globalUsedNames.add(name)
+        }
         
         // Validar: nenhum exercício duplicado no template
         const validation = validateSessionExercises(template.blocks)
@@ -121,7 +130,7 @@ export function generateWorkoutTemplate(
         }
         
         pillarTemplates[pillar] = template
-        console.log(`✅ Template ${pillar} gerado: ${template.exerciseNames.length} exercícios únicos`)
+        console.log(`✅ Template ${pillar} gerado: ${template.exerciseNames.length} exercícios únicos (total global: ${globalUsedNames.size})`)
     }
 
     // ======================================================================
