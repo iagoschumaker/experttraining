@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { verifyAuth } from '@/lib/auth/protection'
+import { verifySuperAdmin } from '@/lib/auth/protection'
 import { generatePillarRotation, PILLAR_LABELS } from '@/services/pillarRotation'
 import {
     generateWorkoutTemplate,
@@ -18,13 +18,16 @@ import {
 } from '@/services/workoutTemplate'
 
 export async function POST(request: NextRequest) {
-    // SuperAdmin / Studio Admin only
-    const auth = await verifyAuth(request, ['STUDIO_ADMIN'])
-    if ('error' in auth) {
-        return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+    // SuperAdmin only (cookie-based, no studio needed)
+    const adminPayload = await verifySuperAdmin()
+    if (!adminPayload) {
+        return NextResponse.json(
+            { success: false, error: 'Acesso não autorizado — apenas SuperAdmin' },
+            { status: 403 }
+        )
     }
 
-    const { userId, studioId } = auth
+    const userId = adminPayload.userId
 
     try {
         const stats = {
@@ -39,16 +42,14 @@ export async function POST(request: NextRequest) {
         console.log('🔄 [MIGRATE] Iniciando migração de treinos e limpeza...')
 
         // ======================================================================
-        // STEP 1: Delete orphaned assessments
+        // STEP 1: Delete orphaned assessments (ALL studios)
         // ======================================================================
-        // Assessments in PENDING status with no result (likely auto-created junk)
         console.log('🧹 [MIGRATE] Limpando avaliações órfãs...')
 
         const orphanedAssessments = await prisma.assessment.findMany({
             where: {
                 status: 'PENDING',
                 resultJson: { equals: Prisma.JsonNull },
-                client: { studioId },
             },
             select: { id: true },
         })
@@ -62,22 +63,18 @@ export async function POST(request: NextRequest) {
         }
 
         // ======================================================================
-        // STEP 2: Delete inactive/archived workouts and their lessons
+        // STEP 2: Delete inactive/archived workouts and their lessons (ALL studios)
         // ======================================================================
         console.log('🧹 [MIGRATE] Limpando treinos inativos...')
 
         const inactiveWorkouts = await prisma.workout.findMany({
-            where: {
-                studioId,
-                isActive: false,
-            },
+            where: { isActive: false },
             select: { id: true },
         })
 
         if (inactiveWorkouts.length > 0) {
             const ids = inactiveWorkouts.map(w => w.id)
 
-            // Delete related lessons and lessonClients
             const relatedLessons = await prisma.lesson.findMany({
                 where: { workoutId: { in: ids } },
                 select: { id: true },
@@ -104,15 +101,12 @@ export async function POST(request: NextRequest) {
         }
 
         // ======================================================================
-        // STEP 3: Regenerate all ACTIVE workouts with new Juba exercises
+        // STEP 3: Regenerate all ACTIVE workouts with new Juba exercises (ALL studios)
         // ======================================================================
         console.log('🔄 [MIGRATE] Regenerando treinos ativos com exercícios Juba...')
 
         const activeWorkouts = await prisma.workout.findMany({
-            where: {
-                studioId,
-                isActive: true,
-            },
+            where: { isActive: true },
             include: {
                 client: {
                     select: {
@@ -132,7 +126,6 @@ export async function POST(request: NextRequest) {
             try {
                 const client = workout.client
                 if (!client) {
-                    // Orphaned workout — delete it
                     const relatedLessons = await prisma.lesson.findMany({
                         where: { workoutId: workout.id },
                         select: { id: true },
@@ -151,7 +144,6 @@ export async function POST(request: NextRequest) {
                 const targetWeeks = workout.targetWeeks || 8
                 const lastPillarIndex = client.lastPillarIndex ?? 0
 
-                // Regenerate pillar rotation
                 const pillarSchedule = generatePillarRotation({
                     trainingDaysPerWeek: weeklyFrequency,
                     totalWeeks: targetWeeks,
@@ -160,7 +152,6 @@ export async function POST(request: NextRequest) {
 
                 const allPillars = pillarSchedule.schedule.flat()
 
-                // Regenerate template with new Juba exercises
                 const template = generateWorkoutTemplate(
                     allPillars,
                     'saude',
@@ -168,10 +159,8 @@ export async function POST(request: NextRequest) {
                     targetWeeks,
                 )
 
-                // Regenerate schedule
                 const schedule = expandTemplateToSchedule(template, 'saude')
 
-                // Update workout with new template and schedule
                 await prisma.workout.update({
                     where: { id: workout.id },
                     data: {
@@ -181,7 +170,6 @@ export async function POST(request: NextRequest) {
                     },
                 })
 
-                // Update client's lastPillarIndex
                 await prisma.client.update({
                     where: { id: client.id },
                     data: {
@@ -202,7 +190,6 @@ export async function POST(request: NextRequest) {
         await prisma.auditLog.create({
             data: {
                 userId,
-                studioId,
                 action: 'MIGRATE',
                 entity: 'System',
                 entityId: 'migrate-juba',
