@@ -624,203 +624,252 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         </CardContent>
       </Card>
 
-      {/* Schedule Preview */}
-      {schedule && schedule.weeks && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Cronograma</CardTitle>
-            <CardDescription>
-              {schedule.weeks.length} semanas • {schedule.weeklyFrequency || 3} sessões por semana
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-10">
-              {schedule.weeks.map((week: any) => (
-                <div key={week.week} className="space-y-4">
-                  {/* Week Header */}
-                  <div className="flex items-center gap-3 pb-3 border-b-2 border-primary/20">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary font-bold text-lg">
-                      {week.week}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-lg">Semana {week.week}</h4>
-                      {week.phaseLabel && (
-                        <span className="text-xs text-muted-foreground">
-                          Fase: {week.phaseLabel}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+      {/* Schedule Preview - Smart Layout */}
+      {schedule && schedule.weeks && (() => {
+        // Get unique pillars from week 1
+        const week1 = schedule.weeks[0]
+        const pillarSessions: Record<string, any> = {}
+        week1?.sessions?.forEach((s: any) => {
+          const key = s.pillar || 'UNKNOWN'
+          if (!pillarSessions[key]) {
+            pillarSessions[key] = s
+          }
+        })
 
-                  {/* Sessions Grid - responsive */}
-                  <div className={`grid grid-cols-1 gap-4 ${
-                    week.sessions.length <= 3 ? 'md:grid-cols-2 lg:grid-cols-3' :
-                    week.sessions.length <= 4 ? 'md:grid-cols-2' :
-                    'md:grid-cols-2 xl:grid-cols-3'
-                  }`}>
-                    {week.sessions.map((session: any) => (
-                      <div key={session.session} className="border-2 border-border rounded-xl overflow-hidden bg-card hover:border-primary/50 transition-colors">
-                        {/* Day Header */}
-                        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground font-bold text-sm">
-                                {session.session}
-                              </div>
-                              <span className="font-semibold">Dia {session.session}</span>
-                              {session.pillarLabel && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${session.pillar === 'LOWER' ? 'bg-amber-500/20 text-amber-600' :
-                                  session.pillar === 'PUSH' ? 'bg-blue-500/20 text-blue-500' :
-                                    'bg-purple-500/20 text-purple-500'
-                                  }`}>
-                                  {session.pillarLabel}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {session.estimatedDuration} min
-                            </span>
-                          </div>
+        // Group weeks by phase
+        const phases: { label: string; weeks: number[] }[] = []
+        let currentPhase = ''
+        schedule.weeks.forEach((w: any) => {
+          const phase = w.phaseLabel || w.phase || 'Treino'
+          if (phase !== currentPhase) {
+            phases.push({ label: phase, weeks: [w.week] })
+            currentPhase = phase
+          } else {
+            phases[phases.length - 1].weeks.push(w.week)
+          }
+        })
+
+        const pillarStyle = (p: string) => p === 'LOWER'
+          ? 'bg-amber-500/20 text-amber-600 border-amber-500/30'
+          : p === 'PUSH'
+            ? 'bg-blue-500/20 text-blue-500 border-blue-500/30'
+            : 'bg-purple-500/20 text-purple-500 border-purple-500/30'
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Cronograma</CardTitle>
+              <CardDescription>
+                {schedule.weeks.length} semanas • {schedule.weeklyFrequency || workout.weeklyFrequency || 3} sessões por semana
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+
+              {/* Phase Timeline */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Fases do Programa
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {phases.map((phase, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary text-primary-foreground font-bold text-xs">
+                        {phase.weeks.length}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold">{phase.label}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Sem. {phase.weeks[0]}–{phase.weeks[phase.weeks.length - 1]}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pillar Rotation Table */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  🔄 Rotação Semanal
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left px-2 py-1.5 font-semibold border-b">Semana</th>
+                        {week1?.sessions?.map((_: any, i: number) => (
+                          <th key={i} className="text-center px-2 py-1.5 font-semibold border-b">Dia {i + 1}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {schedule.weeks.map((w: any) => (
+                        <tr key={w.week} className="hover:bg-muted/30">
+                          <td className="px-2 py-1 font-semibold border-b border-border/50">Sem {w.week}</td>
+                          {w.sessions.map((s: any, si: number) => (
+                            <td key={si} className="text-center px-1 py-1 border-b border-border/50">
+                              <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded ${pillarStyle(s.pillar)}`}>
+                                {s.pillarLabel || '—'}
+                              </span>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Exercises by Pillar (shown ONCE) */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  📋 Exercícios por Pilar
+                  <span className="text-[10px] text-muted-foreground font-normal">(os exercícios se repetem cada semana — só muda a progressão)</span>
+                </h4>
+                <div className="space-y-4">
+                  {Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => (
+                    <div key={pillar} className={`border-2 rounded-xl overflow-hidden ${
+                      pillar === 'LOWER' ? 'border-amber-500/30' :
+                      pillar === 'PUSH' ? 'border-blue-500/30' : 'border-purple-500/30'
+                    }`}>
+                      {/* Pillar Header */}
+                      <div className={`px-4 py-2.5 flex items-center justify-between ${
+                        pillar === 'LOWER' ? 'bg-amber-500/10' :
+                        pillar === 'PUSH' ? 'bg-blue-500/10' : 'bg-purple-500/10'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-bold ${
+                            pillar === 'LOWER' ? 'text-amber-600' :
+                            pillar === 'PUSH' ? 'text-blue-500' : 'text-purple-500'
+                          }`}>
+                            {session.pillarLabel || pillar}
+                          </span>
                         </div>
+                        <span className="text-xs text-muted-foreground font-mono">{session.estimatedDuration} min</span>
+                      </div>
 
-                        {/* Day Content */}
-                        <div className="p-3 space-y-3">
-
-                          {/* Preparation */}
-                          {session.preparation && (
-                            <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                  Preparação
-                                </span>
-                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">
-                                  {session.preparation.totalTime}
-                                </span>
-                              </div>
-                              <div className="space-y-0.5">
-                                {session.preparation.exercises?.slice(0, 4).map((ex: any, idx: number) => (
-                                  <div key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span className="flex-1">{ex.name}</span>
-                                    <span className="shrink-0 ml-2 font-mono text-[10px]">
-                                      {ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration}
-                                    </span>
-                                  </div>
-                                ))}
-                                {session.preparation.exercises?.length > 4 && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    +{session.preparation.exercises.length - 4} mais
-                                  </span>
-                                )}
-                              </div>
+                      <div className="p-3 space-y-3">
+                        {/* Preparation */}
+                        {session.preparation && (
+                          <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Preparação</span>
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">{session.preparation.totalTime}</span>
                             </div>
-                          )}
-
-                          {/* Training Blocks */}
-                          <div className="space-y-2">
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                              Blocos
-                            </span>
-                            {session.blocks.map((b: any, idx: number) => (
-                              <div key={idx} className="p-2.5 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-semibold text-foreground">
-                                    {b.name || `Bloco ${idx + 1}`}
-                                  </span>
-                                  <span className="text-[10px] text-blue-500 font-mono">
-                                    {b.restAfterBlock}
+                            <div className="space-y-0.5">
+                              {session.preparation.exercises?.map((ex: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                  <span className="flex-1">{ex.name}</span>
+                                  <span className="shrink-0 ml-2 font-mono text-[10px]">
+                                    {ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration}
                                   </span>
                                 </div>
-                                <div className="space-y-2">
-                                  {b.exercises?.map((ex: any, exIdx: number) => {
-                                    const wIdx = schedule.weeks.indexOf(week)
-                                    const sIdx = week.sessions.indexOf(session)
-                                    const wKey = `w${wIdx}-s${sIdx}-b${idx}-e${exIdx}`
-                                    return (
-                                      <div key={exIdx} className="space-y-1">
-                                        {/* Line 1: Role badge + Exercise name + Technique */}
-                                        <div className="flex items-start gap-1.5">
-                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 mt-0.5 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
-                                            (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
-                                              'bg-green-500/20 text-green-600'
-                                            }`}>
-                                            {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
-                                              (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
-                                          </span>
-                                          <div className="flex flex-wrap items-center gap-1 min-w-0">
-                                            <span className="text-xs font-medium leading-tight">{ex.name}</span>
-                                            {ex.technique && (
-                                              <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">
-                                                {ex.technique}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                        {/* Line 2: Sets × Reps | Rest | Weight */}
-                                        <div className="flex items-center gap-2 ml-6 text-[11px]">
-                                          {ex.sets && ex.reps && (
-                                            <span className="text-muted-foreground font-mono">{ex.sets}×{ex.reps}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Blocks */}
+                        <div className="space-y-2">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Blocos</span>
+                          {session.blocks.map((b: any, bIdx: number) => (
+                            <div key={bIdx} className="p-2.5 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-foreground">{b.name || `Bloco ${bIdx + 1}`}</span>
+                                <span className="text-[10px] text-blue-500 font-mono">{b.restAfterBlock}</span>
+                              </div>
+                              <div className="space-y-2">
+                                {b.exercises?.map((ex: any, exIdx: number) => {
+                                  // Use week 0, first session with this pillar
+                                  const wIdx = 0
+                                  const sIdx = week1.sessions.findIndex((ss: any) => ss.pillar === pillar)
+                                  const wKey = `w${wIdx}-s${sIdx}-b${bIdx}-e${exIdx}`
+                                  return (
+                                    <div key={exIdx} className="space-y-1">
+                                      <div className="flex items-start gap-1.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 mt-0.5 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
+                                          (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
+                                            'bg-green-500/20 text-green-600'
+                                          }`}>
+                                          {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
+                                            (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
+                                        </span>
+                                        <div className="flex flex-wrap items-center gap-1 min-w-0">
+                                          <span className="text-xs font-medium leading-tight">{ex.name}</span>
+                                          {ex.technique && (
+                                            <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">
+                                              {ex.technique}
+                                            </span>
                                           )}
-                                          <span className="text-amber-500 font-mono text-[10px]">{ex.rest}</span>
-                                          <div className="flex items-center gap-0.5 ml-auto">
-                                            <Weight className="w-3 h-3 text-muted-foreground" />
-                                            <input
-                                              type="text"
-                                              inputMode="decimal"
-                                              placeholder="—"
-                                              defaultValue={ex.weight || ''}
-                                              className={`w-14 text-[11px] text-center rounded border bg-background px-1 py-0.5 focus:ring-1 focus:ring-primary outline-none ${savingWeight === wKey ? 'border-green-400 bg-green-500/10' : 'border-border'
-                                                }`}
-                                              onBlur={(e) => {
-                                                const val = e.target.value.trim()
-                                                if (val !== (ex.weight || '')) {
-                                                  saveWeight(wIdx, sIdx, idx, exIdx, val)
-                                                }
-                                              }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                  (e.target as HTMLInputElement).blur()
-                                                }
-                                              }}
-                                            />
-                                            <span className="text-[9px] text-muted-foreground">kg</span>
-                                          </div>
                                         </div>
                                       </div>
-                                    )
-                                  })}
-                                </div>
+                                      <div className="flex items-center gap-2 ml-6 text-[11px]">
+                                        {ex.sets && ex.reps && (
+                                          <span className="text-muted-foreground font-mono">{ex.sets}×{ex.reps}</span>
+                                        )}
+                                        <span className="text-amber-500 font-mono text-[10px]">{ex.rest}</span>
+                                        <div className="flex items-center gap-0.5 ml-auto">
+                                          <Weight className="w-3 h-3 text-muted-foreground" />
+                                          <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="—"
+                                            defaultValue={ex.weight || ''}
+                                            className={`w-14 text-[11px] text-center rounded border bg-background px-1 py-0.5 focus:ring-1 focus:ring-primary outline-none ${savingWeight === wKey ? 'border-green-400 bg-green-500/10' : 'border-border'
+                                              }`}
+                                            onBlur={(e) => {
+                                              const val = e.target.value.trim()
+                                              if (val !== (ex.weight || '')) {
+                                                const sIdxFinal = week1.sessions.findIndex((ss: any) => ss.pillar === pillar)
+                                                saveWeight(0, sIdxFinal, bIdx, exIdx, val)
+                                              }
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                (e.target as HTMLInputElement).blur()
+                                              }
+                                            }}
+                                          />
+                                          <span className="text-[9px] text-muted-foreground">kg</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            ))}
-                          </div>
-
-                          {/* Final Protocol */}
-                          {session.finalProtocol && (
-                            <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-                                  {session.finalProtocol.name}
-                                </span>
-                                <span className="text-[10px] text-green-600 dark:text-green-400 font-mono">
-                                  {session.finalProtocol.totalTime}
-                                </span>
-                              </div>
-                              {session.finalProtocol.structure && (
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                  {session.finalProtocol.structure}
-                                </p>
-                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
+
+                        {/* Protocol */}
+                        {session.finalProtocol && (
+                          <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                {session.finalProtocol.name}
+                              </span>
+                              <span className="text-[10px] text-green-600 dark:text-green-400 font-mono">
+                                {session.finalProtocol.totalTime}
+                              </span>
+                            </div>
+                            {session.finalProtocol.structure && (
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {session.finalProtocol.structure}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Notes */}
       {workout.notes && (
