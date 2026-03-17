@@ -1,16 +1,16 @@
 // ============================================================================
-// PDF GENERATOR - Standalone PDF generation logic
+// PDF GENERATOR — 4 WEEKS PER A4 PAGE, MODERN DESIGN
+// Standalone module used by the workouts list page
 // ============================================================================
 
 export async function generateWorkoutPDF(workout: any, schedule: any) {
   const freq = workout.weeklyFrequency || 3
-  const totalDays = schedule.weeks?.[0]?.sessions?.length || freq
   const studioName = workout.studio?.name || 'Studio'
   const studioLogo = workout.studio?.logoUrl || ''
   const studioPhone = workout.studio?.phone || ''
   const studioEmail = workout.studio?.email || ''
 
-  // Converter logo para base64 (necessário para Puppeteer)
+  // Convert logo to base64 (needed for Puppeteer)
   let logoBase64 = ''
   if (studioLogo) {
     try {
@@ -26,184 +26,115 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
     }
   }
 
-  // Gerar linha de exercício
+  // Helper: pillar colors
+  const pillarColor = (p: string) => p === 'LOWER' ? '#b45309' : p === 'PUSH' ? '#1d4ed8' : '#7c3aed'
+  const pillarBg = (p: string) => p === 'LOWER' ? '#fef3c7' : p === 'PUSH' ? '#dbeafe' : '#ede9fe'
+
+  // Exercise row — two-line layout (name, then sets/reps)
   const exRow = (ex: any) => {
-    const isSecundario = ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO'
-    const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : isSecundario ? 'S' : 'C'
-    const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : isSecundario ? 'ex-p' : 'ex-c'
-    return `<div class="ex-row">
-      <span class="ex-badge ${cls}">${label}</span>
-      <span class="ex-name">${ex.name}</span>
-      <span class="ex-info">${ex.sets}×${ex.reps} <em>${ex.rest || ''}</em></span>
+    const label = ex.role === 'FOCO_PRINCIPAL' ? 'F' : (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'
+    const bgColor = ex.role === 'FOCO_PRINCIPAL' ? '#ffedd5' : (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? '#f3e8ff' : '#dcfce7'
+    const textColor = ex.role === 'FOCO_PRINCIPAL' ? '#c2410c' : (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? '#7c3aed' : '#15803d'
+    const techniqueBadge = ex.technique ? `<span style="font-size:4.5pt;background:#fee2e2;color:#dc2626;padding:0.2mm 0.8mm;border-radius:0.4mm;margin-left:0.5mm;font-weight:600">${ex.technique}</span>` : ''
+    return `<div style="display:flex;align-items:flex-start;padding:0.8mm 1mm;border-bottom:0.3px solid #f0f0f0;gap:1mm">
+      <span style="width:3.5mm;height:3.5mm;font-size:4.5pt;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:0.5mm;flex-shrink:0;background:${bgColor};color:${textColor}">${label}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:5.5pt;font-weight:500;line-height:1.3">${ex.name}${techniqueBadge}</div>
+        <div style="font-size:4.5pt;color:#888;margin-top:0.2mm">${ex.sets}×${ex.reps} <span style="color:#d97706">${ex.rest || ''}</span></div>
+      </div>
     </div>`
   }
 
-  // Gerar preparação
+  // Preparation block
   const genPrep = (prep: any) => {
     if (!prep?.exercises || prep.exercises.length === 0) return ''
-    return `
-      <div class="prep-card">
-        <div class="prep-header">
-          <span>Preparação</span>
-          <span class="time">${prep.totalTime || '12 min'}</span>
-        </div>
-        <div class="prep-content">
-          ${prep.exercises.slice(0, 4).map((ex: any) =>
-      `<div class="prep-item">
-              <span>${ex.name}</span>
-              <span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span>
-            </div>`
-    ).join('')}
-        </div>
+    return `<div style="background:#fffbeb;border:0.5px solid #fcd34d;border-radius:1mm;padding:1.5mm;margin-bottom:1.5mm">
+      <div style="display:flex;justify-content:space-between;font-size:5.5pt;font-weight:600;color:#b45309;margin-bottom:0.5mm">
+        <span>Preparação</span><span style="font-weight:400">${prep.totalTime || ''}</span>
       </div>
-    `
+      <div style="font-size:4.5pt;color:#78716c">
+        ${prep.exercises.slice(0, 4).map((ex: any) =>
+          `<div style="display:flex;justify-content:space-between;padding:0.3mm 0"><span>${ex.name}</span><span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span></div>`
+        ).join('')}
+      </div>
+    </div>`
   }
 
-  // Gerar bloco
+  // Block card
   const genBlock = (b: any, idx: number) => `
-    <div class="block-card">
-      <div class="block-header">
-        <span>${b.name || `Bloco ${idx + 1}`}</span>
-        <span class="time">${b.restAfterBlock || ''}</span>
+    <div style="background:#eff6ff;border:0.5px solid #93c5fd;border-radius:1mm;padding:1.5mm;margin-bottom:1.5mm">
+      <div style="display:flex;justify-content:space-between;font-size:5.5pt;font-weight:600;color:#1e40af;margin-bottom:0.5mm">
+        <span>${b.name || `Bloco ${idx + 1}`}</span><span style="font-weight:400;color:#3b82f6">${b.restAfterBlock || ''}</span>
       </div>
-      <div class="block-content">
-        ${b.exercises?.map((e: any) => exRow(e)).join('') || ''}
-      </div>
-    </div>
-  `
+      ${b.exercises?.map((e: any) => exRow(e)).join('') || ''}
+    </div>`
 
-  // Gerar protocolo
+  // Protocol card
   const genProtocol = (protocol: any) => {
     if (!protocol) return ''
-    return `
-      <div class="prot-card">
-        <div class="prot-header">
-          <span>${protocol.name || 'Protocolo'}</span>
-          <span class="time">${protocol.totalTime || '6 min'}</span>
-        </div>
-        ${protocol.structure ? `<div class="prot-structure">${protocol.structure}</div>` : ''}
+    return `<div style="background:#ecfdf5;border:0.5px solid #6ee7b7;border-radius:1mm;padding:1.5mm;margin-top:1mm">
+      <div style="display:flex;justify-content:space-between;font-size:5.5pt;font-weight:600;color:#047857">
+        <span>${protocol.name || 'Protocolo'}</span><span style="font-weight:400">${protocol.totalTime || ''}</span>
       </div>
-    `
+      ${protocol.structure ? `<div style="font-size:4.5pt;color:#6b7280;margin-top:0.3mm">${protocol.structure}</div>` : ''}
+    </div>`
   }
 
-  // Gerar sessão/dia
+  // Session card
   const genSession = (s: any) => `
-    <div class="day-card">
-      <div class="day-header">
-        <div class="day-badge">${s.session}</div>
-        <span class="day-title">Dia ${s.session}</span>
-        <span class="day-duration">${s.estimatedDuration || 60} min</span>
+    <div style="border:0.5px solid #e5e5e5;border-radius:1.5mm;overflow:hidden;break-inside:avoid;display:flex;flex-direction:column">
+      <div style="background:${pillarBg(s.pillar)};padding:1.5mm 2mm;display:flex;align-items:center;gap:1.5mm;border-bottom:0.5px solid #e5e5e5">
+        <span style="width:5mm;height:5mm;background:#f59e0b;color:#fff;font-weight:700;font-size:6pt;display:flex;align-items:center;justify-content:center;border-radius:0.8mm;flex-shrink:0">${s.session}</span>
+        <span style="font-weight:600;font-size:6pt;flex:1">Dia ${s.session}</span>
+        ${s.pillarLabel ? `<span style="font-size:5pt;font-weight:700;color:${pillarColor(s.pillar)}">${s.pillarLabel}</span>` : ''}
+        <span style="font-size:5pt;color:#92400e;font-family:monospace">${s.estimatedDuration || 60}min</span>
       </div>
-      <div class="day-content">
-        ${genPrep(s.preparation)}
-        <div class="blocks-label">Blocos</div>
-        ${s.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}
-        ${genProtocol(s.finalProtocol)}
-      </div>
-    </div>
-  `
+      <div style="padding:1.5mm;flex:1">${genPrep(s.preparation)}<div style="font-size:5pt;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;margin:1mm 0 0.5mm">Blocos</div>${s.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}${genProtocol(s.finalProtocol)}</div>
+    </div>`
 
-  // Gerar semana
-  const genWeek = (w: any, isLast: boolean) => `
-    <section class="week-section${isLast ? ' last-week' : ''}">
-      <div class="week-header">
-        <div class="week-badge">${w.week || '?'}</div>
-        <div class="week-info">
-          <h2>Semana ${w.week || '?'}</h2>
-          ${w.phaseLabel ? `<span class="phase-label">Fase: ${w.phaseLabel}</span>` : ''}
+  // Week section — compact for 4-per-page
+  const genWeek = (w: any) => {
+    const numDays = w.sessions?.length || 3
+    return `
+    <div style="margin-bottom:4mm;break-inside:avoid;page-break-inside:avoid">
+      <div style="display:flex;align-items:center;gap:2mm;padding-bottom:1.5mm;margin-bottom:2mm;border-bottom:0.5px solid #e5e5e5">
+        <span style="width:7mm;height:7mm;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;font-size:8pt;display:flex;align-items:center;justify-content:center;border-radius:1.5mm;flex-shrink:0">${w.week || '?'}</span>
+        <div>
+          <span style="font-size:8pt;font-weight:600;color:#1a1a1a">Semana ${w.week || '?'}</span>
+          ${w.phaseLabel ? `<span style="font-size:6pt;color:#888;margin-left:2mm">Fase: ${w.phaseLabel}</span>` : ''}
         </div>
       </div>
-      <div class="days-grid">
+      <div style="display:grid;grid-template-columns:repeat(${Math.min(numDays, numDays <= 3 ? 3 : numDays <= 5 ? numDays : 3)}, 1fr);gap:2mm">
         ${w.sessions.map((s: any) => genSession(s)).join('')}
       </div>
-    </section>
-  `
-
-  // Layout inteligente baseado no número de dias
-  const getLayout = (days: number) => {
-    if (days <= 3) return { cols: 3, scale: 1 }
-    if (days === 4) return { cols: 2, scale: 0.95 }
-    if (days === 5) return { cols: 2, scale: 0.9 }
-    if (days === 6) return { cols: 2, scale: 0.85 }
-    return { cols: 1, scale: 0.8 }
+    </div>`
   }
 
-  const layout = getLayout(totalDays)
+  // Group weeks in batches of 4 for page breaks
+  const allWeeks = schedule.weeks || []
+  const pages: any[][] = []
+  for (let i = 0; i < allWeeks.length; i += 4) {
+    pages.push(allWeeks.slice(i, i + 4))
+  }
 
   const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Treino ${workout.client.name}</title>
 <style>
-@page{size:A4 portrait;margin:10mm 10mm 12mm 10mm}
+@page{size:A4 portrait;margin:8mm 8mm 10mm 8mm}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:8pt;color:#1a1a1a;line-height:1.3;background:#fff}
-
-/* HEADER FIXO E DOMINANTE */
-.pdf-header{position:fixed;top:0;left:0;right:0;height:26mm;padding:6mm 8mm;border-bottom:2px solid #f59e0b;background:#fff;z-index:100}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:6pt;color:#1a1a1a;line-height:1.25;background:#fff}
+.pdf-header{position:fixed;top:0;left:0;right:0;height:22mm;padding:4mm 8mm;border-bottom:1.5px solid #f59e0b;background:#fff;z-index:100}
 .header-content{display:flex;justify-content:space-between;align-items:center}
-.header-left{display:flex;align-items:center;gap:4mm}
-.header-left img{height:14mm;max-width:35mm;object-fit:contain}
-.header-info h1{font-size:12pt;font-weight:700;color:#1a1a1a;margin-bottom:1mm}
-.header-info p{font-size:8.5pt;color:#666;margin:0.4mm 0;line-height:1.3}
-.header-right{text-align:right;font-size:8.5pt;color:#666}
-.header-right strong{color:#1a1a1a;display:block;margin-bottom:1mm;font-size:9pt}
-
-/* FOOTER FIXO */
-.pdf-footer{position:fixed;bottom:4mm;left:0;right:0;font-size:7pt;text-align:center;color:#999}
-
-/* ÁREA DE CONTEÚDO */
-.pdf-content{margin-top:28mm;margin-bottom:12mm;transform-origin:top center;transform:scale(${layout.scale})}
-
-/* WEEK SECTION - 1 página por semana */
-.week-section{page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;min-height:calc(100vh - 40mm);page-break-before:auto}
-.week-section:not(:first-child){margin-top:30mm}
-.week-section.last-week{page-break-after:auto;break-after:auto}
-.week-header{display:flex;align-items:center;gap:2mm;padding-bottom:2mm;margin-bottom:4mm;border-bottom:1px solid #e5e5e5;page-break-inside:avoid;break-inside:avoid;page-break-after:avoid;break-after:avoid}
-.week-badge{width:9mm;height:9mm;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;font-size:10pt;display:flex;align-items:center;justify-content:center;border-radius:2mm;flex-shrink:0}
-.week-info{flex:1;min-width:0}
-.week-info h2{font-size:11pt;font-weight:600;color:#1a1a1a;margin:0;page-break-before:avoid;break-before:avoid}
-.phase-label{font-size:7.5pt;color:#888;margin-left:2mm}
-
-/* DAYS GRID - Dinâmico com CSS variables */
-.days-grid{display:grid;grid-template-columns:repeat(${layout.cols}, 1fr);gap:4mm;align-items:stretch}
-
-/* DAY CARD - Cresce para preencher espaço */
-.day-card{border:1px solid #e5e5e5;border-radius:2mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column;height:100%}
-.day-header{background:linear-gradient(135deg,#fef3c7,#fef9c3);padding:2.5mm;display:flex;align-items:center;gap:2mm;border-bottom:1px solid #fcd34d}
-.day-badge{width:7mm;height:7mm;background:#f59e0b;color:#fff;font-weight:700;font-size:8.5pt;display:flex;align-items:center;justify-content:center;border-radius:1mm}
-.day-title{font-weight:600;font-size:8.5pt;flex:1}
-.day-duration{font-size:7.5pt;color:#92400e;font-family:monospace}
-.day-content{padding:2.5mm;flex:1;display:flex;flex-direction:column;gap:2mm}
-
-/* PREP CARD */
-.prep-card{background:#fffbeb;border:1px solid #fcd34d;border-radius:1.5mm;padding:2.5mm;margin-bottom:2mm;break-inside:avoid;page-break-inside:avoid}
-.prep-header{display:flex;justify-content:space-between;font-size:8pt;font-weight:600;color:#b45309;margin-bottom:1mm}
-.prep-header .time{font-family:monospace;font-weight:400}
-.prep-content{font-size:7.5pt;color:#78716c}
-.prep-item{display:flex;justify-content:space-between;padding:0.6mm 0}
-
-/* BLOCKS */
-.blocks-label{font-size:7.5pt;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;margin:2mm 0 1.5mm}
-.block-card{background:#eff6ff;border:1px solid #93c5fd;border-radius:1.5mm;padding:2.5mm;margin-bottom:2mm;break-inside:avoid;page-break-inside:avoid}
-.block-header{display:flex;justify-content:space-between;font-size:8pt;font-weight:600;color:#1e40af;margin-bottom:1mm}
-.block-header .time{font-family:monospace;font-weight:400;color:#3b82f6}
-.block-content{background:#fff;border-radius:1mm;overflow:hidden}
-
-/* EXERCISE ROW */
-.ex-row{display:flex;align-items:center;padding:1.5mm;border-bottom:1px solid #e0f2fe;font-size:6pt}
-.ex-row:last-child{border-bottom:none}
-.ex-badge{width:5mm;height:5mm;font-size:6pt;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:0.8mm;margin-right:1.5mm;flex-shrink:0}
-.ex-f{background:#ffedd5;color:#c2410c}
-.ex-p{background:#f3e8ff;color:#7c3aed}
-.ex-c{background:#dcfce7;color:#15803d}
-.ex-name{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-size:6pt}
-.ex-info{font-size:5.5pt;color:#6b7280;margin-left:1mm;white-space:nowrap;flex-shrink:0}
-.ex-info em{color:#f59e0b;font-style:normal;margin-left:0.4mm;font-size:5pt}
-
-/* PROTOCOL CARD */
-.prot-card{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:1.5mm;padding:2.5mm;margin-top:2mm;break-inside:avoid;page-break-inside:avoid}
-.prot-header{display:flex;justify-content:space-between;font-size:8pt;font-weight:600;color:#047857}
-.prot-header .time{font-family:monospace;font-weight:400}
-.prot-structure{font-size:7.5pt;color:#6b7280;margin-top:1mm}
+.header-left{display:flex;align-items:center;gap:3mm}
+.header-left img{height:12mm;max-width:30mm;object-fit:contain}
+.header-info h1{font-size:10pt;font-weight:700;color:#1a1a1a;margin-bottom:0.5mm}
+.header-info p{font-size:7pt;color:#666;margin:0.3mm 0;line-height:1.2}
+.header-right{text-align:right;font-size:7pt;color:#666}
+.header-right strong{color:#1a1a1a;display:block;margin-bottom:0.5mm;font-size:7.5pt}
+.pdf-footer{position:fixed;bottom:3mm;left:0;right:0;font-size:5.5pt;text-align:center;color:#bbb}
+.pdf-content{margin-top:24mm;margin-bottom:10mm}
+.page-section{page-break-after:always;break-after:page}
+.page-section:last-child{page-break-after:auto;break-after:auto}
 </style></head><body>
 <header class="pdf-header">
   <div class="header-content">
@@ -223,14 +154,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;f
   </div>
 </header>
 <main class="pdf-content">
-${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks.length - 1)).join('') || ''}
+${pages.map((pageWeeks) => `
+  <div class="page-section">
+    ${pageWeeks.map(w => genWeek(w)).join('')}
+  </div>
+`).join('')}
 </main>
 <footer class="pdf-footer">
   <p>METODOLOGIA Expert Pro Training</p>
 </footer>
 </body></html>`
 
-  // Gerar PDF via API backend (Puppeteer)
+  // Generate PDF via backend API (Puppeteer)
   const res = await fetch('/api/pdf/treino', {
     method: 'POST',
     body: htmlContent,
@@ -244,17 +179,13 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
     throw new Error('Erro ao gerar PDF. Verifique se o servidor está configurado corretamente.')
   }
 
-  // Download do PDF
+  // Download PDF
   const blob = await res.blob()
-
-  // Criar link de download com tipo MIME correto
   const pdfBlob = new Blob([blob], { type: 'application/pdf' })
   const url = window.URL.createObjectURL(pdfBlob)
 
-  // Nome do arquivo sanitizado
   const fileName = `Treino_${workout.client.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
 
-  // Usar window.open como fallback para evitar bloqueio de download
   const a = document.createElement('a')
   a.style.display = 'none'
   a.href = url
@@ -262,14 +193,12 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
   a.type = 'application/pdf'
   document.body.appendChild(a)
 
-  // Tentar click, se falhar, abrir em nova aba
   try {
     a.click()
   } catch {
     window.open(url, '_blank')
   }
 
-  // Cleanup após delay
   setTimeout(() => {
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
