@@ -150,12 +150,46 @@ export async function PUT(
 
     // ========================================================================
     // REGRA DE IMUTABILIDADE: Avaliações COMPLETADAS são imutáveis
+    // Exceção: permitimos atualizar o NÍVEL do cliente diretamente
     // ========================================================================
     if (existing.status === 'COMPLETED') {
+      // Even for completed assessments, allow updating the client's level
+      const levelFromInput = inputJson?.level || (existing.inputJson as any)?.level
+      if (inputJson?.level && levelFromInput) {
+        const levelToPortuguese: Record<string, string> = {
+          'BEGINNER': 'INICIANTE',
+          'INTERMEDIATE': 'INTERMEDIARIO',
+          'ADVANCED': 'AVANCADO',
+        }
+        const clientLevel = levelToPortuguese[inputJson.level] || 'INICIANTE'
+        await prisma.client.update({
+          where: { id: existing.clientId },
+          data: { level: clientLevel },
+        })
+
+        // Also update the assessment's inputJson with the new level
+        const existingInput = (existing.inputJson || {}) as any
+        await prisma.assessment.update({
+          where: { id: assessmentId },
+          data: {
+            inputJson: { ...existingInput, level: inputJson.level } as any,
+          },
+        })
+
+        console.log(`📏 Nível do cliente atualizado via avaliação COMPLETADA: ${inputJson.level} → ${clientLevel}`)
+
+        return NextResponse.json({
+          success: true,
+          data: existing,
+          message: `Nível do aluno atualizado para ${clientLevel}`,
+          levelUpdated: true,
+        })
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: 'Avaliações finalizadas são imutáveis e não podem ser editadas. Isso garante a integridade do histórico de evolução do aluno.',
+          error: 'Avaliações finalizadas são imutáveis. Apenas o nível do aluno pode ser alterado.',
           immutable: true,
         },
         { status: 403 }

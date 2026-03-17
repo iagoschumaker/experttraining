@@ -262,6 +262,22 @@ export async function PUT(
       }
     }
 
+    // Always update client level when assessment includes a level
+    const finalInput = (inputJson || existingAssessment.inputJson) as any
+    if (finalInput?.level) {
+      const levelToPortuguese: Record<string, string> = {
+        'BEGINNER': 'INICIANTE',
+        'INTERMEDIATE': 'INTERMEDIARIO',
+        'ADVANCED': 'AVANCADO',
+      }
+      const clientLevel = levelToPortuguese[finalInput.level] || 'INICIANTE'
+      await prisma.client.update({
+        where: { id: existingAssessment.clientId },
+        data: { level: clientLevel },
+      })
+      console.log(`📏 Nível do cliente atualizado: ${finalInput.level} → ${clientLevel}`)
+    }
+
     // Log audit
     await prisma.auditLog.create({
       data: {
