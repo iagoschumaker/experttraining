@@ -21,6 +21,7 @@ import {
     getPreparationExercises,
     generateFinalProtocol,
     pickPillarFocos,
+    assignTechniques,
     BlockPrescription,
     PreparationExercise,
     PillarTemplate,
@@ -162,7 +163,10 @@ export function generateWorkoutTemplate(
         const weekPhase = calculatePhase(weekIndex + 1, targetWeeks)
 
         // Reutilizar o template FIXO, aplicando apenas progressão semanal
-        const blocks = applyWeeklyProgression(pillarTemplate, weekIndex, weekPhase)
+        let blocks = applyWeeklyProgression(pillarTemplate, weekIndex, weekPhase)
+
+        // Aplicar técnicas de intensificação baseadas no nível do aluno
+        blocks = assignTechniques(blocks, clientLevel)
 
         // Validação final anti-duplicidade
         const validation = validateSessionExercises(blocks)
@@ -173,8 +177,8 @@ export function generateWorkoutTemplate(
         // Preparação contextualizada ao pilar (variação por sessão é OK aqui)
         const prepExercises = getPreparationExercises(pillar, sessionIndex)
 
-        // Protocolo final baseado no objetivo, fase e pilar
-        const finalProtocol = generateFinalProtocol(primaryGoal, weekPhase, pillar)
+        // Protocolo final baseado no objetivo, fase, pilar E NÍVEL
+        const finalProtocol = generateFinalProtocol(primaryGoal, weekPhase, pillar, clientLevel)
 
         return {
             sessionIndex,

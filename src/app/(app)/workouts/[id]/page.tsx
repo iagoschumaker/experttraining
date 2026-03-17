@@ -256,7 +256,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       const cls = ex.role === 'FOCO_PRINCIPAL' ? 'ex-f' : isSecundario ? 'ex-p' : 'ex-c'
       return `<div class="ex-row">
         <span class="ex-badge ${cls}">${label}</span>
-        <span class="ex-name">${ex.name}</span>
+        <span class="ex-name">${ex.name}${ex.technique ? ` <span style="font-size:5pt;background:#fee2e2;color:#dc2626;padding:0.3mm 1mm;border-radius:0.5mm;margin-left:1mm;font-weight:600">${ex.technique}</span>` : ''}</span>
         <span class="ex-info">${ex.sets}×${ex.reps} <em>${ex.rest || ''}</em></span>
       </div>`
     }
@@ -1006,6 +1006,11 @@ ${schedule.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks
                                               (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
                                           </span>
                                           <span className="truncate font-medium">{ex.name}</span>
+                                          {ex.technique && (
+                                            <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-semibold shrink-0">
+                                              {ex.technique}
+                                            </span>
+                                          )}
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0 ml-1">
                                           {ex.sets && ex.reps && <span className="text-[10px] text-muted-foreground">{ex.sets}×{ex.reps}</span>}

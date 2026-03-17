@@ -73,6 +73,8 @@ export interface ExercisePrescription {
     level: ExerciseLevel
     /** Regiões corporais que contraindicam este exercício */
     contraindications?: BodyRegion[]
+    /** Técnica de intensificação (Juba): Rest Pause, Drop-set, Progressivo, Isometria */
+    technique?: string
     // Weekly progression (Juba method: S1→S6)
     weeklyReps?: string[]  // e.g. ['12','12','10','10','8','8']
     weeklyLoad?: string[]  // e.g. ['livre','livre','75%','75%','80%','80%']
@@ -1052,142 +1054,198 @@ export function getIntegracaoExercise(
  * Gera o protocolo final variando por PILAR + OBJETIVO + FASE
  * Cada combinação tem um protocolo distinto e coerente com o dia.
  */
+// ============================================================================
+// TÉCNICAS DE INTENSIFICAÇÃO POR NÍVEL — MÉTODO JUBA
+// ============================================================================
+// BEGINNER:      Sem técnica (foco em execução e adaptação)
+// INTERMEDIATE:  Rest Pause em 1 FOCO por sessão
+// ADVANCED:      Drop-set, Progressivo, Rest Pause, Isometria em todos os FOCOs
+// ============================================================================
+
+const TECHNIQUES_INTERMEDIATE = ['Rest Pause']
+const TECHNIQUES_ADVANCED = ['Drop-set', 'Progressivo', 'Rest Pause', 'Isometria']
+
+/**
+ * Atribui técnicas de intensificação aos exercícios dos blocos baseado no nível.
+ * BEGINNER: nenhuma técnica
+ * INTERMEDIATE: 1 FOCO por sessão recebe Rest Pause
+ * ADVANCED: todos os FOCOs recebem técnicas variadas
+ */
+export function assignTechniques(
+    blocks: BlockPrescription[],
+    clientLevel: ExerciseLevel
+): BlockPrescription[] {
+    if (clientLevel === 'BEGINNER') return blocks
+
+    const result = blocks.map(b => ({
+        ...b,
+        exercises: b.exercises.map(ex => ({ ...ex }))
+    }))
+
+    if (clientLevel === 'INTERMEDIATE') {
+        // Apenas 1 FOCO aleatório recebe Rest Pause
+        const focoBlocks = result.filter(b =>
+            b.exercises.some(ex => ex.role === 'FOCO_PRINCIPAL')
+        )
+        if (focoBlocks.length > 0) {
+            const randomBlock = focoBlocks[Math.floor(Math.random() * focoBlocks.length)]
+            const focoEx = randomBlock.exercises.find(ex => ex.role === 'FOCO_PRINCIPAL')
+            if (focoEx) {
+                focoEx.technique = TECHNIQUES_INTERMEDIATE[
+                    Math.floor(Math.random() * TECHNIQUES_INTERMEDIATE.length)
+                ]
+            }
+        }
+    }
+
+    if (clientLevel === 'ADVANCED') {
+        // Todos os FOCOs recebem técnicas variadas (sem repetir seguido)
+        let lastTechnique = ''
+        for (const block of result) {
+            const focoEx = block.exercises.find(ex => ex.role === 'FOCO_PRINCIPAL')
+            if (focoEx) {
+                let available = TECHNIQUES_ADVANCED.filter(t => t !== lastTechnique)
+                if (available.length === 0) available = TECHNIQUES_ADVANCED
+                const technique = available[Math.floor(Math.random() * available.length)]
+                focoEx.technique = technique
+                lastTechnique = technique
+            }
+        }
+    }
+
+    return result
+}
+
+// ============================================================================
+// PROTOCOLOS FINALIZADORES POR NÍVEL + PILAR — MÉTODO JUBA
+// ============================================================================
+// INICIANTE:     Super Glut, Meta Chest Elas., HIIT 20"/10", HIIT 30"/10"
+// INTERMEDIÁRIO:  Rest Pause, Leg Cranks, Meta Chest/Back, Triple Threat,
+//                Lunge Matrix, Matrix D.B Empurra, Protocolo Ombro
+// AVANÇADO:      Drop-set, Progressivo, Isometria, Super Legs, Meta Chest 2.0,
+//                Triple Threat Fit Ball, Matrix Puxada, Wood Chopper
+// ============================================================================
+
+interface FinalProtocolDef {
+    name: string
+    totalTime: string
+    structure: string
+    exercises?: { name: string; duration: string; rest: string }[]
+}
+
+// Pools de protocolos finais por nível e pilar
+const FINISHER_BEGINNER: Record<string, FinalProtocolDef[]> = {
+    LOWER: [
+        { name: 'Super Glut', totalTime: '5 minutos', structure: '3×10 reps' },
+        { name: 'HIIT Iniciante', totalTime: '4 minutos', structure: '20s trabalho / 10s descanso × 8 rounds' },
+    ],
+    PUSH: [
+        { name: 'Meta Chest Elas.', totalTime: '4 minutos', structure: '2×10 reps' },
+        { name: 'HIIT Iniciante', totalTime: '5 minutos', structure: '30s trabalho / 10s descanso × 8 rounds' },
+    ],
+    PULL: [
+        { name: 'HIIT Iniciante', totalTime: '4 minutos', structure: '20s trabalho / 10s descanso × 8 rounds' },
+        { name: 'Meta Chest Elas.', totalTime: '4 minutos', structure: '2×10 reps' },
+    ],
+}
+
+const FINISHER_INTERMEDIATE: Record<string, FinalProtocolDef[]> = {
+    LOWER: [
+        { name: 'Leg Cranks M.B', totalTime: '5 minutos', structure: '2×10 reps' },
+        { name: 'Lunge Matrix', totalTime: '6 minutos', structure: '2-3×10 reps' },
+        { name: 'Extensão e Abdução', totalTime: '5 minutos', structure: '3×10 reps' },
+    ],
+    PUSH: [
+        { name: 'Meta Chest', totalTime: '5 minutos', structure: '1-2×10 reps' },
+        { name: 'Matrix D.B Empurra', totalTime: '6 minutos', structure: '2-3×10 reps' },
+        { name: 'Protocolo Ombro (Super Band)', totalTime: '5 minutos', structure: '2×15 reps' },
+    ],
+    PULL: [
+        { name: 'Meta Back', totalTime: '5 minutos', structure: '1-2×10 reps' },
+        { name: 'Triple Threat Unilateral', totalTime: '5 minutos', structure: '1-2×10 reps' },
+        { name: 'Manguito Int./Ext. Elas.', totalTime: '5 minutos', structure: '2×15 reps' },
+    ],
+}
+
+const FINISHER_ADVANCED: Record<string, FinalProtocolDef[]> = {
+    LOWER: [
+        { name: 'Super Legs', totalTime: '6 minutos', structure: '3×10 reps — alta intensidade' },
+        { name: 'Leg Cranks', totalTime: '5 minutos', structure: '2-3×10 reps' },
+        { name: 'Protocolo Mini Band Coxa Abdução', totalTime: '5 minutos', structure: '3×12 reps' },
+    ],
+    PUSH: [
+        { name: 'Meta Chest 2.0', totalTime: '6 minutos', structure: '2-3×10 reps — intensificado' },
+        { name: 'Matrix D.B Empurra', totalTime: '6 minutos', structure: '2-3×10 reps' },
+        { name: 'Protocolo Ombro Elas.', totalTime: '5 minutos', structure: '1×10 reps' },
+    ],
+    PULL: [
+        { name: 'Meta Back', totalTime: '5 minutos', structure: '2-3×10 reps' },
+        { name: 'Triple Threat Fit Ball', totalTime: '6 minutos', structure: '3×10 reps' },
+        { name: 'Matrix Puxada D.B', totalTime: '6 minutos', structure: '2-3×10 reps' },
+    ],
+}
+
 export function generateFinalProtocol(
     goal: string,
     weekPhase: string,
-    pillar?: Pillar
+    pillar?: Pillar,
+    clientLevel: ExerciseLevel = 'BEGINNER'
 ): SessionPrescription['finalProtocol'] {
-    // PEAK: sempre HIIT independente do pilar
+    // PEAK: HIIT intenso independente do pilar e nível
     if (weekPhase === 'PEAK') {
+        const isAdvanced = clientLevel === 'ADVANCED'
         return {
-            name: 'HIIT Pico de Intensidade',
-            totalTime: '8 minutos',
-            structure: '30s trabalho / 30s descanso × 8 rounds',
+            name: isAdvanced ? 'HIIT Pico — Intensidade Máxima' : 'HIIT Pico de Intensidade',
+            totalTime: isAdvanced ? '8 minutos' : '6 minutos',
+            structure: isAdvanced
+                ? '30s trabalho / 15s descanso × 10 rounds'
+                : '30s trabalho / 30s descanso × 6 rounds',
             exercises: [
-                { name: 'Corda Naval', duration: '30s', rest: '30s' },
-                { name: 'Climbers', duration: '30s', rest: '30s' },
-                { name: 'Air Bike', duration: '30s', rest: '30s' },
-                { name: 'Skipping', duration: '30s', rest: '30s' },
+                { name: 'Corda Naval', duration: '30s', rest: isAdvanced ? '15s' : '30s' },
+                { name: 'Climbers', duration: '30s', rest: isAdvanced ? '15s' : '30s' },
+                { name: 'Air Bike', duration: '30s', rest: isAdvanced ? '15s' : '30s' },
+                { name: 'Skipping', duration: '30s', rest: isAdvanced ? '15s' : '30s' },
             ],
         }
     }
 
-    // ADAPTATION: regenerativo independente do pilar
+    // ADAPTATION: protocolo baseado no NÍVEL do aluno
     if (weekPhase === 'ADAPTATION') {
-        return {
-            name: 'Circuito Regenerativo',
-            totalTime: '6 minutos',
-            structure: 'Movimentos suaves contínuos × 3 rodadas',
-            exercises: [
-                { name: 'Tração Esteira', duration: '2 min', rest: '-' },
-                { name: 'Mobilidade Geral', duration: '2 min', rest: '-' },
-                { name: 'Skipping Leve', duration: '2 min', rest: '-' },
-            ],
-        }
-    }
-
-    // DEVELOPMENT (semanas 3-5): variar por PILAR
-    if (pillar === 'LOWER') {
-        if (goal === 'emagrecimento') {
+        if (clientLevel === 'BEGINNER') {
             return {
-                name: 'Sprint Metabólico — Perna & Quadril',
-                totalTime: '8 minutos',
-                structure: '20s sprint / 40s recuperação × 8 rounds',
-                exercises: [
-                    { name: 'Skipping', duration: '20s', rest: '40s' },
-                    { name: 'Lateral Shuffle', duration: '20s', rest: '40s' },
-                    { name: 'Air Bike', duration: '20s', rest: '40s' },
-                    { name: 'Jump Squat', duration: '20s', rest: '40s' },
-                ],
+                name: 'Circuito Regenerativo',
+                totalTime: '6 minutos',
+                structure: 'Movimentos suaves contínuos × 3 rodadas',
             }
         }
-        return {
-            name: 'Circuito Metabólico — Membros Inferiores',
-            totalTime: '6 minutos',
-            structure: '40s trabalho / 20s descanso × 6 rounds',
-            exercises: [
-                { name: 'Skipping', duration: '40s', rest: '20s' },
-                { name: 'Lateral Shuffle', duration: '40s', rest: '20s' },
-                { name: 'Air Bike', duration: '40s', rest: '20s' },
-            ],
-        }
+        // INTERMEDIATE e ADVANCED: usar pool de finishers do nível, mas versão leve
+        const pillarKey = pillar || 'LOWER'
+        const pool = clientLevel === 'ADVANCED'
+            ? FINISHER_ADVANCED[pillarKey] || FINISHER_ADVANCED.LOWER
+            : FINISHER_INTERMEDIATE[pillarKey] || FINISHER_INTERMEDIATE.LOWER
+        const picked = pool[Math.floor(Math.random() * pool.length)]
+        return { ...picked }
     }
 
-    if (pillar === 'PUSH') {
-        if (goal === 'emagrecimento') {
-            return {
-                name: 'Empurrada Metabólica — Circuito Push',
-                totalTime: '8 minutos',
-                structure: '30s trabalho / 30s descanso × 8 rounds',
-                exercises: [
-                    { name: 'Climbers', duration: '30s', rest: '30s' },
-                    { name: 'Flexão de Braço', duration: '30s', rest: '30s' },
-                    { name: 'Air Bike', duration: '30s', rest: '30s' },
-                    { name: 'Skipping', duration: '30s', rest: '30s' },
-                ],
-            }
-        }
-        return {
-            name: 'Finalizador Empurrada',
-            totalTime: '6 minutos',
-            structure: '40s trabalho / 20s descanso × 6 rounds',
-            exercises: [
-                { name: 'Climbers', duration: '40s', rest: '20s' },
-                { name: 'Flexão de Braço', duration: '40s', rest: '20s' },
-                { name: 'Air Bike', duration: '40s', rest: '20s' },
-            ],
-        }
+    // DEVELOPMENT (semanas 3+): protocolo baseado em NÍVEL + PILAR
+    const pillarKey = pillar || 'LOWER'
+
+    if (clientLevel === 'ADVANCED') {
+        const pool = FINISHER_ADVANCED[pillarKey] || FINISHER_ADVANCED.LOWER
+        const picked = pool[Math.floor(Math.random() * pool.length)]
+        return { ...picked }
     }
 
-    if (pillar === 'PULL') {
-        if (goal === 'emagrecimento') {
-            return {
-                name: 'Circuito Corda Naval — Puxada Metabólica',
-                totalTime: '8 minutos',
-                structure: '30s trabalho / 30s descanso × 8 rounds',
-                exercises: [
-                    { name: 'Corda Naval', duration: '30s', rest: '30s' },
-                    { name: 'TRX Remada Explosiva', duration: '30s', rest: '30s' },
-                    { name: 'Air Bike', duration: '30s', rest: '30s' },
-                    { name: 'Climbers', duration: '30s', rest: '30s' },
-                ],
-            }
-        }
-        return {
-            name: 'Finalizador Puxada — Corda Naval',
-            totalTime: '6 minutos',
-            structure: '40s trabalho / 20s descanso × 6 rounds',
-            exercises: [
-                { name: 'Corda Naval', duration: '40s', rest: '20s' },
-                { name: 'TRX Remada Explosiva', duration: '40s', rest: '20s' },
-                { name: 'Air Bike', duration: '40s', rest: '20s' },
-            ],
-        }
+    if (clientLevel === 'INTERMEDIATE') {
+        const pool = FINISHER_INTERMEDIATE[pillarKey] || FINISHER_INTERMEDIATE.LOWER
+        const picked = pool[Math.floor(Math.random() * pool.length)]
+        return { ...picked }
     }
 
-    // Fallback padrão por objetivo
-    if (goal === 'performance') {
-        return {
-            name: 'Potência Explosiva',
-            totalTime: '6 minutos',
-            structure: '20s máximo / 40s recuperação × 6 rounds',
-            exercises: [
-                { name: 'Air Bike', duration: '20s', rest: '40s' },
-                { name: 'Skater com Salto', duration: '20s', rest: '40s' },
-                { name: 'Corda Naval', duration: '20s', rest: '40s' },
-            ],
-        }
-    }
-    return {
-        name: 'Protocolo Metabólico Moderado',
-        totalTime: '6 minutos',
-        structure: '40s trabalho / 20s descanso × 6 rounds',
-        exercises: [
-            { name: 'Climbers', duration: '40s', rest: '20s' },
-            { name: 'Skipping', duration: '40s', rest: '20s' },
-            { name: 'Air Bike', duration: '40s', rest: '20s' },
-        ],
-    }
+    // BEGINNER: finalizadores simples
+    const pool = FINISHER_BEGINNER[pillarKey] || FINISHER_BEGINNER.LOWER
+    const picked = pool[Math.floor(Math.random() * pool.length)]
+    return { ...picked }
 }
 
 // ============================================================================
