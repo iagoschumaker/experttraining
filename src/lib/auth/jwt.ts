@@ -12,7 +12,7 @@ const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'dev-access-secret-change
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me'
 
 // Expiration times
-const ACCESS_EXPIRES_IN = '1h'
+const ACCESS_EXPIRES_IN = '8h'
 const REFRESH_EXPIRES_IN = '7d'
 
 // ============================================================================

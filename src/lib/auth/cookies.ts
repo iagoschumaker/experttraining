@@ -28,7 +28,7 @@ export async function setAccessTokenCookie(token: string): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.set(COOKIES.ACCESS_TOKEN, token, {
     ...BASE_OPTIONS,
-    maxAge: 60 * 60, // 1 hour (match JWT expiration)
+    maxAge: 8 * 60 * 60, // 8 hours (match JWT expiration)
   })
 }
 

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - MIDDLEWARE
 // ============================================================================
 // Middleware RBAC para proteção de rotas
@@ -13,7 +13,7 @@ import { COOKIES, ROUTES } from '@/lib/constants'
 // ROUTE PATTERNS
 // ============================================================================
 
-const PUBLIC_ROUTES = ['/login', '/api/auth/login', '/api/auth/refresh', '/areaaluno', '/api/areaaluno']
+const PUBLIC_ROUTES = ['/login', '/api/auth/login', '/api/auth/refresh', '/api/auth/refresh-redirect', '/areaaluno', '/api/areaaluno']
 const SUPERADMIN_ROUTES = /^\/superadmin/
 const APP_ROUTES = /^\/app/
 const SELECT_STUDIO_ROUTE = '/select-studio'
@@ -49,9 +49,15 @@ export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get(COOKIES.ACCESS_TOKEN)?.value
   console.log('🔒 Middleware check for:', pathname, '| Token:', accessToken ? 'EXISTS' : 'MISSING')
 
-  // No token - redirect to login
+  // No token — check if refresh token exists
   if (!accessToken) {
-    console.log('❌ No token, redirecting to login')
+    const refreshToken = request.cookies.get(COOKIES.REFRESH_TOKEN)?.value
+    if (refreshToken) {
+      // Refresh token exists! Redirect to refresh flow instead of login
+      console.log('🔄 Access token missing but refresh exists, attempting refresh...')
+      return redirectToRefresh(request)
+    }
+    console.log('❌ No tokens at all, redirecting to login')
     return redirectToLogin(request)
   }
 
@@ -60,8 +66,13 @@ export async function middleware(request: NextRequest) {
   console.log('🔓 Token verified:', payload ? 'VALID' : 'INVALID')
 
   if (!payload) {
-    // Token invalid/expired - try refresh or redirect to login
-    console.log('❌ Invalid token, redirecting to login')
+    // Token invalid/expired — check if refresh token exists
+    const refreshToken = request.cookies.get(COOKIES.REFRESH_TOKEN)?.value
+    if (refreshToken) {
+      console.log('🔄 Access token expired but refresh exists, attempting refresh...')
+      return redirectToRefresh(request)
+    }
+    console.log('❌ Both tokens invalid, redirecting to login')
     return redirectToLogin(request)
   }
 
@@ -130,11 +141,20 @@ function redirectToLogin(request: NextRequest) {
 
   const response = NextResponse.redirect(loginUrl)
 
-  // Clear invalid cookies
+  // Clear ONLY access token — preserve refresh token for future login
   response.cookies.delete(COOKIES.ACCESS_TOKEN)
-  response.cookies.delete(COOKIES.REFRESH_TOKEN)
 
   return response
+}
+
+/**
+ * Redireciona para o endpoint de refresh que faz o refresh server-side
+ * e redireciona de volta para a página original.
+ */
+function redirectToRefresh(request: NextRequest) {
+  const refreshUrl = new URL('/api/auth/refresh-redirect', request.url)
+  refreshUrl.searchParams.set('redirect', request.nextUrl.pathname)
+  return NextResponse.redirect(refreshUrl)
 }
 
 function redirectToUnauthorized(request: NextRequest) {
