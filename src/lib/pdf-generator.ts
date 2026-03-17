@@ -86,14 +86,14 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
   const numPillars = Object.keys(pillarSessions).length
 
   // Pillar cards in grid
-  const pillarGrid = `<div style="display:grid;grid-template-columns:repeat(${numPillars}, 1fr);gap:3mm;flex:1">
+  const pillarGrid = `<div style="display:grid;grid-template-columns:repeat(${numPillars}, 1fr);gap:3mm;align-items:start">
     ${Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => `
-    <div style="border:1px solid ${pBorder(pillar)};border-radius:2mm;overflow:hidden;display:flex;flex-direction:column">
+    <div style="border:1px solid ${pBorder(pillar)};border-radius:2mm;overflow:hidden">
       <div style="background:${pBg(pillar)};padding:2mm 3mm;border-bottom:0.5px solid ${pBorder(pillar)};display:flex;align-items:center;gap:2mm">
         <span style="font-size:9pt;font-weight:700;color:${pColor(pillar)}">${session.pillarLabel || pillar}</span>
         <span style="font-size:6pt;color:#666;margin-left:auto">${session.estimatedDuration || 60} min</span>
       </div>
-      <div style="padding:2mm;flex:1">
+      <div style="padding:2mm">
         ${genPrep(session.preparation)}
         ${session.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}
         ${genProt(session.finalProtocol)}
