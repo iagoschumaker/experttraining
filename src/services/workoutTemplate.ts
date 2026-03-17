@@ -20,6 +20,7 @@ import {
     validateSessionExercises,
     getPreparationExercises,
     generateFinalProtocol,
+    pickPillarFocos,
     BlockPrescription,
     PreparationExercise,
     PillarTemplate,
@@ -84,18 +85,17 @@ const MAX_WEEKS = 8
 const ATTENDANCE_THRESHOLD = 0.85
 
 // ============================================================================
-// GERAÇÃO DO TEMPLATE — COM TEMPLATES FIXOS POR PILAR
+// GERAÇÃO DO TEMPLATE — 2 FASES: FOCOS PRIMEIRO, DEPOIS COMPLETO
 // ============================================================================
 
 /**
  * Gera o template de sessões com TEMPLATES FIXOS POR PILAR.
  * 
- * REGRA PRINCIPAL:
- * 1. Identifica os pilares únicos no schedule (LOWER, PUSH, PULL)
- * 2. Gera UM template fixo por pilar (9 exercícios únicos, sem duplicatas)
- * 3. Para cada sessão no schedule, reutiliza o template do pilar correspondente
- * 4. Apenas variáveis de progressão (reps, load, rest) mudam por semana
- * 5. Valida cada sessão contra duplicidade antes de incluir
+ * REGRA PRINCIPAL (2 FASES):
+ * FASE 1: Reserva TODOS os exercícios FOCO de TODOS os pilares PRIMEIRO.
+ *         Isso garante que secundários de um pilar não "roubem" focos de outro.
+ * FASE 2: Gera templates completos com focos pré-atribuídos.
+ *         Secundários e cores são selecionados ao redor dos focos já reservados.
  */
 export function generateWorkoutTemplate(
     pillarSchedule: Pillar[],
@@ -106,17 +106,32 @@ export function generateWorkoutTemplate(
     pain?: PainContext,
 ): WorkoutTemplate {
     // ======================================================================
-    // STEP 1: Gerar UM template fixo por pilar (LOWER, PUSH, PULL)
+    // FASE 1: Reservar FOCOS de TODOS os pilares PRIMEIRO
     // ======================================================================
     const uniquePillars = Array.from(new Set(pillarSchedule)) as Pillar[]
     const pillarTemplates: Record<string, PillarTemplate> = {}
 
     // Set GLOBAL que rastreia TODOS os exercícios usados em TODOS os pilares
-    // Garante que NENHUM exercício repete entre dias diferentes
     const globalUsedNames = new Set<string>()
 
+    // Reservar os 3 FOCOs de cada pilar ANTES de gerar secundários/cores
+    const pillarFocos: Record<string, any[]> = {}
     for (const pillar of uniquePillars) {
-        const template = generatePillarTemplate(pillar, clientLevel, pain, globalUsedNames)
+        const focos = pickPillarFocos(pillar, clientLevel, pain, globalUsedNames)
+        pillarFocos[pillar] = focos
+        focos.forEach(f => globalUsedNames.add(f.name))
+        console.log(`🎯 FOCOs ${pillar} reservados: ${focos.map(f => f.name).join(', ')}`)
+    }
+
+    console.log(`📋 Total FOCOs reservados: ${globalUsedNames.size} exercícios`)
+
+    // ======================================================================
+    // FASE 2: Gerar templates completos com FOCOs pré-atribuídos
+    // ======================================================================
+    for (const pillar of uniquePillars) {
+        const template = generatePillarTemplate(
+            pillar, clientLevel, pain, globalUsedNames, pillarFocos[pillar]
+        )
         
         // Adicionar todos os exercícios deste pilar ao set global
         for (const name of template.exerciseNames) {

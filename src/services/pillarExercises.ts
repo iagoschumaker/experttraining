@@ -516,6 +516,10 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
             name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
+        {
+            name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['30-40m', '30-40m', '30-40m', '30-40m', '30-40m', '30-40m'],
+        },
         // ── INTERMEDIATE ──
         {
             name: 'Remada Alternada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
@@ -549,6 +553,10 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
         {
             name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
+        {
+            name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['30-40m', '30-40m', '30-40m', '30-40m', '30-40m', '30-40m'],
         },
         // ── INTERMEDIATE ──
         {
@@ -1328,6 +1336,7 @@ export function generatePillarTemplate(
     clientLevel: ExerciseLevel = 'BEGINNER',
     pain?: PainContext,
     globalUsedNames?: Set<string>,
+    preSelectedFocos?: ExercisePrescription[],
 ): PillarTemplate {
     const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
     const [opositorA, opositorB] = getOpposingPillars(pillar)
@@ -1336,31 +1345,31 @@ export function generatePillarTemplate(
     const usedNames = new Set<string>(globalUsedNames || [])
 
     // ══════════════════════════════════════════════════════════════
-    // STEP 1: Selecionar 3 FOCOS únicos (um por bloco)
+    // STEP 1: FOCOS — usar pré-selecionados OU selecionar
     // ══════════════════════════════════════════════════════════════
-    const focos: ExercisePrescription[] = []
-    for (const blockKey of blockKeys) {
-        // Tentar primeiro o pool preferido deste bloco
-        const primaryPool = filterExercises(FOCO_MAP[pillar][blockKey], clientLevel, pain)
-        let picked = pickUnique(primaryPool, usedNames)
-
-        // Se não achou, buscar nos pools dos outros blocos
-        if (!picked) {
-            for (const otherKey of blockKeys) {
-                if (otherKey === blockKey) continue
-                const altPool = filterExercises(FOCO_MAP[pillar][otherKey], clientLevel, pain)
-                picked = pickUnique(altPool, usedNames)
-                if (picked) break
+    let focos: ExercisePrescription[]
+    if (preSelectedFocos && preSelectedFocos.length === 3) {
+        focos = preSelectedFocos
+        focos.forEach(f => usedNames.add(f.name))
+    } else {
+        focos = []
+        for (const blockKey of blockKeys) {
+            const primaryPool = filterExercises(FOCO_MAP[pillar][blockKey], clientLevel, pain)
+            let picked = pickUnique(primaryPool, usedNames)
+            if (!picked) {
+                for (const otherKey of blockKeys) {
+                    if (otherKey === blockKey) continue
+                    const altPool = filterExercises(FOCO_MAP[pillar][otherKey], clientLevel, pain)
+                    picked = pickUnique(altPool, usedNames)
+                    if (picked) break
+                }
             }
+            if (!picked) {
+                picked = primaryPool[0] || filterExercises(FOCO_MAP[pillar][blockKeys[0]], clientLevel, pain)[0]
+            }
+            usedNames.add(picked.name)
+            focos.push({ ...picked })
         }
-
-        // Último recurso: pegar qualquer um do pool primário (duplicado mas evita crash)
-        if (!picked) {
-            picked = primaryPool[0] || filterExercises(FOCO_MAP[pillar][blockKeys[0]], clientLevel, pain)[0]
-        }
-
-        usedNames.add(picked.name)
-        focos.push({ ...picked })
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -1525,3 +1534,41 @@ export function validateSessionExercises(blocks: BlockPrescription[]): Validatio
     return { valid: errors.length === 0, errors }
 }
 
+/**
+ * FASE 1: Seleciona 3 exercícios FOCO únicos para um pilar.
+ * Deve ser chamada ANTES de gerar o template completo,
+ * para reservar os focos e evitar que secundários de outros pilares os consumam.
+ */
+export function pickPillarFocos(
+    pillar: Pillar,
+    clientLevel: ExerciseLevel = 'BEGINNER',
+    pain?: PainContext,
+    globalUsedNames?: Set<string>,
+): ExercisePrescription[] {
+    const blockKeys: Array<'bloco1' | 'bloco2' | 'bloco3'> = ['bloco1', 'bloco2', 'bloco3']
+    const usedNames = new Set<string>(globalUsedNames || [])
+    const focos: ExercisePrescription[] = []
+
+    for (const blockKey of blockKeys) {
+        const primaryPool = filterExercises(FOCO_MAP[pillar][blockKey], clientLevel, pain)
+        let picked = pickUnique(primaryPool, usedNames)
+
+        if (!picked) {
+            for (const otherKey of blockKeys) {
+                if (otherKey === blockKey) continue
+                const altPool = filterExercises(FOCO_MAP[pillar][otherKey], clientLevel, pain)
+                picked = pickUnique(altPool, usedNames)
+                if (picked) break
+            }
+        }
+
+        if (!picked) {
+            picked = primaryPool[0] || filterExercises(FOCO_MAP[pillar][blockKeys[0]], clientLevel, pain)[0]
+        }
+
+        usedNames.add(picked.name)
+        focos.push({ ...picked })
+    }
+
+    return focos
+}
