@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - ASSESSMENTS API
 // ============================================================================
 // GET  /api/studio/assessments - Lista avaliações
@@ -212,6 +212,19 @@ export async function POST(request: NextRequest) {
         createdAt: assessmentDate,
       },
     })
+
+    // Immediately update client level from assessment
+    const levelToPortuguese: Record<string, string> = {
+      'BEGINNER': 'INICIANTE',
+      'INTERMEDIATE': 'INTERMEDIARIO',
+      'ADVANCED': 'AVANCADO',
+    }
+    const clientLevel = levelToPortuguese[data.level] || 'INICIANTE'
+    await prisma.client.update({
+      where: { id: data.clientId },
+      data: { level: clientLevel },
+    })
+    console.log(`📏 Nível do cliente atualizado na criação da avaliação: ${data.level} → ${clientLevel}`)
 
     // Audit log
     await prisma.auditLog.create({
