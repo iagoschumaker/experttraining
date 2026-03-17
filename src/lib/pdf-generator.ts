@@ -1,6 +1,6 @@
 // ============================================================================
 // PDF GENERATOR — 4 WEEKS PER A4 PAGE
-// Ultra-compact design: no preparation shown, minimal spacing
+// Ultra-compact: header only on page 1, no preparation, minimal spacing
 // ============================================================================
 
 export async function generateWorkoutPDF(workout: any, schedule: any) {
@@ -42,7 +42,7 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
     </div>`
   }
 
-  // Block card — minimal
+  // Block card
   const genBlock = (b: any, idx: number) => `
     <div style="background:#eff6ff;border:0.3px solid #93c5fd;border-radius:0.8mm;padding:0.8mm;margin-bottom:0.8mm">
       <div style="display:flex;justify-content:space-between;font-size:4.5pt;font-weight:600;color:#1e40af;margin-bottom:0.3mm">
@@ -59,7 +59,7 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
     </div>`
   }
 
-  // Session card — no preparation (saves massive space)
+  // Session card — no preparation
   const genSession = (s: any) => `
     <div style="border:0.3px solid #ddd;border-radius:1mm;overflow:hidden;display:flex;flex-direction:column">
       <div style="background:${pillarBg(s.pillar)};padding:0.8mm 1mm;display:flex;align-items:center;gap:1mm;border-bottom:0.3px solid #ddd;font-size:4.5pt">
@@ -71,7 +71,7 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
       <div style="padding:0.8mm">${s.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}${genProtocol(s.finalProtocol)}</div>
     </div>`
 
-  // Week section — NO break-inside:avoid so weeks flow together
+  // Week section
   const genWeek = (w: any) => {
     const numDays = w.sessions?.length || 3
     const cols = numDays <= 3 ? 3 : numDays <= 5 ? numDays : 3
@@ -95,43 +95,48 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
     pages.push(allWeeks.slice(i, i + 4))
   }
 
+  // Build pages — header only on first page, subsequent pages start at top
   const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Treino ${workout.client.name}</title>
 <style>
 @page{size:A4 portrait;margin:6mm 6mm 8mm 6mm}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:5pt;color:#1a1a1a;line-height:1.2;background:#fff}
-.hdr{position:fixed;top:0;left:0;right:0;height:18mm;padding:3mm 6mm;border-bottom:1px solid #f59e0b;background:#fff;z-index:100;display:flex;justify-content:space-between;align-items:center}
+.hdr{padding:3mm 0 2mm;border-bottom:1px solid #f59e0b;margin-bottom:3mm;display:flex;justify-content:space-between;align-items:center}
 .hdr img{height:10mm;max-width:25mm;object-fit:contain}
 .hdr-l{display:flex;align-items:center;gap:2mm}
 .hdr h1{font-size:8pt;font-weight:700;margin-bottom:0.3mm}
 .hdr p{font-size:5.5pt;color:#666;margin:0.2mm 0}
 .hdr-r{text-align:right;font-size:5.5pt;color:#666}
 .hdr-r strong{color:#1a1a1a;display:block;font-size:6pt;margin-bottom:0.3mm}
-.ftr{position:fixed;bottom:2mm;left:0;right:0;font-size:4pt;text-align:center;color:#ccc}
-.main{margin-top:20mm;margin-bottom:8mm}
 .pg{page-break-after:always}
 .pg:last-child{page-break-after:auto}
+.pg-hdr{font-size:5pt;color:#999;border-bottom:0.3px solid #e5e5e5;padding-bottom:1mm;margin-bottom:2mm}
 </style></head><body>
-<div class="hdr">
-  <div class="hdr-l">
-    ${logoBase64 ? `<img src="${logoBase64}" alt="">` : ''}
-    <div>
-      <h1>${studioName}</h1>
-      <p><b>Aluno:</b> ${workout.client.name}</p>
-      <p><b>Programa:</b> ${workout.phaseDuration} sem. • ${freq}x/sem.</p>
-      ${studioPhone ? `<p>${studioPhone}${studioEmail ? ` • ${studioEmail}` : ''}</p>` : ''}
+${pages.map((pw, pageIdx) => `
+<div class="pg">
+  ${pageIdx === 0 ? `
+  <div class="hdr">
+    <div class="hdr-l">
+      ${logoBase64 ? `<img src="${logoBase64}" alt="">` : ''}
+      <div>
+        <h1>${studioName}</h1>
+        <p><b>Aluno:</b> ${workout.client.name}</p>
+        <p><b>Programa:</b> ${workout.phaseDuration} sem. • ${freq}x/sem.</p>
+        ${studioPhone ? `<p>${studioPhone}${studioEmail ? ` • ${studioEmail}` : ''}</p>` : ''}
+      </div>
+    </div>
+    <div class="hdr-r">
+      <strong>Expert Pro Training</strong>
+      <p>${new Date().toLocaleDateString('pt-BR')}</p>
     </div>
   </div>
-  <div class="hdr-r">
-    <strong>Expert Pro Training</strong>
-    <p>${new Date().toLocaleDateString('pt-BR')}</p>
-  </div>
+  ` : `
+  <div class="pg-hdr">${studioName} — ${workout.client.name} — Semanas ${pageIdx * 4 + 1}-${Math.min((pageIdx + 1) * 4, allWeeks.length)}</div>
+  `}
+  ${pw.map(w => genWeek(w)).join('')}
 </div>
-<div class="main">
-${pages.map((pw) => `<div class="pg">${pw.map(w => genWeek(w)).join('')}</div>`).join('')}
-</div>
-<div class="ftr">METODOLOGIA Expert Pro Training</div>
+`).join('')}
 </body></html>`
 
   const res = await fetch('/api/pdf/treino', {
