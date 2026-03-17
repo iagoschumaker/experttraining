@@ -12,6 +12,7 @@ import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { verifySuperAdmin } from '@/lib/auth/protection'
 import { generatePillarRotation, PILLAR_LABELS } from '@/services/pillarRotation'
+import { mapClientLevel, buildPainContext } from '@/services/pillarExercises'
 import {
     generateWorkoutTemplate,
     expandTemplateToSchedule,
@@ -152,11 +153,29 @@ export async function POST(request: NextRequest) {
 
                 const allPillars = pillarSchedule.schedule.flat()
 
+                // Map client level to exercise level (CRITICAL: was missing before!)
+                const clientLevel = client.level || 'INICIANTE'
+                const exerciseLevel = mapClientLevel(clientLevel)
+
+                // Build pain context from most recent assessment
+                const latestAssessment = await prisma.assessment.findFirst({
+                    where: { clientId: client.id, status: 'COMPLETED' },
+                    orderBy: { createdAt: 'desc' },
+                    select: { inputJson: true },
+                })
+                const inputData = latestAssessment?.inputJson as any
+                const painMap = inputData?.painMap || null
+                const painContext = buildPainContext(painMap)
+
+                console.log(`   🎯 ${client.name}: nível=${clientLevel}→${exerciseLevel}, dor=${JSON.stringify({knee: painContext.knee, lowerBack: painContext.lowerBack, shoulder: painContext.shoulder})}`)
+
                 const template = generateWorkoutTemplate(
                     allPillars,
                     'saude',
                     weeklyFrequency,
                     targetWeeks,
+                    exerciseLevel,
+                    painContext,
                 )
 
                 const schedule = expandTemplateToSchedule(template, 'saude')

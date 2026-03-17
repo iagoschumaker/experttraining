@@ -113,6 +113,7 @@ interface Client {
     id: string
     name: string
   } | null
+  level?: string
   assessments: Assessment[]
   workouts: Workout[]
 }
@@ -445,6 +446,19 @@ export default function ClientDetailPage() {
               <span className="text-sm text-muted-foreground">Status</span>
               <Badge variant={client.isActive ? 'default' : 'secondary'}>
                 {client.isActive ? 'Ativo' : 'Inativo'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Nível</span>
+              <Badge className={(() => {
+                const l = client.level || 'INICIANTE'
+                if (l === 'AVANCADO') return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                if (l === 'INTERMEDIARIO') return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                return 'bg-green-500/20 text-green-400 border-green-500/30'
+              })()}>
+                {client.level === 'AVANCADO' ? 'Avançado' :
+                 client.level === 'INTERMEDIARIO' ? 'Intermediário' :
+                 'Iniciante'}
               </Badge>
             </div>
           </CardContent>

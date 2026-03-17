@@ -421,15 +421,31 @@ export async function POST(
     })
 
     // ========================================================================
-    // 10. ATUALIZAR CLIENTE COM ESTADO ATUAL (se houver medidas)
+    // 10. ATUALIZAR CLIENTE COM ESTADO ATUAL (medidas + nível)
     // ========================================================================
-    if (Object.keys(clientUpdateData).length > 0) {
-      await prisma.client.update({
-        where: { id: assessment.clientId },
-        data: clientUpdateData,
-      })
-      console.log(`📏 Cliente atualizado com ${Object.keys(clientUpdateData).length} métricas`)
+    // Always save the fitness level from assessment to the client
+    const levelToPortuguese: Record<string, string> = {
+      'BEGINNER': 'INICIANTE',
+      'INTERMEDIATE': 'INTERMEDIARIO',
+      'ADVANCED': 'AVANCADO',
     }
+    clientUpdateData.level = levelToPortuguese[level] || 'INICIANTE'
+
+    // Save pain/injury notes to client
+    const painNotes: string[] = []
+    if (hasLowerBackPain) painNotes.push('Dor lombar')
+    if (hasKneePain) painNotes.push('Dor no joelho')
+    if (hasShoulderPain) painNotes.push('Dor no ombro')
+    if (hasNeckPain) painNotes.push('Dor no pescoço')
+    if (painNotes.length > 0) {
+      clientUpdateData.history = painNotes.join(', ')
+    }
+
+    await prisma.client.update({
+      where: { id: assessment.clientId },
+      data: clientUpdateData,
+    })
+    console.log(`📏 Cliente atualizado: nível=${clientUpdateData.level}, métricas=${Object.keys(clientUpdateData).length}, dores=[${painNotes.join(', ')}]`)
 
     // Audit log
     await prisma.auditLog.create({
