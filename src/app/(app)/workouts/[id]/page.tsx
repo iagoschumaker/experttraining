@@ -727,7 +727,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
                   📋 Exercícios por Pilar
                   <span className="text-[10px] text-muted-foreground font-normal">(os exercícios se repetem cada semana — só muda a progressão)</span>
                 </h4>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => (
                     <div key={pillar} className={`border-2 rounded-xl overflow-hidden ${
                       pillar === 'LOWER' ? 'border-amber-500/30' :

@@ -89,8 +89,9 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
   })
 
   // Generate pillar cards for page 1
-  const pillarCards = Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => `
-    <div style="border:1px solid ${pBorder(pillar)};border-radius:2mm;overflow:hidden;margin-bottom:3mm">
+  const numPillars = Object.keys(pillarSessions).length
+  const pillarCards = `<div style="display:grid;grid-template-columns:repeat(${numPillars}, 1fr);gap:3mm">${Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => `
+    <div style="border:1px solid ${pBorder(pillar)};border-radius:2mm;overflow:hidden">
       <div style="background:${pBg(pillar)};padding:2mm 3mm;border-bottom:0.5px solid ${pBorder(pillar)};display:flex;align-items:center;justify-content:between;gap:2mm">
         <span style="font-size:9pt;font-weight:700;color:${pColor(pillar)}">${session.pillarLabel || pillar}</span>
         <span style="font-size:6pt;color:#666;margin-left:auto">${session.estimatedDuration || 60} min</span>
@@ -101,7 +102,7 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
         ${genProt(session.finalProtocol)}
       </div>
     </div>
-  `).join('')
+  `).join('')}</div>`
 
   // ===== PAGE 2+: Progression table =====
 
