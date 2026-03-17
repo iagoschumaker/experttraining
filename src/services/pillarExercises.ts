@@ -369,121 +369,119 @@ const FOCO_LOWER: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]>
 }
 
 const FOCO_PUSH: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    // BLOCO 1 — EMPUR HORIZONTAL (Flexão)
-    // BEGINNER:     Flexão de Braço 3x 12/12/10/10/8/8
-    // INTERMEDIATE: Flexão BOSU/MB 3x 12/12/10/10/8/8
-    // ADVANCED:     Flexão MB Alternada 3x 12/12/10/10/8/8
+    // BLOCO 1 — SUPINO / PRESS HORIZONTAL
+    // Juba INICIANTE: Supino Reto DB
+    // Juba INTERMEDIÁRIO: Supino Reto BB/DB
+    // Juba AVANÇADO: Supino Inclinado DB / Supino Reto BB/DB
     bloco1: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE) ──
+        {
+            name: 'Supino Reto DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
         {
             name: 'Flexão de Braço', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
         {
-            name: 'Flexão de Braço TRX', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            name: 'Supino Reto BB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
-        // ── INTERMEDIATE ──
         {
             name: 'Flexão de Braço BOSU', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
+        // ── ADVANCED (Juba AVANÇADO) ──
         {
-            name: 'Flexão de Braço Pé Box', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['12', '12', '10', '10', '8', '8'],
-        },
-        // ── ADVANCED ──
-        {
-            name: 'Flexão de Braço MB Alternada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            name: 'Supino Inclinado DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
         {
-            name: 'Flexão de Braço com Carga', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            name: 'Flexão de Braço Pé Box', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
     ],
-    // BLOCO 2 — PRESS / OVERHEAD
-    // BEGINNER:     Push Press DB / Press DB 3x 12/12/10/10/8/8
-    // INTERMEDIATE: Press DB Unilateral 3x 12/12/10/10/8/8
-    // ADVANCED:     Push Press Explosivo 3x 12/12/10/10/10/10
+    // BLOCO 2 — DESENVOLVIMENTO / OVERHEAD PRESS
+    // Juba INICIANTE: Desenvolvimento 2DB Alt (3 apoios)
+    // Juba INTERMEDIÁRIO: Desenvolvimento Alt DB (3 apoios)
+    // Juba AVANÇADO: Desenvolvimento DB (Banco)
     bloco2: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE) ──
         {
-            name: 'Push Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
-            weeklyReps: ['12', '12', '10', '10', '8', '8'],
-        },
-        {
-            name: 'Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            name: 'Desenvolvimento 2DB Alt', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
         {
             name: 'Desenvolvimento DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
-        {
-            name: 'Push CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
-            weeklyReps: ['12', '12', '10', '10', '8', '8'],
-        },
-        // ── INTERMEDIATE ──
-        {
-            name: 'Press DB Unilateral', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['12', '12', '10', '10', '8', '8'],
-        },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
         {
             name: 'Desenvolvimento Alternado DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
-        // ── ADVANCED ──
         {
-            name: 'Push Press Explosivo', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
-            contraindications: ['SHOULDER', 'WRIST'],
+            name: 'Press DB Unilateral', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
+        // ── ADVANCED (Juba AVANÇADO) ──
+        {
+            name: 'Desenvolvimento DB Banco', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
+        },
+        {
+            name: 'Desenvolvimento Unil DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
     ],
-    // BLOCO 3 — INTEGRAÇÃO PUSH
+    // BLOCO 3 — FLY / CROSSOVER
+    // Juba INICIANTE: Fly Inclinado DB
+    // Juba INTERMEDIÁRIO: Fly Inclinado DB/CB Unil.
+    // Juba AVANÇADO: Crucifixo Reto DB / Cross Over Incl.
     bloco3: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE) ──
         {
-            name: 'Flexão de Braço', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            name: 'Fly Inclinado DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
+        {
+            name: 'Fly Inclinado Unil DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
         {
-            name: 'Push Press DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            name: 'Fly Inclinado CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
-        // ── INTERMEDIATE ──
+        // ── ADVANCED (Juba AVANÇADO) ──
         {
-            name: 'Flexão de Braço BOSU', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['12', '12', '10', '10', '8', '8'],
-        },
-        // ── ADVANCED ──
-        {
-            name: 'Push + Pull', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            name: 'Crucifixo Reto DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
         {
-            name: 'Push + Press', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            name: 'Cross Over Inclinado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
     ],
 }
 
 const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    // BLOCO 1 — TRX
-    // BEGINNER:     TRX Neutro 3x 12/12/10/10/8/8
-    // INTERMEDIATE: TRX Inclinado Aberto 3x 12/12/10/10/10/10
-    // ADVANCED:     TRX Pé Box / TRX Isométrico 3x 12/12/10/10/10/10
+    // BLOCO 1 — TRX / REMADA SUSPENSA
+    // Juba INICIANTE: TRX Neutro/Remada
+    // Juba INTERMEDIÁRIO: TRX Inclinado Aberto / TRX Fly
+    // Juba AVANÇADO: TRX Pé Box / TRX Isométrico
     bloco1: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE) ──
         {
             name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
         {
-            name: 'TRX Inclinado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            name: 'Puxada Elástico', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
-        // ── INTERMEDIATE ──
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
         {
             name: 'TRX Inclinado Aberto', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
@@ -496,7 +494,7 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
             name: 'TRX Fly', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
-        // ── ADVANCED ──
+        // ── ADVANCED (Juba AVANÇADO) ──
         {
             name: 'TRX Pé Box', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
@@ -506,78 +504,78 @@ const FOCO_PULL: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> 
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
     ],
-    // BLOCO 2 — REMADA
-    // BEGINNER:     Remada Curvada DB 3x 12/12/10/10/8/8
-    // INTERMEDIATE: Remada Alternada DB 3x 12/12/10/10/10/10
-    // ADVANCED:     Remada Corda 3x 12/12/10/10/10/10
+    // BLOCO 2 — REMADA / PUXADA
+    // Juba INICIANTE: Puxada Elástico Alter.
+    // Juba INTERMEDIÁRIO: Swimmers Elas / Remada Corda CB
+    // Juba AVANÇADO: Remada Corda / Remada DB Alt
     bloco2: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE) ──
         {
-            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
-            weeklyReps: ['12', '12', '10', '10', '8', '8'],
-        },
-        {
-            name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
-            weeklyReps: ['30-40m', '30-40m', '30-40m', '30-40m', '30-40m', '30-40m'],
-        },
-        // ── INTERMEDIATE ──
-        {
-            name: 'Remada Alternada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['12', '12', '10', '10', '10', '10'],
-        },
-        {
-            name: 'TRX Isométrico', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['12', '12', '10', '10', '10', '10'],
-        },
-        // ── ADVANCED ──
-        {
-            name: 'Remada Corda', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
-            weeklyReps: ['12', '12', '10', '10', '10', '10'],
-        },
-        {
-            name: 'Remada Explosiva', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
-            contraindications: ['LOWER_BACK', 'SHOULDER'],
-            weeklyReps: ['12', '12', '10', '10', '10', '10'],
-        },
-    ],
-    // BLOCO 3 — REMADA DOMINANTE (foco claro de puxada)
-    // BEGINNER:     Remada Curvada DB / TRX Remada
-    // INTERMEDIATE: Remada Unilateral DB / Meio Arremesso DB
-    // ADVANCED:     Remada Corda / TRX Pé Box
-    bloco3: [
-        // ── BEGINNER ──
-        {
-            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            name: 'Puxada Elástico Alternado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
         {
             name: 'TRX Remada', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
             weeklyReps: ['12', '12', '10', '10', '8', '8'],
         },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
         {
-            name: 'Carry', sets: 3, reps: '30-40m', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
-            weeklyReps: ['30-40m', '30-40m', '30-40m', '30-40m', '30-40m', '30-40m'],
-        },
-        // ── INTERMEDIATE ──
-        {
-            name: 'Remada Unilateral DB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['10 cada', '10 cada', '8 cada', '8 cada', '8 cada', '8 cada'],
+            name: 'Swimmers Elástico', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
         {
-            name: 'Meio Arremesso DB', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
-            weeklyReps: ['10', '10', '10', '10', '8', '8'],
+            name: 'Remada Corda CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
-        // ── ADVANCED ──
+        {
+            name: 'TRX Inclinado', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
+        },
+        // ── ADVANCED (Juba AVANÇADO) ──
         {
             name: 'Remada Corda', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
             weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
         {
-            name: 'TRX Pé Box', sets: 3, reps: '10', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
-            weeklyReps: ['10', '10', '8', '8', '8', '8'],
+            name: 'Remada Curvada DB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
+        },
+    ],
+    // BLOCO 3 — PULL COMBINADO
+    // Juba INICIANTE: Puxada Elástico
+    // Juba INTERMEDIÁRIO: Lateral Reach / TRX
+    // Juba AVANÇADO: Pulldown / Pulley Frente
+    bloco3: [
+        // ── BEGINNER (Juba INICIANTE) ──
+        {
+            name: 'Puxada Elástico', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
+        {
+            name: 'TRX Remada Neutra', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'BEGINNER',
+            weeklyReps: ['12', '12', '10', '10', '8', '8'],
+        },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
+        {
+            name: 'Remada Unilateral DB', sets: 3, reps: '10 cada', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['10 cada', '10 cada', '8 cada', '8 cada', '8 cada', '8 cada'],
+        },
+        {
+            name: 'Bíceps TRX', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'INTERMEDIATE',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
+        },
+        // ── ADVANCED (Juba AVANÇADO) ──
+        {
+            name: 'Pulldown Barrinha CB', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
+        },
+        {
+            name: 'Pulley Frente', sets: 3, reps: '12', rest: '60-90s', role: 'FOCO_PRINCIPAL', level: 'ADVANCED',
+            weeklyReps: ['12', '12', '10', '10', '10', '10'],
         },
     ],
 }
+
 
 // ============================================================================
 // EXERCÍCIOS SECUNDÁRIOS — POR PILAR OPOSITOR
@@ -667,9 +665,10 @@ const SECUNDARIO: Record<Pillar, Record<Pillar, ExercisePrescription[]>> = {
 // Nível associado ao bloco (bloco1=BEGINNER, bloco2=INTERMEDIATE, bloco3=ADVANCED)
 
 const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
-    // BLOCO 1 — Core BEGINNER: Rigidez + Prancha Reta
+    // BLOCO 1 — Core RIGIDEZ / PRANCHA ESTÁVEL
+    // Juba INICIANTE: Rigidez Elástico / Prancha Reta
     bloco1: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE + CONDICIONAMENTO) ──
         {
             name: 'Rigidez Elástico', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
             weeklyReps: ['15', '15', '12', '12', '10', '10'],
@@ -679,6 +678,9 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
             weeklyReps: ['20s', '20s', '25s', '25s', '30s', '30s'],
         },
         {
+            name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+        },
+        {
             name: 'Prancha Alta', sets: 3, reps: '20s', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
             weeklyReps: ['20s', '20s', '25s', '25s', '30s', '30s'],
         },
@@ -686,75 +688,95 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
             name: 'Rigidez Fit Ball', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
             weeklyReps: ['15', '15', '12', '12', '10', '10'],
         },
-        {
-            name: 'Rigidez Aqua Ball', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
-            weeklyReps: ['15', '15', '12', '12', '10', '10'],
-        },
-        // ── INTERMEDIATE ──
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
         {
             name: 'Rigidez Elástico Ponta do Pé', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
             weeklyReps: ['15', '15', '12', '12', '10', '10'],
         },
-        // ── ADVANCED ──
+        {
+            name: 'Rigidez Elástico Cima/Baixo', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
+            weeklyReps: ['15', '15', '12', '12', '10', '10'],
+        },
+        // ── ADVANCED (Juba AVANÇADO) ──
         {
             name: 'Prancha Alta Anilha', sets: 3, reps: '25s', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
             weeklyReps: ['25s', '25s', '30s', '30s', '30s', '30s'],
         },
-    ],
-    // BLOCO 2 — Core INTERMEDIATE: Anti-rotação
-    bloco2: [
-        // ── BEGINNER ──
         {
-            name: 'Dead Bug', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
-        },
-        {
-            name: 'Prancha com Elevação', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
-        },
-        {
-            name: 'Rigidez MB', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+            name: 'Rigidez Aqua Ball', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
             weeklyReps: ['15', '15', '12', '12', '10', '10'],
         },
-        // ── INTERMEDIATE ──
+    ],
+    // BLOCO 2 — Core LOMBAR / ANTI-ROTAÇÃO
+    // Juba INICIANTE: Lombar Elástico / Rigidez Fit Ball
+    bloco2: [
+        // ── BEGINNER (Juba INICIANTE + CONDICIONAMENTO) ──
+        {
+            name: 'Lombar Elástico', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+            weeklyReps: ['15', '15', '12', '12', '10', '10'],
+        },
+        {
+            name: 'Rigidez Elástico Cima/Baixo', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+        },
+        {
+            name: 'Perdigueiro Inverso', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+        },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
         {
             name: 'Rigidez Fit Ball Vai/Volta', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
             weeklyReps: ['15', '15', '12', '12', '10', '10'],
         },
         {
-            name: 'Rigidez Elástico Ponta do Pé', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
-            weeklyReps: ['15', '15', '12', '12', '10', '10'],
+            name: 'Lombar Elástico Assimétrico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
         },
-        { name: 'Prancha Toque Ombro', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
-        { name: 'Perdigueiro Inverso', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
-        { name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
-        // ── ADVANCED ──
         {
-            name: 'Prancha Alta Anilha', sets: 3, reps: '25s', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
-            weeklyReps: ['25s', '25s', '30s', '30s', '30s', '30s'],
+            name: 'Prancha Toque Ombro', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
+        },
+        // ── ADVANCED (Juba AVANÇADO) ──
+        {
+            name: 'Lombar Fit Ball', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
+        },
+        {
+            name: 'Rotação Twistter MB', sets: 3, reps: '15', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
         },
     ],
-    // BLOCO 3 — Core ADVANCED: Dinâmico
+    // BLOCO 3 — Core DINÂMICO / AB
+    // Juba INICIANTE: Prancha Lateral / Ab Infra c/Elástico
     bloco3: [
-        // ── BEGINNER ──
+        // ── BEGINNER (Juba INICIANTE + CONDICIONAMENTO) ──
         {
             name: 'Prancha Lateral', sets: 3, reps: '20s', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
             weeklyReps: ['20s', '20s', '25s', '25s', '30s', '30s'],
         },
-        { name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
-        { name: 'Dead Bug Alternado', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER' },
-        // ── INTERMEDIATE ──
-        { name: 'Prancha Dinâmica', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
-        { name: 'Prancha Alta com Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
-        { name: 'Pollof Press Elástico', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE' },
-        // ── ADVANCED ──
-        { name: 'Ab X-Up', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'ADVANCED' },
-        { name: 'Ab X-Up DB', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE', level: 'ADVANCED' },
-        { name: 'Rigidez Elástico Passo Lateral', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'ADVANCED' },
         {
-            name: 'Prancha Alta Anilha', sets: 3, reps: '25s', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
-            weeklyReps: ['25s', '25s', '30s', '30s', '30s', '30s'],
+            name: 'Ab Infra c/Elástico', sets: 3, reps: '12', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+        },
+        {
+            name: 'Prancha Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'BEGINNER',
+        },
+        // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
+        {
+            name: 'Prancha Alta c/Alcance', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
+        },
+        {
+            name: 'Prancha Dinâmica', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'INTERMEDIATE',
+        },
+        // ── ADVANCED (Juba AVANÇADO) ──
+        {
+            name: 'Ab X-Up', sets: 3, reps: '10-12', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
+        },
+        {
+            name: 'Ab X-Up DB', sets: 3, reps: '8-10', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
+        },
+        {
+            name: 'Rigidez Elástico Passo Lateral', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
+        },
+        {
+            name: 'Prancha Alta c/Remada DB', sets: 3, reps: '10 cada', rest: '20-40s', role: 'CORE', level: 'ADVANCED',
         },
     ],
 }
+
 
 // ============================================================================
 // INTEGRAÇÃO PUSH + PULL — BLOCO 3 SECUNDÁRIO (todos os pilares)
@@ -763,46 +785,43 @@ const CORE: Record<'bloco1' | 'bloco2' | 'bloco3', ExercisePrescription[]> = {
 // Estes são os únicos usados como Ex2 no Bloco 3
 
 const INTEGRACAO_PUSH_PULL: ExercisePrescription[] = [
-    // ── BEGINNER ──
+    // ── BEGINNER (Juba INICIANTE) ──
+    {
+        name: 'Meio Arremesso DB', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        weeklyReps: ['10', '10', '10', '8', '8', '8'],
+    },
+    {
+        name: 'Agachamento + Puxada Elástico', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        weeklyReps: ['10', '10', '10', '8', '8', '8'],
+    },
     {
         name: 'Remo + Press Alternado DB', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
         weeklyReps: ['10', '10', '10', '8', '8', '8'],
     },
     {
-        name: 'Clean and Press KB', sets: 3, reps: '8 cada', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
-        weeklyReps: ['8 cada', '8 cada', '8 cada', '6 cada', '6 cada', '6 cada'],
-        contraindications: ['SHOULDER', 'WRIST'],
-    },
-    {
-        name: 'Swing KB + Press', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
+        name: 'Retrocesso + Puxada Elástico', sets: 3, reps: '10', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
         weeklyReps: ['10', '10', '10', '8', '8', '8'],
     },
+    // ── INTERMEDIATE (Juba INTERMEDIÁRIO) ──
     {
-        name: 'Push + TRX Remada Alternado', sets: 3, reps: '8 cada', rest: '60-90s', role: 'SECUNDARIO', level: 'BEGINNER',
-        weeklyReps: ['8 cada', '8 cada', '8 cada', '6 cada', '6 cada', '6 cada'],
-    },
-    // ── INTERMEDIATE ──
-    {
-        name: 'Bear Complex DB', sets: 3, reps: '6', rest: '90-120s', role: 'SECUNDARIO', level: 'INTERMEDIATE',
-        weeklyReps: ['6', '6', '5', '5', '4', '4'],
-        contraindications: ['LOWER_BACK', 'SHOULDER'],
+        name: 'Push/Pull Elas + DB', sets: 3, reps: '10 cada', rest: '90-120s', role: 'SECUNDARIO', level: 'INTERMEDIATE',
+        weeklyReps: ['10 cada', '10 cada', '10 cada', '8 cada', '8 cada', '8 cada'],
     },
     {
-        name: 'Turkish Get Up KB', sets: 3, reps: '4 cada', rest: '90-120s', role: 'SECUNDARIO', level: 'INTERMEDIATE',
-        weeklyReps: ['4 cada', '4 cada', '4 cada', '3 cada', '3 cada', '3 cada'],
-        contraindications: ['SHOULDER', 'WRIST'],
+        name: 'Retrocesso Unil + Puxa CB', sets: 3, reps: '10 cada', rest: '90-120s', role: 'SECUNDARIO', level: 'INTERMEDIATE',
+        weeklyReps: ['10 cada', '10 cada', '10 cada', '8 cada', '8 cada', '8 cada'],
     },
-    // ── ADVANCED ──
+    // ── ADVANCED (Juba AVANÇADO) ──
     {
-        name: 'Man Maker DB', sets: 3, reps: '6', rest: '90-120s', role: 'SECUNDARIO', level: 'ADVANCED',
-        weeklyReps: ['6', '6', '5', '5', '4', '4'],
-        contraindications: ['SHOULDER', 'WRIST', 'LOWER_BACK'],
+        name: 'TRX Isométrico Unil + Press DB', sets: 3, reps: '10 cada', rest: '90-120s', role: 'SECUNDARIO', level: 'ADVANCED',
+        weeklyReps: ['10 cada', '10 cada', '10 cada', '8 cada', '8 cada', '8 cada'],
     },
     {
-        name: 'Complexo Remada + Thruster DB', sets: 3, reps: '6', rest: '90-120s', role: 'SECUNDARIO', level: 'ADVANCED',
-        weeklyReps: ['6', '6', '5', '5', '4', '4'],
+        name: 'Prancha Alta c/Remada DB', sets: 3, reps: '10 cada', rest: '90-120s', role: 'SECUNDARIO', level: 'ADVANCED',
+        weeklyReps: ['10 cada', '10 cada', '10 cada', '8 cada', '8 cada', '8 cada'],
     },
 ]
+
 
 // ============================================================================
 // PREPARAÇÃO DO MOVIMENTO — POR PILAR
