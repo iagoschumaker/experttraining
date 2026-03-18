@@ -55,6 +55,7 @@ import { ClientEvolution } from '@/components/clients/client-evolution'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
 import { ClientBodyComposition } from '@/components/clients/client-body-composition'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
+import { generateBodyCompositionPDF } from '@/lib/pdf-generator'
 import type { SkinfoldsInput } from '@/services/pollock'
 
 interface Assessment {
@@ -245,19 +246,91 @@ export default function ClientDetailPage() {
 
   // PDF body composition handler
   const handleBodyCompositionPDF = async () => {
+    if (!client) return
     try {
-      const element = document.getElementById('body-composition-section')
-      if (!element) return
-      const html2canvas = (await import('html2canvas')).default
-      const { jsPDF } = await import('jspdf')
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true })
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const imgWidth = pageWidth - 20
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight)
-      pdf.save(`composicao-corporal-${client?.name?.replace(/\s+/g, '-') ?? 'aluno'}.pdf`)
+      // Compute Pollock
+      let bf: number | null = null
+      const w = client.weight ? Number(client.weight) : null
+      const gender = client.gender as 'M' | 'F' | null
+      const age = client.birthDate ? ageFromBirthDate(client.birthDate) : null
+
+      if (w && gender && (gender === 'M' || gender === 'F') && client.birthDate) {
+        const sfInput: SkinfoldsInput = {
+          chest: client.sfChest ? Number(client.sfChest) : undefined,
+          abdomen: client.sfAbdomen ? Number(client.sfAbdomen) : undefined,
+          thigh: client.sfThigh ? Number(client.sfThigh) : undefined,
+          triceps: client.sfTriceps ? Number(client.sfTriceps) : undefined,
+          suprailiac: client.sfSuprailiac ? Number(client.sfSuprailiac) : undefined,
+          subscapular: client.sfSubscapular ? Number(client.sfSubscapular) : undefined,
+          midaxillary: client.sfMidaxillary ? Number(client.sfMidaxillary) : undefined,
+        }
+        const result = computePollock(sfInput, age!, w, gender)
+        if (result) bf = result.bodyFatPercent
+      }
+      if (bf == null && client.bodyFat) bf = Number(client.bodyFat)
+
+      // Build comparison data if selecting different dates
+      let comparisonData = null
+      const evals = (client.assessments || []).filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+      if (evals.length >= 1 && compareIdxA !== compareIdxB) {
+        const currentData: Record<string, number> = {}
+        if (client.weight) currentData.weight = Number(client.weight)
+        if (client.bodyFat) currentData.bodyFat = Number(client.bodyFat)
+        if (client.chest) currentData.chest = Number(client.chest)
+        if (client.waist) currentData.waist = Number(client.waist)
+        if (client.hip) currentData.hip = Number(client.hip)
+        if (client.abdomen) currentData.abdomen = Number(client.abdomen)
+        if (client.armRight) currentData.arm_right = Number(client.armRight)
+        if (client.armLeft) currentData.arm_left = Number(client.armLeft)
+        if (client.thighRight) currentData.thigh_right = Number(client.thighRight)
+        if (client.thighLeft) currentData.thigh_left = Number(client.thighLeft)
+        if (client.calfRight) currentData.calf_right = Number(client.calfRight)
+        if (client.calfLeft) currentData.calf_left = Number(client.calfLeft)
+        if (client.sfTriceps) currentData.sfTriceps = Number(client.sfTriceps)
+        if (client.sfSuprailiac) currentData.sfSuprailiac = Number(client.sfSuprailiac)
+        if (client.sfThigh) currentData.sfThigh = Number(client.sfThigh)
+        if (client.sfChest) currentData.sfChest = Number(client.sfChest)
+        if (client.sfAbdomen) currentData.sfAbdomen = Number(client.sfAbdomen)
+
+        const dataA = compareIdxA === -1 ? currentData : (evals[compareIdxA]?.bodyMetricsJson as Record<string, number> ?? {})
+        const dataB = compareIdxB === -1 ? currentData : (evals[compareIdxB]?.bodyMetricsJson as Record<string, number> ?? {})
+        const labelA = compareIdxA === -1 ? 'Atual' : new Date(evals[compareIdxA]?.createdAt).toLocaleDateString('pt-BR')
+        const labelB = compareIdxB === -1 ? 'Atual' : new Date(evals[compareIdxB]?.createdAt).toLocaleDateString('pt-BR')
+
+        comparisonData = { labelA, labelB, dataA, dataB }
+      }
+
+      await generateBodyCompositionPDF({
+        clientName: client.name,
+        gender,
+        age,
+        weight: w,
+        height: client.height ? Number(client.height) : null,
+        bodyFat: bf,
+        sfChest: client.sfChest ? Number(client.sfChest) : null,
+        sfAbdomen: client.sfAbdomen ? Number(client.sfAbdomen) : null,
+        sfThigh: client.sfThigh ? Number(client.sfThigh) : null,
+        sfTriceps: client.sfTriceps ? Number(client.sfTriceps) : null,
+        sfSuprailiac: client.sfSuprailiac ? Number(client.sfSuprailiac) : null,
+        sfSubscapular: client.sfSubscapular ? Number(client.sfSubscapular) : null,
+        sfMidaxillary: client.sfMidaxillary ? Number(client.sfMidaxillary) : null,
+        chest: client.chest ? Number(client.chest) : null,
+        waist: client.waist ? Number(client.waist) : null,
+        hip: client.hip ? Number(client.hip) : null,
+        abdomen: client.abdomen ? Number(client.abdomen) : null,
+        armRight: client.armRight ? Number(client.armRight) : null,
+        armLeft: client.armLeft ? Number(client.armLeft) : null,
+        forearmRight: client.forearmRight ? Number(client.forearmRight) : null,
+        forearmLeft: client.forearmLeft ? Number(client.forearmLeft) : null,
+        thighRight: client.thighRight ? Number(client.thighRight) : null,
+        thighLeft: client.thighLeft ? Number(client.thighLeft) : null,
+        calfRight: client.calfRight ? Number(client.calfRight) : null,
+        calfLeft: client.calfLeft ? Number(client.calfLeft) : null,
+        studioName: undefined,
+        studioLogo: undefined,
+        studioPhone: undefined,
+      }, comparisonData)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
       alert('Erro ao gerar PDF da composição corporal')
