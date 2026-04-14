@@ -277,8 +277,7 @@ function GenerateWorkoutPage() {
         if (data.data.client.objective) {
           setSelectedObjective(data.data.client.objective)
         }
-
-        setStep('objective')
+        // DON'T auto-advance — user clicks Próximo
       }
     } catch (err) {
       console.error('Error loading phases:', err)
@@ -292,19 +291,20 @@ function GenerateWorkoutPage() {
   async function handleSelectObjective(objective: string) {
     setSelectedObjective(objective)
     setError(null)
+    // DON'T auto-advance or reload phases here; goNext does it
+  }
 
-    if (!selectedAssessment) return
-
+  // Called when advancing FROM objective step
+  async function loadPhasesForObjective() {
+    if (!selectedAssessment || !selectedObjective) return
     try {
-      const res = await fetch(`/api/studio/workouts/phases?clientId=${selectedAssessment.client.id}&objective=${objective}`)
+      const res = await fetch(`/api/studio/workouts/phases?clientId=${selectedAssessment.client.id}&objective=${selectedObjective}`)
       const data = await res.json()
-
       if (data.success) {
         setPhases(data.data.phases)
         setAssessmentContext(data.data.assessmentContext)
         const recommended = data.data.phases.find((p: PhaseOption) => p.isRecommended)
         if (recommended) setSelectedPhase(recommended.value)
-        setStep('phase')
       }
     } catch (err) {
       console.error('Error reloading phases:', err)
@@ -470,6 +470,45 @@ function GenerateWorkoutPage() {
       setStep(STEPS[stepIndex - 1].key)
     }
     setError(null)
+  }
+
+  async function goNext() {
+    setError(null)
+    if (step === 'assessment') {
+      if (!selectedAssessment) { setError('Selecione uma avaliação'); return }
+      // Data already loaded in handleSelectAssessment
+      if (!clientInfo) { setError('Carregando dados do cliente...'); return }
+      setStep('objective')
+    } else if (step === 'objective') {
+      if (!selectedObjective) { setError('Selecione um objetivo'); return }
+      await loadPhasesForObjective()
+      setStep('phase')
+    } else if (step === 'phase') {
+      if (!selectedPhase) { setError('Selecione uma fase'); return }
+      setStep('mode')
+    } else if (step === 'mode') {
+      if (generationMode === 'manual') {
+        await loadTemplateForEditing()
+        setStep('edit')
+      } else {
+        setStep('config')
+      }
+    } else if (step === 'edit') {
+      setStep('config')
+    } else if (step === 'config') {
+      setStep('confirm')
+    }
+  }
+
+  // Can we proceed from the current step?
+  function canGoNext(): boolean {
+    if (step === 'assessment') return !!selectedAssessment && !!clientInfo
+    if (step === 'objective') return !!selectedObjective
+    if (step === 'phase') return !!selectedPhase
+    if (step === 'mode') return true
+    if (step === 'edit') return editableTreinos.length > 0
+    if (step === 'config') return true
+    return false
   }
 
   // ========================================================================
@@ -644,12 +683,24 @@ function GenerateWorkoutPage() {
                         {new Date(a.createdAt).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    {selectedAssessment?.id === a.id ? (
+                      <CheckCircle className="h-5 w-5 text-amber-500" />
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-muted" />
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
+
+          {/* Navigation */}
+          <div className="flex justify-end mt-6">
+            <Button onClick={goNext} disabled={!canGoNext()} className="bg-amber-500 hover:bg-amber-600 text-white">
+              Próximo
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -658,12 +709,7 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'objective' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Objetivo do Aluno</h2>
-            <Button variant="ghost" size="sm" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-          </div>
+          <h2 className="text-lg font-semibold mb-4">Objetivo do Aluno</h2>
 
           {clientInfo && (
             <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm">
@@ -688,6 +734,9 @@ function GenerateWorkoutPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-2xl">{OBJECTIVE_ICONS[obj.value] || '🎯'}</span>
                     <h3 className="font-semibold text-foreground">{obj.label}</h3>
+                    {selectedObjective === obj.value && (
+                      <CheckCircle className="h-5 w-5 text-amber-500 ml-auto" />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {OBJECTIVE_DESCRIPTIONS[obj.value] || ''}
@@ -695,6 +744,17 @@ function GenerateWorkoutPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+            </Button>
+            <Button onClick={goNext} disabled={!canGoNext()} className="bg-amber-500 hover:bg-amber-600 text-white">
+              Próximo
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </div>
       )}
@@ -704,13 +764,7 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'phase' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Selecione a Fase</h2>
-            <Button variant="ghost" size="sm" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-          </div>
-
+          <h2 className="text-lg font-semibold mb-2">Selecione a Fase</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Cada fase dura <span className="text-amber-500 font-semibold">6 semanas</span>.
           </p>
@@ -723,10 +777,7 @@ function GenerateWorkoutPage() {
                   selectedPhase === phase.value ? 'border-amber-500 bg-amber-500/5'
                     : phase.isRecommended ? 'border-amber-500/30' : ''
                 }`}
-                onClick={() => {
-                  setSelectedPhase(phase.value)
-                  setStep('mode')
-                }}
+                onClick={() => setSelectedPhase(phase.value)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
@@ -752,12 +803,27 @@ function GenerateWorkoutPage() {
                       {phase.isRecommended && (
                         <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">Recomendada</Badge>
                       )}
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      {selectedPhase === phase.value ? (
+                        <CheckCircle className="h-5 w-5 text-amber-500" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-muted" />
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+            </Button>
+            <Button onClick={goNext} disabled={!canGoNext()} className="bg-amber-500 hover:bg-amber-600 text-white">
+              Próximo
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </div>
       )}
@@ -767,12 +833,7 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'mode' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Modo de Criação</h2>
-            <Button variant="ghost" size="sm" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-          </div>
+          <h2 className="text-lg font-semibold mb-4">Modo de Criação</h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Auto */}
@@ -780,10 +841,7 @@ function GenerateWorkoutPage() {
               className={`cursor-pointer transition-all hover:border-emerald-500/50 ${
                 generationMode === 'auto' ? 'border-emerald-500 bg-emerald-500/5' : ''
               }`}
-              onClick={() => {
-                setGenerationMode('auto')
-                setStep('config')
-              }}
+              onClick={() => setGenerationMode('auto')}
             >
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
@@ -792,11 +850,10 @@ function GenerateWorkoutPage() {
                 <h3 className="font-semibold text-lg text-foreground mb-2">Automático</h3>
                 <p className="text-sm text-muted-foreground">
                   Gera o treino completo automaticamente com base no template da fase.
-                  Exercícios, séries e progressão predefinidos pelo método.
                 </p>
-                <Badge className="mt-3 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                  Recomendado
-                </Badge>
+                {generationMode === 'auto' && (
+                  <CheckCircle className="h-6 w-6 text-emerald-500 mx-auto mt-3" />
+                )}
               </CardContent>
             </Card>
 
@@ -805,11 +862,7 @@ function GenerateWorkoutPage() {
               className={`cursor-pointer transition-all hover:border-blue-500/50 ${
                 generationMode === 'manual' ? 'border-blue-500 bg-blue-500/5' : ''
               }`}
-              onClick={() => {
-                setGenerationMode('manual')
-                loadTemplateForEditing()
-                setStep('edit')
-              }}
+              onClick={() => setGenerationMode('manual')}
             >
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
@@ -817,14 +870,24 @@ function GenerateWorkoutPage() {
                 </div>
                 <h3 className="font-semibold text-lg text-foreground mb-2">Manual</h3>
                 <p className="text-sm text-muted-foreground">
-                  Edite o template da fase: troque, remova ou adicione exercícios.
-                  O sistema avisa sobre exercícios que podem agravar dores.
+                  Edite o template: troque, remova ou adicione exercícios.
                 </p>
-                <Badge className="mt-3 bg-blue-500/20 text-blue-400 border-blue-500/30">
-                  Personalizado
-                </Badge>
+                {generationMode === 'manual' && (
+                  <CheckCircle className="h-6 w-6 text-blue-500 mx-auto mt-3" />
+                )}
               </CardContent>
             </Card>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+            </Button>
+            <Button onClick={goNext} className="bg-amber-500 hover:bg-amber-600 text-white">
+              Próximo
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </div>
       )}
@@ -834,12 +897,7 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'edit' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Montar Treino</h2>
-            <Button variant="ghost" size="sm" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-          </div>
+          <h2 className="text-lg font-semibold mb-2">Montar Treino</h2>
 
           <p className="text-sm text-muted-foreground mb-4">
             Edite os exercícios do template. Avisos ⚠️ indicam possíveis conflitos com a avaliação do aluno.
@@ -933,15 +991,20 @@ function GenerateWorkoutPage() {
                 </Card>
               ))}
 
-              <Button
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-                size="lg"
-                onClick={() => setStep('config')}
-                disabled={editableTreinos.length === 0}
-              >
-                Continuar para Configuração
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              {/* Navigation */}
+              <div className="flex justify-between mt-2">
+                <Button variant="outline" onClick={goBack}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+                </Button>
+                <Button
+                  onClick={goNext}
+                  disabled={editableTreinos.length === 0}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  Próximo
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -1052,14 +1115,19 @@ function GenerateWorkoutPage() {
             </CardContent>
           </Card>
 
-          <Button
-            className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-            size="lg"
-            onClick={() => setStep('confirm')}
-          >
-            Revisar e Gerar
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
+          {/* Navigation */}
+          <div className="flex justify-between mt-2">
+            <Button variant="outline" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+            </Button>
+            <Button
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={goNext}
+            >
+              Revisar e Gerar
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1068,12 +1136,7 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'confirm' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Confirmar Geração</h2>
-            <Button variant="ghost" size="sm" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-          </div>
+          <h2 className="text-lg font-semibold mb-4">Confirmar Geração</h2>
 
           <Card className="mb-6 border-amber-500/30">
             <CardContent className="p-6">
