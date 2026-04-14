@@ -1,8 +1,9 @@
 // ============================================================================
 // EXPERT PRO TRAINING - TRAINING SESSIONS API
 // ============================================================================
-// GET  /api/studio/training-sessions - List active sessions for current trainer
-// POST /api/studio/training-sessions - Create new session
+// GET    /api/studio/training-sessions - List active sessions for current trainer
+// POST   /api/studio/training-sessions - Create new session
+// DELETE /api/studio/training-sessions - Clear all stuck (non-finalized) sessions
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -64,12 +65,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Selecione pelo menos um aluno' }, { status: 400 })
         }
 
-        // Verify no student is already in an active session in this studio
-        const todayStart = new Date()
-        todayStart.setHours(0, 0, 0, 0)
-
+        // Check ALL non-finalized sessions (no date limit) — catches stuck sessions from previous days
         const activeSessions = await prisma.trainingSession.findMany({
-            where: { studioId, finalized: false, createdAt: { gte: todayStart } },
+            where: { studioId, finalized: false },
         })
 
         const occupiedClientIds = new Set<string>()
@@ -84,7 +82,7 @@ export async function POST(request: NextRequest) {
         if (conflicting.length > 0) {
             return NextResponse.json({
                 success: false,
-                error: `Aluno(s) já em sessão ativa: ${conflicting.map((c: any) => c.clientName).join(', ')}`,
+                error: `Aluno(s) já em sessão ativa: ${conflicting.map((c: any) => c.clientName).join(', ')}. Limpe as sessões travadas se necessário.`,
             }, { status: 409 })
         }
 
@@ -110,5 +108,35 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Create training session error:', error)
         return NextResponse.json({ success: false, error: 'Erro ao criar sessão' }, { status: 500 })
+    }
+}
+
+// DELETE - Clear ALL stuck (non-finalized) sessions for this trainer
+// Used when sessions get stuck due to server restarts / deploys
+export async function DELETE(request: NextRequest) {
+    const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
+    if ('error' in auth) {
+        return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+    }
+
+    const { userId, studioId } = auth
+
+    try {
+        const result = await prisma.trainingSession.deleteMany({
+            where: {
+                studioId,
+                trainerId: userId,
+                finalized: false,
+            },
+        })
+
+        return NextResponse.json({
+            success: true,
+            data: { deleted: result.count },
+            message: `${result.count} sessão(ões) travada(s) removida(s)`,
+        })
+    } catch (error) {
+        console.error('Clear sessions error:', error)
+        return NextResponse.json({ success: false, error: 'Erro ao limpar sessões' }, { status: 500 })
     }
 }

@@ -109,6 +109,7 @@ export default function PresencaPage() {
     const [addStudentSearch, setAddStudentSearch] = useState('')
     const [finalizingSession, setFinalizingSession] = useState(false)
     const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
+    const [clearingStuck, setClearingStuck] = useState(false)
 
     const activeSession = serverSessions.find(s => s.id === activeTabId) || null
     const activeCards = activeTabId ? (cardsBySession.get(activeTabId) || []) : []
@@ -228,6 +229,27 @@ export default function PresencaPage() {
     }
     function selectAll() { setSelectedIds(new Set(clients.filter(c => !activeClientIdsState.has(c.id)).map(c => c.id))) }
     function deselectAll() { setSelectedIds(new Set()) }
+
+    async function clearStuckSessions() {
+        if (!confirm('Isso vai remover TODAS as sessões em aberto sem registrar presença. Continuar?')) return
+        setClearingStuck(true)
+        try {
+            const res = await fetchWithAuth('/api/studio/training-sessions', { method: 'DELETE' })
+            const data = await res.json()
+            if (data.success) {
+                setServerSessions([])
+                setCardsBySession(new Map())
+                setActiveTabId(null)
+                pillarOverridesRef.current.clear()
+                await loadSessions()
+                await loadActiveClients()
+                alert(data.message || 'Sessões limpas.')
+            } else {
+                alert(data.error || 'Erro ao limpar sessões')
+            }
+        } catch { alert('Erro de conexão') }
+        finally { setClearingStuck(false) }
+    }
 
     // ========================================================================
     // SESSION MANAGEMENT — Server-side
@@ -763,23 +785,48 @@ export default function PresencaPage() {
             </div>
 
             {/* Active sessions bar */}
-            {serverSessions.filter(s => !s.finalized).length > 0 && (
-                <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-xl p-3">
-                    <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">🟢 Sessões ativas</p>
-                    <div className="flex items-center gap-2 overflow-x-auto">
-                        {serverSessions.filter(s => !s.finalized).map(tab => (
-                            <button key={tab.id}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-green-500/15 to-emerald-500/15 text-green-400 border border-green-500/30 whitespace-nowrap flex-shrink-0 hover:from-green-500/25 hover:to-emerald-500/25 transition-all shadow-sm"
-                                onClick={() => { setActiveTabId(tab.id); if (!cardsBySession.has(tab.id)) loadSessionCards(tab) }}>
-                                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                                <Users className="w-3.5 h-3.5" />
-                                {tab.label}
-                                <ArrowLeft className="w-3 h-3 rotate-180" />
-                            </button>
-                        ))}
+            {serverSessions.filter(s => !s.finalized).length > 0 && (() => {
+                const stuckSessions = serverSessions.filter(s => !s.finalized && (Date.now() - new Date(s.createdAt).getTime()) > 6 * 60 * 60 * 1000)
+                const activeSessions = serverSessions.filter(s => !s.finalized)
+                return (
+                    <div className="space-y-2">
+                        {/* Normal active sessions */}
+                        {activeSessions.length > 0 && (
+                            <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/20 rounded-xl p-3">
+                                <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">🟢 Sessões ativas</p>
+                                <div className="flex items-center gap-2 overflow-x-auto">
+                                    {activeSessions.map(tab => (
+                                        <button key={tab.id}
+                                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-green-500/15 to-emerald-500/15 text-green-400 border border-green-500/30 whitespace-nowrap flex-shrink-0 hover:from-green-500/25 hover:to-emerald-500/25 transition-all shadow-sm"
+                                            onClick={() => { setActiveTabId(tab.id); if (!cardsBySession.has(tab.id)) loadSessionCards(tab) }}>
+                                            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                            <Users className="w-3.5 h-3.5" />
+                                            {tab.label}
+                                            <ArrowLeft className="w-3 h-3 rotate-180" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {/* Stuck sessions warning */}
+                        {stuckSessions.length > 0 && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-semibold text-amber-400">⚠️ {stuckSessions.length} sessão(ões) travada(s) detectada(s)</p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">Criadas há mais de 6h — provavelmente por um deploy ou reinicialização do servidor.</p>
+                                </div>
+                                <button
+                                    onClick={clearStuckSessions}
+                                    disabled={clearingStuck}
+                                    className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-semibold transition-colors disabled:opacity-50"
+                                >
+                                    {clearingStuck ? 'Limpando...' : 'Limpar Tudo'}
+                                </button>
+                            </div>
+                        )}
                     </div>
-                </div>
-            )}
+                )
+            })()}
 
             {/* Search + Controls */}
             <Card>
