@@ -3,7 +3,7 @@
 // ============================================================================
 // EXPERT TRAINING - ASSESSMENT RESULT PAGE
 // ============================================================================
-// Exibe o resultado da avaliação processada pelo Motor de Decisão
+// Exibe o resultado da avaliação processada — Sistema de Fases
 // ============================================================================
 
 import { useEffect, useState } from 'react'
@@ -21,7 +21,6 @@ import {
 import {
   ArrowLeft,
   CheckCircle,
-  XCircle,
   AlertTriangle,
   User,
   Target,
@@ -33,8 +32,39 @@ import {
   Minus,
   Scale,
   Ruler,
+  Layers,
+  Award,
 } from 'lucide-react'
-import type { AssessmentResult, Block } from '@/types'
+
+// Labels para fases e objetivos
+const PHASE_LABELS: Record<string, string> = {
+  CONDICIONAMENTO_1: 'Fundamento Híbrido I',
+  CONDICIONAMENTO_2: 'Condicionamento Híbrido',
+  HIPERTROFIA: 'Hipertrofia Híbrida',
+  FORCA: 'Força Híbrida',
+  POTENCIA: 'Potência Híbrida',
+  RESISTENCIA: 'Resistência / Fadiga',
+  METABOLICO: 'Metabólico',
+  HIPERTROFIA_2: 'Hipertrofia Híbrida II',
+  FORCA_2: 'Força Híbrida II',
+  RESISTENCIA_2: 'Resistência / Fadiga II',
+  METABOLICO_2: 'Metabólico II',
+}
+
+const OBJECTIVE_LABELS: Record<string, string> = {
+  EMAGRECIMENTO: 'Emagrecimento',
+  HIPERTROFIA_OBJ: 'Hipertrofia',
+  PERFORMANCE: 'Performance',
+  REABILITACAO: 'Reabilitação / Saúde',
+}
+
+const LEVEL_LABELS: Record<string, string> = {
+  INICIANTE: 'Iniciante',
+  INTERMEDIARIO: 'Intermediário',
+  INTERMEDIÁRIO: 'Intermediário',
+  AVANCADO: 'Avançado',
+  AVANÇADO: 'Avançado',
+}
 
 interface Assessment {
   id: string
@@ -42,14 +72,19 @@ interface Assessment {
   confidence: number | null
   createdAt: string
   completedAt: string | null
+  selectedPhase?: string | null
+  objective?: string | null
   inputJson: any
   bodyMetricsJson?: any
-  resultJson: AssessmentResult | null
+  resultJson: any
   client: {
     id: string
     name: string
     history: string | null
     objectives: string | null
+    level?: string
+    objective?: string
+    currentPhase?: string
   }
 }
 
@@ -176,6 +211,9 @@ export default function AssessmentResultPage() {
   }
 
   const result = assessment.resultJson
+  const clientLevel = assessment.client?.level || assessment.inputJson?.level || 'INICIANTE'
+  const clientObjective = assessment.objective || assessment.client?.objective || 'HIPERTROFIA_OBJ'
+  const selectedPhase = assessment.selectedPhase || assessment.client?.currentPhase || 'CONDICIONAMENTO_1'
 
   return (
     <div className="space-y-6">
@@ -228,101 +266,59 @@ export default function AssessmentResultPage() {
         </Card>
       ) : result ? (
         <>
-          {/* Summary */}
-          <div className="grid gap-4 md:grid-cols-2">
-
-            <Card>
+          {/* Summary Cards - Nível, Objetivo, Fase */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-l-4 border-l-blue-500">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Padrão Funcional
+                  Nível Avaliado
                 </CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
+                <Award className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-lg font-bold">
-                  {result.functionalPattern
-                    ?.replace(/_/g, ' ')
-                    .replace(/DOMINANT|FOCUS/g, '')}
+                <div className="text-2xl font-bold text-blue-500">
+                  {LEVEL_LABELS[clientLevel?.toUpperCase()] || translateDifficulty(clientLevel)}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Perfil de movimento identificado
+                  Classificação do aluno
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-l-4 border-l-emerald-500">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Blocos
+                  Objetivo
                 </CardTitle>
-                <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                <Target className="h-4 w-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-green-600">
-                    {result.allowedBlocks?.length || 0}
-                  </span>
-                  <span className="text-lg text-red-600">
-                    / {result.blockedBlocks?.length || 0}
-                  </span>
+                <div className="text-2xl font-bold text-emerald-500">
+                  {OBJECTIVE_LABELS[clientObjective] || clientObjective}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Liberados / Bloqueados
+                  Meta de treinamento
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-amber-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Fase Recomendada
+                </CardTitle>
+                <Layers className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-500">
+                  {PHASE_LABELS[selectedPhase] || selectedPhase?.replace(/_/g, ' ')}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Próxima fase de treino (6 semanas)
                 </p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Focus Areas */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Áreas de Foco
-              </CardTitle>
-              <CardDescription>
-                Prioridades identificadas para o treino
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <h4 className="mb-2 font-medium text-green-600">
-                    Foco Principal
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(result.focus?.primary || (result.primaryFocus ? [result.primaryFocus] : []))?.map((focus: string) => (
-                      <Badge key={focus} variant="default">
-                        {focus}
-                      </Badge>
-                    ))}
-                    {(!result.focus?.primary && !result.primaryFocus) && (
-                      <span className="text-sm text-muted-foreground">
-                        Nenhum foco identificado
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="mb-2 font-medium text-amber-500">
-                    Foco Secundário
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(result.focus?.secondary || result.secondaryFocus || [])?.map((focus: string) => (
-                      <Badge key={focus} variant="secondary">
-                        {focus}
-                      </Badge>
-                    ))}
-                    {(!result.focus?.secondary && (!result.secondaryFocus || result.secondaryFocus.length === 0)) && (
-                      <span className="text-sm text-muted-foreground">
-                        Nenhum foco secundário
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Evolution Section (if available) */}
           {evolution && evolution.daysBetween !== null && (
@@ -439,7 +435,7 @@ export default function AssessmentResultPage() {
             </Card>
           )}
 
-          {/* Body Metrics (current) */}
+          {/* Body Metrics (current - only when no evolution) */}
           {assessment.bodyMetricsJson && Object.keys(assessment.bodyMetricsJson).length > 0 && !evolution?.daysBetween && (
             <Card>
               <CardHeader>
@@ -524,7 +520,7 @@ export default function AssessmentResultPage() {
                     { key: 'thigh', label: 'Coxa' },
                   ].filter(({ key }) => s[key] != null)
                   if (!items.length) return null
-                  const soma = items.reduce((acc, { key }) => acc + (s[key] ?? 0), 0)
+                  const soma = items.reduce((acc: number, { key }) => acc + (s[key] ?? 0), 0)
                   return (
                     <div>
                       <h4 className="mb-3 text-sm font-medium text-muted-foreground">📏 Dobras Cutâneas (mm)</h4>
@@ -640,103 +636,9 @@ export default function AssessmentResultPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Nível Avaliado */}
-                {assessment.inputJson.level && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">🎯 Nível Avaliado</h4>
-                    <Badge className="bg-amber-500">
-                      {translateDifficulty(assessment.inputJson.level)}
-                    </Badge>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
-
-          {/* Allowed Blocks */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                Blocos Liberados
-              </CardTitle>
-              <CardDescription>
-                Exercícios e padrões de movimento recomendados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {result.allowedBlocks && result.allowedBlocks.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {result.allowedBlocks.map((block: Block | string, index: number) => {
-                    const blockData = typeof block === 'string' 
-                      ? { name: block } 
-                      : block as Block & { levelName?: string }
-                    return (
-                      <div
-                        key={typeof block !== 'string' && 'id' in block ? block.id : `block-${index}`}
-                        className="flex items-start gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-3"
-                      >
-                        <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" />
-                        <div>
-                          <div className="font-medium">{blockData.name}</div>
-                          {typeof block !== 'string' && 'levelName' in blockData && blockData.levelName && (
-                            <div className="text-sm text-muted-foreground">
-                              {blockData.levelName}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  Nenhum bloco liberado identificado
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Blocked Blocks */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-500" />
-                Blocos Bloqueados
-              </CardTitle>
-              <CardDescription>
-                Exercícios e padrões de movimento a evitar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {result.blockedBlocks && result.blockedBlocks.length > 0 ? (
-                <div className="space-y-3">
-                  {result.blockedBlocks.map(
-                    (item: string, index: number) => {
-                      return (
-                        <div
-                          key={`blocked-${index}`}
-                          className="rounded-lg border border-red-500/20 bg-red-500/10 p-3"
-                        >
-                          <div className="flex items-start gap-3">
-                            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
-                            <div>
-                              <div className="font-medium">{item}</div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    }
-                  )}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  Nenhum bloco bloqueado
-                </p>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Recommendations */}
           {result.recommendations && result.recommendations.length > 0 && (
@@ -749,7 +651,7 @@ export default function AssessmentResultPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {result.recommendations.map((rec, index) => (
+                  {result.recommendations.map((rec: string, index: number) => (
                     <li
                       key={index}
                       className="flex items-start gap-2 text-sm"
@@ -771,7 +673,7 @@ export default function AssessmentResultPage() {
                 Ver Cliente
               </Button>
             </Link>
-            <Link href={`/workouts/generate?assessmentId=${assessmentId}`}>
+            <Link href={`/workouts/generate?clientId=${assessment.client.id}`}>
               <Button>
                 <Dumbbell className="mr-2 h-4 w-4" />
                 Criar Treino
