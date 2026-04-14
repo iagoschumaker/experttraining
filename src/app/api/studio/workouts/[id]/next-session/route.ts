@@ -1,10 +1,3 @@
-// ============================================================================
-// EXPERT PRO TRAINING - NEXT SESSION API
-// ============================================================================
-// GET  /api/studio/workouts/[id]/next-session - Próxima sessão do aluno
-// POST /api/studio/workouts/[id]/next-session - Registrar sessão completada
-// ============================================================================
-
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
@@ -28,6 +21,93 @@ function getTodayRange() {
     const end = new Date(Date.UTC(year, month, day + 1, 2, 59, 59, 999))
     return { start, end }
 }
+
+// ============================================================================
+// NORMALIZAR TEMPLATE — suporta formato novo (PhaseWorkoutTemplate) e legado
+// ============================================================================
+// Novo formato (gerado após migração para phaseWorkouts.ts):
+//   templateJson = { treinos: [{ pillar, pillarLabel, blocos: [{name, exercises}], protocoloFinal }], preparations: [] }
+// Legado (workoutTemplate.ts):
+//   templateJson = { sessions: [{ pillar, pillarLabel, preparation: {}, blocks: [], finalProtocol: {} }] }
+//
+// Normaliza para o formato sessions[] usado pelo resto da API.
+function normalizeTemplate(raw: any): WorkoutTemplate {
+    // Already in sessions format
+    if (raw && Array.isArray(raw.sessions) && raw.sessions.length > 0) {
+        return raw as WorkoutTemplate
+    }
+
+    // New PhaseWorkoutTemplate format: has treinos[]
+    if (raw && Array.isArray(raw.treinos) && raw.treinos.length > 0) {
+        const preparations: any[] = raw.preparations || []
+        const sessions = raw.treinos.map((treino: any, i: number) => {
+            // Map blocos → blocks, normalizing exercise fields
+            const blocks = (treino.blocos || []).map((bloco: any) => ({
+                code: bloco.name?.split(' ')[0] || `B${i + 1}`,
+                name: bloco.name || `Bloco ${i + 1}`,
+                exercises: (bloco.exercises || []).map((ex: any) => ({
+                    name: ex.name || ex.nome || '',
+                    sets: ex.series || ex.sets || 3,
+                    reps: ex.reps || ex.repeticoes || '',
+                    rest: ex.rest || ex.descanso || '',
+                    weight: ex.weight || ex.carga || null,
+                    blockIdx: i,
+                    exerciseIdx: 0,
+                    role: 'main',
+                })),
+            }))
+
+            // Find matching preparation by index (Perna=0, Empurra=1, Puxa=2)
+            const prepIdx = i % Math.max(preparations.length, 1)
+            const prep = preparations[prepIdx] || preparations[0]
+            const preparation = prep ? {
+                title: prep.title || 'Aquecimento',
+                totalTime: '12 min',
+                exercises: (prep.exercises || []).map((ex: any) => ({
+                    name: ex.name || ex.nome || '',
+                    sets: 1,
+                    reps: ex.detail || ex.reps || '',
+                    rest: '',
+                    role: 'warmup',
+                })),
+            } : null
+
+            // Final protocol
+            const finalProtocol = treino.protocoloFinal ? {
+                name: 'Protocolo Final',
+                totalTime: '6-8 min',
+                structure: treino.protocoloFinal,
+                exercises: [],
+            } : null
+
+            return {
+                sessionIndex: i,
+                pillar: treino.pillar,
+                pillarLabel: treino.pillarLabel,
+                preparation,
+                blocks,
+                finalProtocol,
+                // Keep raw fields too
+                blocos: treino.blocos,
+                protocoloFinal: treino.protocoloFinal,
+                series: treino.series,
+            }
+        })
+
+        return {
+            sessions,
+            sessionsPerWeek: raw.sessionsPerWeek || 3,
+            targetWeeks: raw.targetWeeks || 6,
+            methodology: raw.methodology || 'EXPERT_PRO',
+            pillarSystem: raw.pillarSystem || 'PERNA_EMPURRA_PUXA',
+        }
+    }
+
+    // Fallback: empty template
+    return { sessions: [], sessionsPerWeek: 3, targetWeeks: 6, methodology: 'EXPERT_PRO', pillarSystem: 'PPL' }
+}
+
+
 
 // ============================================================================
 // GET - Retorna próxima sessão com periodização + check-in status do dia
@@ -66,13 +146,27 @@ export async function GET(
             )
         }
 
-        const template = workout.templateJson as unknown as WorkoutTemplate | null
+        const rawTemplate = workout.templateJson as any
 
-        if (!template || !template.sessions) {
+        if (!rawTemplate) {
             return NextResponse.json(
                 {
                     success: false,
-                    error: 'Este treino não possui template. Foi gerado no formato antigo.',
+                    error: 'Este treino não possui template.',
+                    legacyWorkout: true,
+                },
+                { status: 400 }
+            )
+        }
+
+        // Normalize: supports both phaseWorkouts format {treinos[]} and legacy {sessions[]}
+        const template = normalizeTemplate(rawTemplate)
+
+        if (template.sessions.length === 0) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Template sem sessões. Verifique o treino.',
                     legacyWorkout: true,
                 },
                 { status: 400 }
@@ -211,9 +305,9 @@ export async function POST(
             )
         }
 
-        const template = workout.templateJson as unknown as WorkoutTemplate | null
+        const template = normalizeTemplate(workout.templateJson as any)
 
-        if (!template || !template.sessions) {
+        if (template.sessions.length === 0) {
             return NextResponse.json(
                 { success: false, error: 'Treino sem template' },
                 { status: 400 }

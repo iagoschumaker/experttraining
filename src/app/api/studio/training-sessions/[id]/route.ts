@@ -95,6 +95,10 @@ export async function POST(
         const students = (session.studentsJson as any[]) || []
         const results: { clientId: string; clientName: string; checkedIn: boolean; error?: string }[] = []
 
+        // pillarOverrides: optional map from frontend { clientId: sessionIndex }
+        const body = await request.json().catch(() => ({}))
+        const pillarOverrides: Record<string, number> = body.pillarOverrides || {}
+
         // Helper: today range in BRT
         const nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
         const year = nowBRT.getFullYear(), month = nowBRT.getMonth(), day = nowBRT.getDate()
@@ -135,7 +139,13 @@ export async function POST(
                 // Compute session details
                 const template = workout.templateJson as any
                 const sessions = template.sessions || []
-                const sessionIndex = sessions.length > 0 ? workout.sessionsCompleted % sessions.length : 0
+
+                // Use trainer's manual pillar override if provided, otherwise auto-rotate
+                const overrideIdx = pillarOverrides[student.clientId]
+                const sessionIndex = overrideIdx !== undefined && overrideIdx >= 0 && overrideIdx < sessions.length
+                    ? overrideIdx
+                    : (sessions.length > 0 ? workout.sessionsCompleted % sessions.length : 0)
+
                 const currentWeek = Math.floor(workout.sessionsCompleted / (workout.sessionsPerWeek || 3)) + 1
                 const currentSession = sessions[sessionIndex] || null
 

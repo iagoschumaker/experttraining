@@ -19,16 +19,13 @@ export async function GET(request: NextRequest) {
     const { userId, studioId } = auth
 
     try {
-        // Get today's start (UTC) for filtering
-        const todayStart = new Date()
-        todayStart.setHours(0, 0, 0, 0)
-
+        // List ALL non-finalized sessions for this trainer+studio
+        // (no date filter — sessions created near BRT midnight would be invisible otherwise)
         const sessions = await prisma.trainingSession.findMany({
             where: {
                 studioId,
                 trainerId: userId,
                 finalized: false,
-                createdAt: { gte: todayStart },
             },
             orderBy: { createdAt: 'asc' },
         })

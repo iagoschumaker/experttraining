@@ -335,9 +335,16 @@ export default function PresencaPage() {
         if (!activeTabId) return
         setFinalizingSession(true)
         try {
+            // Build pillarOverrides map: clientId → sessionIndex (from manual selections)
+            const pillarOverridesMap: Record<string, number> = {}
+            for (const [clientId, sessionIndex] of pillarOverridesRef.current.entries()) {
+                pillarOverridesMap[clientId] = sessionIndex
+            }
+
             const res = await fetchWithAuth(`/api/studio/training-sessions/${activeTabId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pillarOverrides: pillarOverridesMap }),
             })
             const data = await res.json()
             if (data.success) {
