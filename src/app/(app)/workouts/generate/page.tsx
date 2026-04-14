@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,9 +35,23 @@ import {
   GripVertical,
   Settings2,
   Wand2,
+  Search,
+  User,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  FlameKindling,
+  Shield,
 } from 'lucide-react'
 import Link from 'next/link'
 import { translatePainRegion, translateMovementPattern } from '@/lib/translations'
+import {
+  getExercisesForPosition,
+  POSITION_LABELS,
+  PREP_EXERCISES,
+  FINAL_PROTOCOL_OPTIONS,
+  ExerciseCatalogEntry,
+} from '@/lib/exerciseCatalog'
 
 // ============================================================================
 // TIPOS
@@ -77,9 +91,15 @@ interface AssessmentContext {
 interface EditableExercise {
   name: string
   reps: string
+  rest?: string
   weeklyReps?: string[]
   weeklyLoad?: string[]
   _warnings?: string[]
+}
+
+interface EditablePrepExercise {
+  name: string
+  detail: string
 }
 
 interface EditableBlock {
@@ -93,6 +113,8 @@ interface EditableTreino {
   series: string
   blocos: EditableBlock[]
   protocoloFinal: string
+  editablePrep?: EditablePrepExercise[]
+  prepTitle?: string
 }
 
 // ============================================================================
@@ -213,6 +235,10 @@ function GenerateWorkoutPage() {
   const [notes, setNotes] = useState('')
   const [levelUp, setLevelUp] = useState(false)
 
+  // Assessment search
+  const [assessmentSearch, setAssessmentSearch] = useState('')
+
+
   // Assessment context (para avisos)
   const [assessmentContext, setAssessmentContext] = useState<AssessmentContext | null>(null)
 
@@ -323,17 +349,26 @@ function GenerateWorkoutPage() {
       const data = await res.json()
 
       if (data.success && data.data.treinos) {
-        // Adicionar warnings a cada exercício
-        const treinos = data.data.treinos.map((treino: any) => ({
-          ...treino,
-          blocos: treino.blocos.map((bloco: any) => ({
-            ...bloco,
-            exercises: bloco.exercises.map((ex: any) => ({
-              ...ex,
-              _warnings: assessmentContext ? getExerciseWarnings(ex.name, assessmentContext.painMap) : [],
+        const preparations: any[] = data.data.preparations || []
+        // Adicionar warnings a cada exercício + preparação editável por treino
+        const treinos = data.data.treinos.map((treino: any, tIdx: number) => {
+          const prep = preparations[tIdx % Math.max(preparations.length, 1)] || preparations[0]
+          return {
+            ...treino,
+            blocos: treino.blocos.map((bloco: any) => ({
+              ...bloco,
+              exercises: bloco.exercises.map((ex: any) => ({
+                ...ex,
+                rest: ex.rest || '',
+                _warnings: assessmentContext ? getExerciseWarnings(ex.name, assessmentContext.painMap) : [],
+              })),
             })),
-          })),
-        }))
+            editablePrep: prep
+              ? (prep.exercises || []).map((ex: any) => ({ name: ex.name || '', detail: ex.detail || '' }))
+              : [],
+            prepTitle: prep?.title || `Preparação ${tIdx + 1}`,
+          }
+        })
         setEditableTreinos(treinos)
       } else {
         setError('Template não encontrado para esta fase e nível')
@@ -649,60 +684,164 @@ function GenerateWorkoutPage() {
       {/* Assessment Context Panel — always visible after step 1 */}
       {step !== 'assessment' && renderAssessmentPanel()}
 
-      {/* ================================================================== */}
       {/* STEP 1: SELECIONAR AVALIAÇÃO */}
       {/* ================================================================== */}
-      {step === 'assessment' && (
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Selecione a Avaliação</h2>
-
-          {availableAssessments.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Nenhuma avaliação concluída encontrada</p>
-                <Link href="/assessments/new" className="mt-4 inline-block">
-                  <Button variant="outline">Criar Avaliação</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
-              {availableAssessments.map((a) => (
-                <Card
-                  key={a.id}
-                  className={`cursor-pointer transition-all hover:border-amber-500/50 ${
-                    selectedAssessment?.id === a.id ? 'border-amber-500 bg-amber-500/5' : ''
-                  }`}
-                  onClick={() => handleSelectAssessment(a)}
-                >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-foreground">{a.client.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(a.createdAt).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    {selectedAssessment?.id === a.id ? (
-                      <CheckCircle className="h-5 w-5 text-amber-500" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border-2 border-muted" />
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+      {step === 'assessment' && (() => {
+        const filtered = availableAssessments.filter(a => {
+          const q = assessmentSearch.toLowerCase()
+          return (
+            a.client.name.toLowerCase().includes(q) ||
+            new Date(a.createdAt).toLocaleDateString('pt-BR').includes(q)
+          )
+        })
+        return (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold mb-1">Selecione a Avaliação</h2>
+              <p className="text-sm text-muted-foreground">Busque pelo nome do aluno ou data da avaliação</p>
             </div>
-          )}
 
-          {/* Navigation */}
-          <div className="flex justify-end mt-6">
-            <Button onClick={goNext} disabled={!canGoNext()} className="bg-amber-500 hover:bg-amber-600 text-white">
-              Próximo
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            {availableAssessments.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">Nenhuma avaliação concluída encontrada</p>
+                  <Link href="/assessments/new" className="mt-4 inline-block">
+                    <Button variant="outline">Criar Avaliação</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {/* Search bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={assessmentSearch}
+                    onChange={e => setAssessmentSearch(e.target.value)}
+                    placeholder="Pesquisar por nome ou data..."
+                    className="pl-10 h-11 text-sm"
+                    autoFocus
+                  />
+                  {assessmentSearch && (
+                    <button
+                      onClick={() => setAssessmentSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Count */}
+                <p className="text-xs text-muted-foreground">
+                  {filtered.length} avaliação{filtered.length !== 1 ? 'ões' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
+                  {assessmentSearch && ` para "${assessmentSearch}"`}
+                </p>
+
+                {/* Selected assessment summary */}
+                {selectedAssessment && (
+                  <div className="border border-amber-500/40 bg-amber-500/5 rounded-xl p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                      <CheckCircle className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{selectedAssessment.client.name}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(selectedAssessment.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        </span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(selectedAssessment.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs shrink-0">Selecionada</Badge>
+                  </div>
+                )}
+
+                {/* Results list */}
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                  {filtered.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Nenhuma avaliação encontrada
+                    </div>
+                  ) : (
+                    filtered.map((a) => {
+                      const isSelected = selectedAssessment?.id === a.id
+                      const level = a.resultJson?.level || a.resultJson?.fitnessLevel || ''
+                      const levelLabel = level === 'BEGINNER' || level === 'INICIANTE' ? 'Iniciante'
+                        : level === 'INTERMEDIATE' || level === 'INTERMEDIARIO' ? 'Intermediário'
+                        : level === 'ADVANCED' || level === 'AVANCADO' ? 'Avançado' : level
+                      const levelColor = level.includes('BEGIN') || level.includes('INIC') ? 'bg-green-500/20 text-green-400'
+                        : level.includes('INTER') ? 'bg-blue-500/20 text-blue-400'
+                        : level.includes('ADV') || level.includes('AVAN') ? 'bg-purple-500/20 text-purple-400'
+                        : 'bg-muted text-muted-foreground'
+
+                      return (
+                        <button
+                          key={a.id}
+                          onClick={() => handleSelectAssessment(a)}
+                          className={`w-full text-left rounded-xl border px-4 py-3 transition-all hover:border-amber-500/50 hover:bg-amber-500/5 ${
+                            isSelected
+                              ? 'border-amber-500 bg-amber-500/5'
+                              : 'border-border bg-card'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                isSelected ? 'bg-amber-500' : 'bg-muted'
+                              }`}>
+                                {isSelected
+                                  ? <CheckCircle className="h-4 w-4 text-white" />
+                                  : <User className="h-4 w-4 text-muted-foreground" />
+                                }
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm truncate">{a.client.name}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(a.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {new Date(a.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {levelLabel && (
+                                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${levelColor}`}>
+                                  {levelLabel}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Navigation */}
+            <div className="flex justify-end mt-6">
+              <Button onClick={goNext} disabled={!canGoNext()} className="bg-amber-500 hover:bg-amber-600 text-white">
+                Próximo
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
+
+
 
       {/* ================================================================== */}
       {/* STEP 2: SELECIONAR OBJETIVO */}
@@ -897,99 +1036,306 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'edit' && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">Montar Treino</h2>
-
-          <p className="text-sm text-muted-foreground mb-4">
-            Edite os exercícios do template. Avisos ⚠️ indicam possíveis conflitos com a avaliação do aluno.
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="text-xl font-bold">Montar Treino</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Personalize cada exercício. Selects filtrados por posição e foco do treino.
+              </p>
+            </div>
+          </div>
 
           {loadingTemplate ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+              <p className="text-sm text-muted-foreground">Carregando template...</p>
             </div>
           ) : (
             <div className="space-y-6">
-              {editableTreinos.map((treino, tIdx) => (
-                <Card key={tIdx} className="overflow-hidden">
-                  <CardHeader className="bg-amber-500/10 py-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Dumbbell className="h-4 w-4 text-amber-500" />
-                      {treino.pillarLabel}
-                      <Badge variant="outline" className="ml-auto">{treino.series}</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 space-y-4">
-                    {treino.blocos.map((bloco, bIdx) => (
-                      <div key={bIdx} className="space-y-2">
-                        <h4 className="text-sm font-medium text-muted-foreground">{bloco.name}</h4>
-                        {bloco.exercises.map((ex, eIdx) => (
-                          <div key={eIdx} className="space-y-1">
-                            <div className="flex items-start gap-2">
-                              <GripVertical className="h-4 w-4 text-muted-foreground mt-2.5 shrink-0" />
-                              <div className="flex-1 grid grid-cols-[1fr_auto_auto] gap-2">
-                                <Input
-                                  value={ex.name}
-                                  onChange={(e) => updateExercise(tIdx, bIdx, eIdx, 'name', e.target.value)}
-                                  placeholder="Nome do exercício"
-                                  className="text-sm"
-                                />
-                                <Input
-                                  value={ex.reps}
-                                  onChange={(e) => updateExercise(tIdx, bIdx, eIdx, 'reps', e.target.value)}
-                                  placeholder="Reps"
-                                  className="text-sm w-24"
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-500/10"
-                                  onClick={() => removeExercise(tIdx, bIdx, eIdx)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            {/* Warnings */}
-                            {ex._warnings && ex._warnings.length > 0 && (
-                              <div className="ml-6 space-y-0.5">
-                                {ex._warnings.map((w, wIdx) => (
-                                  <p key={wIdx} className={`text-xs ${
-                                    w.startsWith('🔴') ? 'text-red-400' : 'text-amber-400'
-                                  }`}>
-                                    {w}
-                                  </p>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-6 text-xs text-muted-foreground"
-                          onClick={() => addExercise(tIdx, bIdx)}
-                        >
-                          <Plus className="h-3 w-3 mr-1" /> Adicionar exercício
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2"
-                      onClick={() => addBlock(tIdx)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Adicionar Bloco
-                    </Button>
+              {editableTreinos.map((treino, tIdx) => {
+                const pillarColor = treino.pillar === 'PERNA'
+                  ? 'from-amber-500/15 to-amber-600/5 border-amber-500/30'
+                  : treino.pillar === 'EMPURRA'
+                  ? 'from-blue-500/15 to-blue-600/5 border-blue-500/30'
+                  : 'from-purple-500/15 to-purple-600/5 border-purple-500/30'
+                const pillarAccent = treino.pillar === 'PERNA' ? 'text-amber-400 bg-amber-500'
+                  : treino.pillar === 'EMPURRA' ? 'text-blue-400 bg-blue-500'
+                  : 'text-purple-400 bg-purple-500'
+                const pillarTextAccent = treino.pillar === 'PERNA' ? 'text-amber-400'
+                  : treino.pillar === 'EMPURRA' ? 'text-blue-400' : 'text-purple-400'
+                const pillarEmoji = treino.pillar === 'PERNA' ? '🦵' : treino.pillar === 'EMPURRA' ? '💪' : '🔙'
 
-                    {treino.protocoloFinal && (
-                      <div className="mt-2 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-                        <span className="font-medium">Protocolo Final:</span> {treino.protocoloFinal}
+                return (
+                  <div key={tIdx} className={`rounded-2xl border bg-gradient-to-br ${pillarColor} overflow-hidden`}>
+                    {/* Header */}
+                    <div className="px-5 py-4 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${pillarAccent} flex items-center justify-center text-white text-lg font-bold`}>
+                        {pillarEmoji}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="flex-1">
+                        <h3 className="font-bold text-base">{treino.pillarLabel}</h3>
+                        <p className="text-xs text-muted-foreground">Séries: {treino.series}</p>
+                      </div>
+                      <Badge variant="outline" className={`${pillarTextAccent} border-current text-xs`}>{treino.pillar}</Badge>
+                    </div>
+
+                    <div className="px-5 pb-5 space-y-5">
+
+                      {/* ====== PREPARAÇÃO ====== */}
+                      <div className="rounded-xl bg-background/60 border border-border/50 overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/30">
+                          <FlameKindling className="h-4 w-4 text-orange-400" />
+                          <span className="text-sm font-semibold">Preparação — {treino.prepTitle || `Preparação ${tIdx + 1}`}</span>
+                          <Badge variant="secondary" className="ml-auto text-[10px]">Aquecimento</Badge>
+                        </div>
+                        <div className="p-3 space-y-2">
+                          {(treino.editablePrep || []).map((prepEx, pIdx) => (
+                            <div key={pIdx} className="flex items-center gap-2">
+                              <div className="flex-1 grid grid-cols-[1fr_auto] gap-2">
+                                {/* Exercise name select */}
+                                <div className="relative">
+                                  <select
+                                    value={prepEx.name}
+                                    onChange={e => {
+                                      setEditableTreinos(prev => {
+                                        const u = JSON.parse(JSON.stringify(prev))
+                                        u[tIdx].editablePrep[pIdx].name = e.target.value
+                                        return u
+                                      })
+                                    }}
+                                    className="w-full h-8 pl-2 pr-6 rounded-lg border border-border bg-background text-xs appearance-none"
+                                  >
+                                    <option value="">Selecionar exercício...</option>
+                                    {PREP_EXERCISES.map(name => (
+                                      <option key={name} value={name}>{name}</option>
+                                    ))}
+                                    {prepEx.name && !PREP_EXERCISES.includes(prepEx.name) && (
+                                      <option value={prepEx.name}>{prepEx.name}</option>
+                                    )}
+                                  </select>
+                                  <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                                </div>
+                                <Input
+                                  value={prepEx.detail}
+                                  onChange={e => {
+                                    setEditableTreinos(prev => {
+                                      const u = JSON.parse(JSON.stringify(prev))
+                                      u[tIdx].editablePrep[pIdx].detail = e.target.value
+                                      return u
+                                    })
+                                  }}
+                                  placeholder="Detalhe..."
+                                  className="h-8 text-xs w-28"
+                                />
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setEditableTreinos(prev => {
+                                    const u = JSON.parse(JSON.stringify(prev))
+                                    u[tIdx].editablePrep.splice(pIdx, 1)
+                                    return u
+                                  })
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => {
+                              setEditableTreinos(prev => {
+                                const u = JSON.parse(JSON.stringify(prev))
+                                if (!u[tIdx].editablePrep) u[tIdx].editablePrep = []
+                                u[tIdx].editablePrep.push({ name: '', detail: '' })
+                                return u
+                              })
+                            }}
+                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1 ml-0.5 transition-colors"
+                          >
+                            <Plus className="h-3 w-3" /> Adicionar exercício de preparação
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ====== BLOCOS ====== */}
+                      {treino.blocos.map((bloco, bIdx) => (
+                        <div key={bIdx} className="rounded-xl bg-background/60 border border-border/50 overflow-hidden">
+                          <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/30">
+                            <Dumbbell className="h-4 w-4 text-amber-400" />
+                            <span className="text-sm font-semibold">{bloco.name}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">{treino.series} · {bloco.exercises.length} exercício(s)</span>
+                          </div>
+                          <div className="p-3 space-y-3">
+                            {bloco.exercises.map((ex, eIdx) => {
+                              const posIdx = Math.min(eIdx, 2) as 0 | 1 | 2
+                              const posInfo = POSITION_LABELS[posIdx]
+                              const catalogOptions = getExercisesForPosition(posIdx, treino.pillar)
+                              const warnings = ex._warnings || []
+                              const hasHighRisk = warnings.some(w => w.startsWith('🔴'))
+                              const hasWarning = warnings.some(w => w.startsWith('⚠️'))
+
+                              return (
+                                <div key={eIdx} className="space-y-1.5">
+                                  {/* Position label */}
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="text-sm">{posInfo.icon}</span>
+                                    <span className={`text-[11px] font-semibold uppercase tracking-wide ${posInfo.color}`}>
+                                      {eIdx + 1}º — {posInfo.label}
+                                    </span>
+                                    {hasHighRisk && (
+                                      <span className="ml-auto text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                        <Shield className="h-2.5 w-2.5" /> Alto Risco
+                                      </span>
+                                    )}
+                                    {!hasHighRisk && hasWarning && (
+                                      <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                        <AlertTriangle className="h-2.5 w-2.5" /> Atenção
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-start gap-2">
+                                    <div className="flex-1 space-y-1.5">
+                                      {/* Exercise name select */}
+                                      <div className="relative">
+                                        <select
+                                          value={ex.name}
+                                          onChange={e => updateExercise(tIdx, bIdx, eIdx, 'name', e.target.value)}
+                                          className={`w-full h-9 pl-2 pr-7 rounded-lg border bg-background text-sm appearance-none transition-colors ${
+                                            hasHighRisk
+                                              ? 'border-red-500/40 bg-red-500/5'
+                                              : hasWarning
+                                              ? 'border-amber-500/40 bg-amber-500/5'
+                                              : 'border-border'
+                                          }`}
+                                        >
+                                          <option value="">Selecionar exercício...</option>
+                                          <optgroup label={`Sugeridos para posição ${eIdx + 1}`}>
+                                            {catalogOptions.map(opt => (
+                                              <option key={opt.name} value={opt.name}>{opt.name}</option>
+                                            ))}
+                                          </optgroup>
+                                          {ex.name && !catalogOptions.find(o => o.name === ex.name) && (
+                                            <optgroup label="Atual">
+                                              <option value={ex.name}>{ex.name}</option>
+                                            </optgroup>
+                                          )}
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                                      </div>
+
+                                      {/* Reps + Rest row */}
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                        <Input
+                                          value={ex.reps}
+                                          onChange={e => updateExercise(tIdx, bIdx, eIdx, 'reps', e.target.value)}
+                                          placeholder="Reps (ex: 12 reps)"
+                                          className="h-7 text-xs"
+                                        />
+                                        <Input
+                                          value={ex.rest || ''}
+                                          onChange={e => updateExercise(tIdx, bIdx, eIdx, 'rest', e.target.value)}
+                                          placeholder="Descanso (ex: 60s)"
+                                          className="h-7 text-xs"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Remove button */}
+                                    <button
+                                      onClick={() => removeExercise(tIdx, bIdx, eIdx)}
+                                      className="w-9 h-9 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10 transition-colors shrink-0 mt-0"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+
+                                  {/* Warnings */}
+                                  {warnings.length > 0 && (
+                                    <div className="ml-0 space-y-0.5 bg-background/80 rounded-lg px-3 py-2 border border-border/50">
+                                      {warnings.map((w, wIdx) => (
+                                        <p key={wIdx} className={`text-xs flex items-start gap-1 ${
+                                          w.startsWith('🔴') ? 'text-red-400' : 'text-amber-400'
+                                        }`}>
+                                          {w}
+                                        </p>
+                                      ))}
+                                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        O personal pode manter o exercício — isso é apenas um aviso.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+
+                            <button
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1 transition-colors"
+                              onClick={() => addExercise(tIdx, bIdx)}
+                            >
+                              <Plus className="h-3 w-3" /> Adicionar exercício
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      <button
+                        className="w-full h-10 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center justify-center gap-2 transition-colors"
+                        onClick={() => addBlock(tIdx)}
+                      >
+                        <Plus className="h-4 w-4" /> Adicionar Bloco
+                      </button>
+
+                      {/* ====== PROTOCOLO FINAL ====== */}
+                      <div className="rounded-xl bg-background/60 border border-border/50 overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/30">
+                          <Zap className="h-4 w-4 text-amber-400" />
+                          <span className="text-sm font-semibold">Protocolo Final</span>
+                          <Badge variant="secondary" className="ml-auto text-[10px]">6-8 min</Badge>
+                        </div>
+                        <div className="p-3 space-y-1.5">
+                          <div className="relative">
+                            <select
+                              value={treino.protocoloFinal || ''}
+                              onChange={e => {
+                                setEditableTreinos(prev => {
+                                  const u = JSON.parse(JSON.stringify(prev))
+                                  u[tIdx].protocoloFinal = e.target.value
+                                  return u
+                                })
+                              }}
+                              className="w-full h-9 pl-2 pr-7 rounded-lg border border-border bg-background text-sm appearance-none"
+                            >
+                              <option value="">Nenhum protocolo</option>
+                              {FINAL_PROTOCOL_OPTIONS.filter(Boolean).map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                              {treino.protocoloFinal && !FINAL_PROTOCOL_OPTIONS.includes(treino.protocoloFinal) && (
+                                <option value={treino.protocoloFinal}>{treino.protocoloFinal}</option>
+                              )}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                          </div>
+                          <Input
+                            value={treino.protocoloFinal || ''}
+                            onChange={e => {
+                              setEditableTreinos(prev => {
+                                const u = JSON.parse(JSON.stringify(prev))
+                                u[tIdx].protocoloFinal = e.target.value
+                                return u
+                              })
+                            }}
+                            placeholder="Ou escreva um protocolo personalizado..."
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                )
+              })}
 
               {/* Navigation */}
               <div className="flex justify-between mt-2">
@@ -1009,6 +1355,8 @@ function GenerateWorkoutPage() {
           )}
         </div>
       )}
+
+
 
       {/* ================================================================== */}
       {/* STEP: CONFIGURAR FREQUÊNCIA */}
