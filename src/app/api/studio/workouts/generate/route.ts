@@ -66,6 +66,8 @@ const generateWorkoutSchema = z.object({
   weeklyFrequency: z.number().min(2).max(6),
   notes: z.string().optional(),
   levelUp: z.boolean().optional(),
+  mode: z.enum(['auto', 'manual']).optional().default('auto'),
+  customTemplate: z.any().optional(), // Treinos editados pelo personal (modo manual)
 })
 
 // ============================================================================
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { assessmentId, phase, weeklyFrequency, notes, levelUp } = validation.data
+    const { assessmentId, phase, weeklyFrequency, notes, levelUp, mode, customTemplate } = validation.data
 
     // ========================================================================
     // Buscar avaliação
@@ -304,12 +306,21 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     // MONTAR SCHEDULE BASEADO NO TEMPLATE DA FASE
     // ========================================================================
-    const schedule = buildScheduleFromPhase(phaseTemplate, allPillars, weeklyFrequency)
+    // Se modo manual e customTemplate fornecido, usar o template editado
+    const finalTemplate = (mode === 'manual' && customTemplate)
+      ? {
+          ...phaseTemplate,
+          treinos: customTemplate.treinos || phaseTemplate.treinos,
+        }
+      : phaseTemplate
+
+    const schedule = buildScheduleFromPhase(finalTemplate, allPillars, weeklyFrequency)
 
     // ========================================================================
     // SALVAR TREINO
     // ========================================================================
-    const workoutName = `${phaseTemplate.phaseLabel} - ${assessment.client.name}`
+    const modeLabel = mode === 'manual' ? ' (Manual)' : ''
+    const workoutName = `${phaseTemplate.phaseLabel}${modeLabel} - ${assessment.client.name}`
 
     const [workout] = await prisma.$transaction([
       prisma.workout.create({

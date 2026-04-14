@@ -1,7 +1,7 @@
 // ============================================================================
-// EXPERT PRO TRAINING - GENERATE WORKOUT PAGE v2
+// EXPERT PRO TRAINING - GENERATE WORKOUT PAGE v3
 // ============================================================================
-// Fluxo: Avaliação → Objetivo → Fase → Frequência → Gerar
+// Fluxo: Avaliação → Objetivo → Fase → Modo (Auto/Manual) → [Editar] → Gerar
 // ============================================================================
 
 'use client'
@@ -9,6 +9,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -27,8 +28,16 @@ import {
   Target,
   Layers,
   Dumbbell,
+  Pencil,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  GripVertical,
+  Settings2,
+  Wand2,
 } from 'lucide-react'
 import Link from 'next/link'
+import { translatePainRegion, translateMovementPattern } from '@/lib/translations'
 
 // ============================================================================
 // TIPOS
@@ -41,14 +50,7 @@ interface Assessment {
     id: string
     name: string
   }
-  resultJson: {
-    functionalPattern?: string
-    primaryFocus?: string
-    primaryGoal?: string
-    allowedBlocks?: string[]
-    blockedBlocks?: string[]
-    recommendations?: string[]
-  }
+  resultJson: any
   confidence: number
 }
 
@@ -64,8 +66,37 @@ interface ObjectiveOption {
   label: string
 }
 
+interface AssessmentContext {
+  id: string
+  complaints: string[]
+  painMap: Record<string, number>
+  movementTests: Record<string, { score: number; observations: string }>
+  level: string
+}
+
+interface EditableExercise {
+  name: string
+  reps: string
+  weeklyReps?: string[]
+  weeklyLoad?: string[]
+  _warnings?: string[]
+}
+
+interface EditableBlock {
+  name: string
+  exercises: EditableExercise[]
+}
+
+interface EditableTreino {
+  pillar: string
+  pillarLabel: string
+  series: string
+  blocos: EditableBlock[]
+  protocoloFinal: string
+}
+
 // ============================================================================
-// OBJETIVO LABELS (para exibição no front)
+// CONSTANTES E HELPERS
 // ============================================================================
 
 const OBJECTIVE_ICONS: Record<string, string> = {
@@ -83,29 +114,72 @@ const OBJECTIVE_DESCRIPTIONS: Record<string, string> = {
 }
 
 const PHASE_DESCRIPTIONS: Record<string, string> = {
-  CONDICIONAMENTO_1: 'Fundamento do método — mobilidade, ativação e exercícios base. Obrigatório para todos.',
-  CONDICIONAMENTO_2: 'Continuação do condicionamento — exercícios com progressão de carga e volume.',
+  CONDICIONAMENTO_1: 'Fundamento do método — mobilidade, ativação e exercícios base.',
+  CONDICIONAMENTO_2: 'Continuação do condicionamento — progressão de carga e volume.',
   HIPERTROFIA: 'Foco em ganho muscular com séries de 8-12 reps e carga progressiva.',
   FORCA: 'Foco em força máxima com séries de 5-8 reps e cargas altas (80-85%).',
-  POTENCIA: 'Foco explosivo com exercícios pliométricos e cargas altas (85%).',
-  RESISTENCIA: 'Foco em resistência muscular com exercícios intercalados de força e cardio.',
-  METABOLICO: 'Circuitos de alta intensidade — exercícios compostos em formato de circuito.',
-  HIPERTROFIA_2: 'Variação II da hipertrofia — exercícios diferentes, mesma estrutura de progressão.',
-  FORCA_2: 'Variação II da força — exercícios diferentes para evitar platô.',
-  RESISTENCIA_2: 'Variação II da resistência — novos exercícios e desafios cardiovasculares.',
-  METABOLICO_2: 'Variação II do metabólico — novos circuitos e combinações de exercícios.',
+  POTENCIA: 'Foco explosivo com exercícios pliométricos e cargas altas.',
+  RESISTENCIA: 'Foco em resistência muscular com exercícios intercalados.',
+  METABOLICO: 'Circuitos de alta intensidade — exercícios compostos.',
+  HIPERTROFIA_2: 'Variação II da hipertrofia — exercícios diferentes.',
+  FORCA_2: 'Variação II da força — evitar platô.',
+  RESISTENCIA_2: 'Variação II da resistência — novos desafios.',
+  METABOLICO_2: 'Variação II do metabólico — novos circuitos.',
+}
+
+// Mapeamento de exercícios → regiões do corpo para avisos
+const EXERCISE_REGION_MAP: { keywords: string[]; regions: string[] }[] = [
+  { keywords: ['supino', 'press', 'desenvolvimento', 'fly', 'flexão de braço', 'chest'], regions: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'] },
+  { keywords: ['agachamento', 'leg', 'afundo', 'búlgaro', 'subida box', 'lunge', 'squat'], regions: ['knee_left', 'knee_right', 'hip_left', 'hip_right', 'ankle_left', 'ankle_right'] },
+  { keywords: ['remada', 'pulley', 'trx', 'puxada', 'pull'], regions: ['shoulder_left', 'shoulder_right', 'upper_back'] },
+  { keywords: ['lombar', 'stiff', 'deadlift'], regions: ['lower_back'] },
+  { keywords: ['prancha', 'ab ', 'core', 'rigidez', 'curl up'], regions: ['lower_back'] },
+]
+
+function getExerciseWarnings(exerciseName: string, painMap: Record<string, number>): string[] {
+  const warnings: string[] = []
+  const nameLower = exerciseName.toLowerCase()
+
+  for (const mapping of EXERCISE_REGION_MAP) {
+    if (mapping.keywords.some(kw => nameLower.includes(kw))) {
+      for (const region of mapping.regions) {
+        const painLevel = painMap[region]
+        if (painLevel && painLevel >= 5) {
+          const regionName = translatePainRegion(region)
+          if (painLevel >= 8) {
+            warnings.push(`🔴 ${regionName}: dor ${painLevel}/10 — alto risco`)
+          } else {
+            warnings.push(`⚠️ ${regionName}: dor ${painLevel}/10 — atenção`)
+          }
+        }
+      }
+    }
+  }
+
+  return warnings
 }
 
 // ============================================================================
 // STEPS DO WIZARD
 // ============================================================================
 
-type Step = 'assessment' | 'objective' | 'phase' | 'config' | 'confirm'
+type Step = 'assessment' | 'objective' | 'phase' | 'mode' | 'edit' | 'config' | 'confirm'
 
-const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
+const STEPS_AUTO: { key: Step; label: string; icon: React.ReactNode }[] = [
   { key: 'assessment', label: 'Avaliação', icon: <Activity className="h-4 w-4" /> },
   { key: 'objective', label: 'Objetivo', icon: <Target className="h-4 w-4" /> },
   { key: 'phase', label: 'Fase', icon: <Layers className="h-4 w-4" /> },
+  { key: 'mode', label: 'Modo', icon: <Settings2 className="h-4 w-4" /> },
+  { key: 'config', label: 'Configurar', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'confirm', label: 'Gerar', icon: <Zap className="h-4 w-4" /> },
+]
+
+const STEPS_MANUAL: { key: Step; label: string; icon: React.ReactNode }[] = [
+  { key: 'assessment', label: 'Avaliação', icon: <Activity className="h-4 w-4" /> },
+  { key: 'objective', label: 'Objetivo', icon: <Target className="h-4 w-4" /> },
+  { key: 'phase', label: 'Fase', icon: <Layers className="h-4 w-4" /> },
+  { key: 'mode', label: 'Modo', icon: <Settings2 className="h-4 w-4" /> },
+  { key: 'edit', label: 'Montar', icon: <Pencil className="h-4 w-4" /> },
   { key: 'config', label: 'Configurar', icon: <Calendar className="h-4 w-4" /> },
   { key: 'confirm', label: 'Gerar', icon: <Zap className="h-4 w-4" /> },
 ]
@@ -117,13 +191,15 @@ const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
 function GenerateWorkoutPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const assessmentId = searchParams.get('assessmentId')
+  const clientIdParam = searchParams.get('clientId')
+  const assessmentIdParam = searchParams.get('assessmentId')
 
   // State
   const [step, setStep] = useState<Step>('assessment')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [generationMode, setGenerationMode] = useState<'auto' | 'manual'>('auto')
 
   // Data
   const [availableAssessments, setAvailableAssessments] = useState<Assessment[]>([])
@@ -137,6 +213,15 @@ function GenerateWorkoutPage() {
   const [notes, setNotes] = useState('')
   const [levelUp, setLevelUp] = useState(false)
 
+  // Assessment context (para avisos)
+  const [assessmentContext, setAssessmentContext] = useState<AssessmentContext | null>(null)
+
+  // Manual mode - editable template
+  const [editableTreinos, setEditableTreinos] = useState<EditableTreino[]>([])
+  const [loadingTemplate, setLoadingTemplate] = useState(false)
+
+  const STEPS = generationMode === 'manual' ? STEPS_MANUAL : STEPS_AUTO
+
   // ========================================================================
   // LOAD ASSESSMENTS
   // ========================================================================
@@ -145,13 +230,14 @@ function GenerateWorkoutPage() {
   }, [])
 
   useEffect(() => {
-    if (assessmentId && availableAssessments.length > 0) {
-      const found = availableAssessments.find(a => a.id === assessmentId)
-      if (found) {
-        handleSelectAssessment(found)
-      }
+    if (assessmentIdParam && availableAssessments.length > 0) {
+      const found = availableAssessments.find(a => a.id === assessmentIdParam)
+      if (found) handleSelectAssessment(found)
+    } else if (clientIdParam && availableAssessments.length > 0) {
+      const found = availableAssessments.find(a => a.client.id === clientIdParam)
+      if (found) handleSelectAssessment(found)
     }
-  }, [assessmentId, availableAssessments])
+  }, [assessmentIdParam, clientIdParam, availableAssessments])
 
   async function loadAvailableAssessments() {
     try {
@@ -177,7 +263,6 @@ function GenerateWorkoutPage() {
     setSelectedAssessment(assessment)
     setError(null)
 
-    // Load phases for this client
     try {
       const objectiveParam = selectedObjective ? `&objective=${selectedObjective}` : ''
       const res = await fetch(`/api/studio/workouts/phases?clientId=${assessment.client.id}${objectiveParam}`)
@@ -187,8 +272,8 @@ function GenerateWorkoutPage() {
         setClientInfo(data.data.client)
         setPhases(data.data.phases)
         setObjectives(data.data.objectives)
+        setAssessmentContext(data.data.assessmentContext)
 
-        // Auto-select objective if client already has one
         if (data.data.client.objective) {
           setSelectedObjective(data.data.client.objective)
         }
@@ -216,16 +301,101 @@ function GenerateWorkoutPage() {
 
       if (data.success) {
         setPhases(data.data.phases)
-        // Auto-select recommended or first phase
+        setAssessmentContext(data.data.assessmentContext)
         const recommended = data.data.phases.find((p: PhaseOption) => p.isRecommended)
-        if (recommended) {
-          setSelectedPhase(recommended.value)
-        }
+        if (recommended) setSelectedPhase(recommended.value)
         setStep('phase')
       }
     } catch (err) {
       console.error('Error reloading phases:', err)
     }
+  }
+
+  // ========================================================================
+  // LOAD TEMPLATE FOR MANUAL EDITING
+  // ========================================================================
+  async function loadTemplateForEditing() {
+    if (!selectedPhase || !selectedAssessment) return
+
+    setLoadingTemplate(true)
+    try {
+      const res = await fetch(`/api/studio/workouts/template?clientId=${selectedAssessment.client.id}&phase=${selectedPhase}`)
+      const data = await res.json()
+
+      if (data.success && data.data.treinos) {
+        // Adicionar warnings a cada exercício
+        const treinos = data.data.treinos.map((treino: any) => ({
+          ...treino,
+          blocos: treino.blocos.map((bloco: any) => ({
+            ...bloco,
+            exercises: bloco.exercises.map((ex: any) => ({
+              ...ex,
+              _warnings: assessmentContext ? getExerciseWarnings(ex.name, assessmentContext.painMap) : [],
+            })),
+          })),
+        }))
+        setEditableTreinos(treinos)
+      } else {
+        setError('Template não encontrado para esta fase e nível')
+      }
+    } catch (err) {
+      console.error('Error loading template:', err)
+      setError('Erro ao carregar template')
+    } finally {
+      setLoadingTemplate(false)
+    }
+  }
+
+  // ========================================================================
+  // MANUAL EDIT HELPERS
+  // ========================================================================
+  function updateExercise(treinoIdx: number, blocoIdx: number, exIdx: number, field: string, value: string) {
+    setEditableTreinos(prev => {
+      const updated = JSON.parse(JSON.stringify(prev))
+      updated[treinoIdx].blocos[blocoIdx].exercises[exIdx][field] = value
+      // Recalculate warnings if name changed
+      if (field === 'name' && assessmentContext) {
+        updated[treinoIdx].blocos[blocoIdx].exercises[exIdx]._warnings =
+          getExerciseWarnings(value, assessmentContext.painMap)
+      }
+      return updated
+    })
+  }
+
+  function removeExercise(treinoIdx: number, blocoIdx: number, exIdx: number) {
+    setEditableTreinos(prev => {
+      const updated = JSON.parse(JSON.stringify(prev))
+      updated[treinoIdx].blocos[blocoIdx].exercises.splice(exIdx, 1)
+      // Remove empty blocks
+      if (updated[treinoIdx].blocos[blocoIdx].exercises.length === 0) {
+        updated[treinoIdx].blocos.splice(blocoIdx, 1)
+      }
+      return updated
+    })
+  }
+
+  function addExercise(treinoIdx: number, blocoIdx: number) {
+    setEditableTreinos(prev => {
+      const updated = JSON.parse(JSON.stringify(prev))
+      updated[treinoIdx].blocos[blocoIdx].exercises.push({
+        name: '',
+        reps: '',
+        _warnings: [],
+      })
+      return updated
+    })
+  }
+
+  function addBlock(treinoIdx: number) {
+    setEditableTreinos(prev => {
+      const updated = JSON.parse(JSON.stringify(prev))
+      const newBlockNum = updated[treinoIdx].blocos.length + 1
+      updated[treinoIdx].blocos.push({
+        name: `Bloco ${['I', 'II', 'III', 'IV', 'V'][newBlockNum - 1] || newBlockNum}`,
+        exercises: [{ name: '', reps: '', _warnings: [] }],
+      })
+      return updated
+    })
   }
 
   // ========================================================================
@@ -241,15 +411,29 @@ function GenerateWorkoutPage() {
     setGenerating(true)
 
     try {
-      const payload = {
+      const payload: any = {
         assessmentId: selectedAssessment.id,
         phase: selectedPhase,
         weeklyFrequency,
         notes,
         levelUp,
+        mode: generationMode,
       }
 
-      console.log('🚀 Generating workout v2:', payload)
+      if (generationMode === 'manual' && editableTreinos.length > 0) {
+        // Clean warnings before sending
+        payload.customTemplate = {
+          treinos: editableTreinos.map(t => ({
+            ...t,
+            blocos: t.blocos.map(b => ({
+              ...b,
+              exercises: b.exercises.map(({ _warnings, ...ex }) => ex),
+            })),
+          })),
+        }
+      }
+
+      console.log('🚀 Generating workout v3:', payload)
 
       const res = await fetch('/api/studio/workouts/generate', {
         method: 'POST',
@@ -263,7 +447,6 @@ function GenerateWorkoutPage() {
         router.push(`/workouts/${data.data.workout.id}`)
       } else {
         setError(data.error || 'Erro ao gerar treino')
-        console.error('❌ Generation failed:', data)
       }
     } catch (err) {
       console.error('Generate error:', err)
@@ -279,10 +462,88 @@ function GenerateWorkoutPage() {
   const stepIndex = STEPS.findIndex(s => s.key === step)
 
   function goBack() {
-    if (stepIndex > 0) {
+    if (step === 'edit') {
+      setStep('mode')
+    } else if (step === 'config' && generationMode === 'manual') {
+      setStep('edit')
+    } else if (stepIndex > 0) {
       setStep(STEPS[stepIndex - 1].key)
-      setError(null)
     }
+    setError(null)
+  }
+
+  // ========================================================================
+  // RENDER — Assessment Context Panel
+  // ========================================================================
+  function renderAssessmentPanel() {
+    if (!assessmentContext) return null
+
+    const painEntries = Object.entries(assessmentContext.painMap).filter(([_, v]) => v > 0)
+    const lowScoreTests = Object.entries(assessmentContext.movementTests)
+      .filter(([_, data]) => data.score <= 1)
+
+    if (painEntries.length === 0 && assessmentContext.complaints.length === 0 && lowScoreTests.length === 0) {
+      return null
+    }
+
+    return (
+      <Card className="mb-6 border-amber-500/30 bg-amber-500/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Contexto da Avaliação
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Complaints */}
+          {assessmentContext.complaints.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">🩹 Queixas:</p>
+              <div className="flex flex-wrap gap-1">
+                {assessmentContext.complaints.map((c, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">{c}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pain Map */}
+          {painEntries.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">📍 Dor:</p>
+              <div className="flex flex-wrap gap-1">
+                {painEntries.map(([region, level]) => (
+                  <Badge
+                    key={region}
+                    className={`text-xs ${
+                      level >= 8 ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                      level >= 5 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                      'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {translatePainRegion(region)}: {level}/10
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Low Movement Scores */}
+          {lowScoreTests.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">🏃 Testes com score baixo:</p>
+              <div className="flex flex-wrap gap-1">
+                {lowScoreTests.map(([test, data]) => (
+                  <Badge key={test} className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
+                    {translateMovementPattern(test)}: {data.score}/3
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
   }
 
   // ========================================================================
@@ -328,11 +589,7 @@ function GenerateWorkoutPage() {
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {i < stepIndex ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : (
-                s.icon
-              )}
+              {i < stepIndex ? <CheckCircle className="h-4 w-4" /> : s.icon}
               <span className="hidden sm:inline">{s.label}</span>
             </div>
             {i < STEPS.length - 1 && (
@@ -349,6 +606,9 @@ function GenerateWorkoutPage() {
           <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
+
+      {/* Assessment Context Panel — always visible after step 1 */}
+      {step !== 'assessment' && renderAssessmentPanel()}
 
       {/* ================================================================== */}
       {/* STEP 1: SELECIONAR AVALIAÇÃO */}
@@ -382,9 +642,6 @@ function GenerateWorkoutPage() {
                       <p className="font-medium text-foreground">{a.client.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(a.createdAt).toLocaleDateString('pt-BR')}
-                        {a.resultJson?.primaryGoal && (
-                          <span className="ml-2">• {a.resultJson.primaryGoal}</span>
-                        )}
                       </p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -455,8 +712,7 @@ function GenerateWorkoutPage() {
           </div>
 
           <p className="text-sm text-muted-foreground mb-4">
-            Cada fase dura <span className="text-amber-500 font-semibold">6 semanas</span> com exercícios fixos.
-            A fase recomendada está destacada.
+            Cada fase dura <span className="text-amber-500 font-semibold">6 semanas</span>.
           </p>
 
           <div className="grid gap-3">
@@ -464,25 +720,20 @@ function GenerateWorkoutPage() {
               <Card
                 key={phase.value}
                 className={`cursor-pointer transition-all hover:border-amber-500/50 ${
-                  selectedPhase === phase.value
-                    ? 'border-amber-500 bg-amber-500/5'
-                    : phase.isRecommended
-                    ? 'border-amber-500/30'
-                    : ''
+                  selectedPhase === phase.value ? 'border-amber-500 bg-amber-500/5'
+                    : phase.isRecommended ? 'border-amber-500/30' : ''
                 }`}
                 onClick={() => {
                   setSelectedPhase(phase.value)
-                  setStep('config')
+                  setStep('mode')
                 }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        phase.isCurrent
-                          ? 'bg-green-500 text-white'
-                          : phase.isRecommended
-                          ? 'bg-amber-500 text-white'
+                        phase.isCurrent ? 'bg-green-500 text-white'
+                          : phase.isRecommended ? 'bg-amber-500 text-white'
                           : 'bg-muted text-muted-foreground'
                       }`}>
                         {i + 1}
@@ -496,14 +747,10 @@ function GenerateWorkoutPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {phase.isCurrent && (
-                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          Atual
-                        </Badge>
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Atual</Badge>
                       )}
                       {phase.isRecommended && (
-                        <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">
-                          Recomendada
-                        </Badge>
+                        <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">Recomendada</Badge>
                       )}
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -516,7 +763,192 @@ function GenerateWorkoutPage() {
       )}
 
       {/* ================================================================== */}
-      {/* STEP 4: CONFIGURAR FREQUÊNCIA */}
+      {/* STEP 4: ESCOLHER MODO (AUTO/MANUAL) */}
+      {/* ================================================================== */}
+      {step === 'mode' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Modo de Criação</h2>
+            <Button variant="ghost" size="sm" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Auto */}
+            <Card
+              className={`cursor-pointer transition-all hover:border-emerald-500/50 ${
+                generationMode === 'auto' ? 'border-emerald-500 bg-emerald-500/5' : ''
+              }`}
+              onClick={() => {
+                setGenerationMode('auto')
+                setStep('config')
+              }}
+            >
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Wand2 className="h-8 w-8 text-emerald-500" />
+                </div>
+                <h3 className="font-semibold text-lg text-foreground mb-2">Automático</h3>
+                <p className="text-sm text-muted-foreground">
+                  Gera o treino completo automaticamente com base no template da fase.
+                  Exercícios, séries e progressão predefinidos pelo método.
+                </p>
+                <Badge className="mt-3 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                  Recomendado
+                </Badge>
+              </CardContent>
+            </Card>
+
+            {/* Manual */}
+            <Card
+              className={`cursor-pointer transition-all hover:border-blue-500/50 ${
+                generationMode === 'manual' ? 'border-blue-500 bg-blue-500/5' : ''
+              }`}
+              onClick={() => {
+                setGenerationMode('manual')
+                loadTemplateForEditing()
+                setStep('edit')
+              }}
+            >
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Pencil className="h-8 w-8 text-blue-500" />
+                </div>
+                <h3 className="font-semibold text-lg text-foreground mb-2">Manual</h3>
+                <p className="text-sm text-muted-foreground">
+                  Edite o template da fase: troque, remova ou adicione exercícios.
+                  O sistema avisa sobre exercícios que podem agravar dores.
+                </p>
+                <Badge className="mt-3 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                  Personalizado
+                </Badge>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* STEP 5: EDIÇÃO MANUAL DE EXERCÍCIOS */}
+      {/* ================================================================== */}
+      {step === 'edit' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Montar Treino</h2>
+            <Button variant="ghost" size="sm" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-4">
+            Edite os exercícios do template. Avisos ⚠️ indicam possíveis conflitos com a avaliação do aluno.
+          </p>
+
+          {loadingTemplate ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {editableTreinos.map((treino, tIdx) => (
+                <Card key={tIdx} className="overflow-hidden">
+                  <CardHeader className="bg-amber-500/10 py-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Dumbbell className="h-4 w-4 text-amber-500" />
+                      {treino.pillarLabel}
+                      <Badge variant="outline" className="ml-auto">{treino.series}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    {treino.blocos.map((bloco, bIdx) => (
+                      <div key={bIdx} className="space-y-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">{bloco.name}</h4>
+                        {bloco.exercises.map((ex, eIdx) => (
+                          <div key={eIdx} className="space-y-1">
+                            <div className="flex items-start gap-2">
+                              <GripVertical className="h-4 w-4 text-muted-foreground mt-2.5 shrink-0" />
+                              <div className="flex-1 grid grid-cols-[1fr_auto_auto] gap-2">
+                                <Input
+                                  value={ex.name}
+                                  onChange={(e) => updateExercise(tIdx, bIdx, eIdx, 'name', e.target.value)}
+                                  placeholder="Nome do exercício"
+                                  className="text-sm"
+                                />
+                                <Input
+                                  value={ex.reps}
+                                  onChange={(e) => updateExercise(tIdx, bIdx, eIdx, 'reps', e.target.value)}
+                                  placeholder="Reps"
+                                  className="text-sm w-24"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                                  onClick={() => removeExercise(tIdx, bIdx, eIdx)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            {/* Warnings */}
+                            {ex._warnings && ex._warnings.length > 0 && (
+                              <div className="ml-6 space-y-0.5">
+                                {ex._warnings.map((w, wIdx) => (
+                                  <p key={wIdx} className={`text-xs ${
+                                    w.startsWith('🔴') ? 'text-red-400' : 'text-amber-400'
+                                  }`}>
+                                    {w}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-6 text-xs text-muted-foreground"
+                          onClick={() => addExercise(tIdx, bIdx)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Adicionar exercício
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => addBlock(tIdx)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar Bloco
+                    </Button>
+
+                    {treino.protocoloFinal && (
+                      <div className="mt-2 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
+                        <span className="font-medium">Protocolo Final:</span> {treino.protocoloFinal}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              <Button
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+                size="lg"
+                onClick={() => setStep('config')}
+                disabled={editableTreinos.length === 0}
+              >
+                Continuar para Configuração
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* STEP: CONFIGURAR FREQUÊNCIA */}
       {/* ================================================================== */}
       {step === 'config' && (
         <div>
@@ -543,10 +975,13 @@ function GenerateWorkoutPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Fase</p>
+                  <p className="text-xs text-muted-foreground mb-1">Fase • Modo</p>
                   <p className="font-medium text-amber-500 text-sm">
                     {phases.find(p => p.value === selectedPhase)?.label}
                   </p>
+                  <Badge variant="outline" className="text-xs mt-1">
+                    {generationMode === 'auto' ? '🤖 Auto' : '✏️ Manual'}
+                  </Badge>
                 </div>
               </div>
             </CardContent>
@@ -629,7 +1064,7 @@ function GenerateWorkoutPage() {
       )}
 
       {/* ================================================================== */}
-      {/* STEP 5: CONFIRMAR E GERAR */}
+      {/* STEP: CONFIRMAR E GERAR */}
       {/* ================================================================== */}
       {step === 'confirm' && (
         <div>
@@ -665,6 +1100,12 @@ function GenerateWorkoutPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground">Modo</span>
+                  <Badge className={generationMode === 'manual' ? 'bg-blue-500' : 'bg-emerald-500'}>
+                    {generationMode === 'auto' ? '🤖 Automático' : '✏️ Manual'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
                   <span className="text-muted-foreground">Frequência</span>
                   <span className="font-medium text-foreground">{weeklyFrequency}x por semana</span>
                 </div>
@@ -682,6 +1123,19 @@ function GenerateWorkoutPage() {
                 <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Observações:</p>
                   <p className="text-sm text-foreground">{notes}</p>
+                </div>
+              )}
+
+              {generationMode === 'manual' && editableTreinos.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-xs text-blue-400 font-medium mb-1">Template Personalizado:</p>
+                  <div className="space-y-1">
+                    {editableTreinos.map((t, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">
+                        {t.pillarLabel}: {t.blocos.reduce((acc, b) => acc + b.exercises.length, 0)} exercícios
+                      </p>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>

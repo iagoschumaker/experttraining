@@ -55,6 +55,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Buscar última avaliação completa do cliente
+    const latestAssessment = await prisma.assessment.findFirst({
+      where: {
+        clientId,
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        inputJson: true,
+        bodyMetricsJson: true,
+        resultJson: true,
+        selectedPhase: true,
+        objective: true,
+      },
+    })
+
     const level = (client.level || 'INICIANTE') as TrainingLevel
     const objective = (objectiveParam || client.objective || 'REABILITACAO') as ClientObjective
 
@@ -68,6 +85,18 @@ export async function GET(request: NextRequest) {
         ? phase === availablePhases[0]
         : false,
     }))
+
+    // Extrair dados da avaliação para avisos de segurança
+    const inputData = latestAssessment?.inputJson as any
+    const assessmentContext = latestAssessment ? {
+      id: latestAssessment.id,
+      complaints: inputData?.complaints || [],
+      painMap: inputData?.painMap || {},
+      movementTests: inputData?.movementTests || {},
+      level: inputData?.level || 'BEGINNER',
+      selectedPhase: latestAssessment.selectedPhase,
+      objective: latestAssessment.objective,
+    } : null
 
     return NextResponse.json({
       success: true,
@@ -87,6 +116,7 @@ export async function GET(request: NextRequest) {
           value,
           label,
         })),
+        assessmentContext,
       },
     })
   } catch (error) {
