@@ -7,10 +7,58 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAccessToken, hasStudioContext, getAccessTokenCookie } from '@/lib/auth'
-import { processAssessment } from '@/lib/rules-engine'
 import { computeFromAssessment } from '@/services/jubaMethod'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { AssessmentInput } from '@/types'
+
+/**
+ * Process assessment inline — calculates level from movement scores.
+ * Replaces the old rules-engine.
+ */
+async function processAssessment(input: AssessmentInput) {
+  // Calculate average movement score
+  const tests = (input.movementTests || {}) as Record<string, any>
+  const scoreValues: number[] = []
+  for (const key of Object.keys(tests)) {
+    const test = tests[key]
+    if (test && typeof test === 'object' && typeof test.score === 'number') {
+      scoreValues.push(test.score)
+    } else if (typeof test === 'number') {
+      scoreValues.push(test)
+    }
+  }
+  const avgScore = scoreValues.length > 0
+    ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length
+    : 2
+
+  // Determine level based on average
+  let calculatedLevel: number
+  let levelLabel: string
+  if (avgScore >= 4) {
+    calculatedLevel = 3
+    levelLabel = 'AVANCADO'
+  } else if (avgScore >= 2.5) {
+    calculatedLevel = 2
+    levelLabel = 'INTERMEDIARIO'
+  } else {
+    calculatedLevel = 1
+    levelLabel = 'INICIANTE'
+  }
+
+  // Check for pain/complaints → lower confidence
+  const hasPain = (input.painMap && input.painMap.length > 0) || (input.complaints && input.complaints.length > 0)
+  const confidence = hasPain ? Math.min(70, Math.round(avgScore * 20)) : Math.round(avgScore * 20)
+
+  return {
+    calculatedLevel,
+    level: calculatedLevel,
+    levelLabel,
+    confidence,
+    averageScore: Math.round(avgScore * 100) / 100,
+    totalScores: scoreValues.length,
+    hasPainFlags: !!hasPain,
+  }
+}
 
 export async function POST(
   request: NextRequest,

@@ -51,9 +51,7 @@ import {
   FileDown,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
-import { ClientEvolution } from '@/components/clients/client-evolution'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
-import { ClientBodyComposition } from '@/components/clients/client-body-composition'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import { generateBodyCompositionPDF } from '@/lib/pdf-generator'
 import type { SkinfoldsInput } from '@/services/pollock'
@@ -80,6 +78,7 @@ interface Client {
   phone: string | null
   objectives: string | null
   history: string | null
+  notes: string | null
   goal: string | null
   isActive: boolean
   gender: string | null
@@ -132,7 +131,7 @@ export default function ClientDetailPage() {
   const [showMeasureHistory, setShowMeasureHistory] = useState(false)
   const [fabOpen, setFabOpen] = useState(false)
   const [compareIdxA, setCompareIdxA] = useState(0) // first assessment
-  const [compareIdxB, setCompareIdxB] = useState(-1) // -1 = "Dados atuais"
+  const [compareIdxB, setCompareIdxB] = useState(0) // will be set to last when evals load
 
   // Manual check-in state
   const [isCheckinOpen, setIsCheckinOpen] = useState(false)
@@ -974,34 +973,16 @@ export default function ClientDetailPage() {
           })()}
 
           {/* ========== COMPARAÇÃO DE AVALIAÇÕES ========== */}
-          {(client.assessments || []).filter(a => a.bodyMetricsJson).length >= 1 && (() => {
+          {(client.assessments || []).filter(a => a.bodyMetricsJson).length >= 2 && (() => {
             const evals = (client.assessments || []).filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-            // Build "Dados atuais" from client fields
-            const currentData: Record<string, number> = {}
-            if (client.weight) currentData.weight = Number(client.weight)
-            if (client.bodyFat) currentData.bodyFat = Number(client.bodyFat)
-            if (client.chest) currentData.chest = Number(client.chest)
-            if (client.waist) currentData.waist = Number(client.waist)
-            if (client.hip) currentData.hip = Number(client.hip)
-            if (client.abdomen) currentData.abdomen = Number(client.abdomen)
-            if (client.armRight) currentData.arm_right = Number(client.armRight)
-            if (client.armLeft) currentData.arm_left = Number(client.armLeft)
-            if (client.thighRight) currentData.thigh_right = Number(client.thighRight)
-            if (client.thighLeft) currentData.thigh_left = Number(client.thighLeft)
-            if (client.calfRight) currentData.calf_right = Number(client.calfRight)
-            if (client.calfLeft) currentData.calf_left = Number(client.calfLeft)
-            if (client.sfTriceps) currentData.sfTriceps = Number(client.sfTriceps)
-            if (client.sfSuprailiac) currentData.sfSuprailiac = Number(client.sfSuprailiac)
-            if (client.sfThigh) currentData.sfThigh = Number(client.sfThigh)
-            if (client.sfChest) currentData.sfChest = Number(client.sfChest)
-            if (client.sfAbdomen) currentData.sfAbdomen = Number(client.sfAbdomen)
-
-            // Data A = selected eval or current
-            const dataA: Record<string, number> = compareIdxA === -1 ? currentData : (evals[compareIdxA]?.bodyMetricsJson as Record<string, number> ?? {})
-            const dataB: Record<string, number> = compareIdxB === -1 ? currentData : (evals[compareIdxB]?.bodyMetricsJson as Record<string, number> ?? {})
-            const labelA = compareIdxA === -1 ? 'Atual' : new Date(evals[compareIdxA]?.createdAt).toLocaleDateString('pt-BR')
-            const labelB = compareIdxB === -1 ? 'Atual' : new Date(evals[compareIdxB]?.createdAt).toLocaleDateString('pt-BR')
+            // Data always from assessments (not client-level fields anymore)
+            const idxA = compareIdxA >= 0 && compareIdxA < evals.length ? compareIdxA : 0
+            const idxB = compareIdxB >= 0 && compareIdxB < evals.length ? compareIdxB : evals.length - 1
+            const dataA: Record<string, number> = (evals[idxA]?.bodyMetricsJson as Record<string, number> ?? {})
+            const dataB: Record<string, number> = (evals[idxB]?.bodyMetricsJson as Record<string, number> ?? {})
+            const labelA = new Date(evals[idxA]?.createdAt).toLocaleDateString('pt-BR')
+            const labelB = new Date(evals[idxB]?.createdAt).toLocaleDateString('pt-BR')
 
             const metrics = [
               { label: 'Peso', key: 'weight', unit: 'kg', lowerBetter: false },
@@ -1040,7 +1021,6 @@ export default function ClientDetailPage() {
                       value={compareIdxA}
                       onChange={(e) => setCompareIdxA(Number(e.target.value))}
                     >
-                      <option value={-1}>Dados atuais</option>
                       {evals.map((ev, i) => (
                         <option key={ev.id} value={i}>
                           {new Date(ev.createdAt).toLocaleDateString('pt-BR')} {i === 0 ? '(1ª)' : i === evals.length - 1 ? '(última)' : ''}
@@ -1055,7 +1035,6 @@ export default function ClientDetailPage() {
                       value={compareIdxB}
                       onChange={(e) => setCompareIdxB(Number(e.target.value))}
                     >
-                      <option value={-1}>Dados atuais</option>
                       {evals.map((ev, i) => (
                         <option key={ev.id} value={i}>
                           {new Date(ev.createdAt).toLocaleDateString('pt-BR')} {i === 0 ? '(1ª)' : i === evals.length - 1 ? '(última)' : ''}
@@ -1165,9 +1144,9 @@ export default function ClientDetailPage() {
             )
           })()}
 
-          {!client.chest && !client.waist && !client.weight && !client.armRight && !client.sfChest && !(client.assessments || []).some(a => a.bodyMetricsJson) && (
+          {!(client.assessments || []).some(a => a.bodyMetricsJson) && (
             <p className="text-center text-sm text-muted-foreground py-2">
-              Nenhuma medida registrada. <Link href={`/clients/${client.id}/edit`} className="text-amber-500 hover:underline">Adicionar medidas</Link>
+              Nenhuma medida registrada. <Link href={`/assessments/new?clientId=${client.id}`} className="text-amber-500 hover:underline">Criar avaliação</Link>
             </p>
           )}
         </CardContent>

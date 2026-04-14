@@ -207,6 +207,8 @@ model Client {
   goal          String?
   goalType      GoalType?      @map("goal_type")
   goalWeight    Decimal?       @map("goal_weight") @db.Decimal(5, 2)
+  objective     ClientObjective? @map("objective")
+  currentPhase  TrainingPhase?   @map("current_phase")
   status              ClientStatus   @default(ACTIVE)
   isActive            Boolean        @default(true) @map("is_active")
   lastPillarIndex     Int            @default(0) @map("last_pillar_index")
@@ -253,6 +255,8 @@ model Assessment {
   clientId        String           @map("client_id")
   assessorId      String           @map("assessor_id")
   status          AssessmentStatus @default(PENDING)
+  selectedPhase   TrainingPhase?   @map("selected_phase")
+  objective       ClientObjective? @map("objective")
   inputJson       Json             @map("input_json")
   resultJson      Json?            @map("result_json")
   confidence      Decimal?         @db.Decimal(5, 2)
@@ -263,6 +267,7 @@ model Assessment {
   computedJson    Json?            @map("computed_json")
   performanceJson Json?            @map("performance_json")
   client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workouts        Workout[]
 
   @@index([clientId])
   @@index([assessorId])
@@ -378,10 +383,12 @@ model Workout {
   studioId          String    @map("studio_id")
   createdById       String    @map("created_by_id")
   name              String?
+  phase             TrainingPhase? @map("phase")
+  assessmentId      String?        @map("assessment_id")
   blocksUsed        String[]  @map("blocks_used")
   scheduleJson      Json      @map("schedule_json")
   templateJson      Json?     @map("template_json")
-  targetWeeks       Int       @default(8) @map("target_weeks")
+  targetWeeks       Int       @default(6) @map("target_weeks")
   sessionsPerWeek   Int       @default(3) @map("sessions_per_week")
   sessionsCompleted Int       @default(0) @map("sessions_completed")
   startDate         DateTime? @map("start_date")
@@ -391,6 +398,7 @@ model Workout {
   updatedAt         DateTime  @updatedAt @map("updated_at")
   client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   studio            Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  assessment        Assessment? @relation(fields: [assessmentId], references: [id])
   lessons           Lesson[]  // Aulas derivadas deste treino
 
   @@index([clientId])
@@ -582,4 +590,25 @@ enum LessonStatus {
   STARTED
   COMPLETED
   CANCELLED
+}
+
+enum TrainingPhase {
+  CONDICIONAMENTO_1
+  CONDICIONAMENTO_2
+  HIPERTROFIA
+  FORCA
+  POTENCIA
+  RESISTENCIA
+  METABOLICO
+  HIPERTROFIA_2
+  FORCA_2
+  RESISTENCIA_2
+  METABOLICO_2
+}
+
+enum ClientObjective {
+  EMAGRECIMENTO
+  HIPERTROFIA_OBJ
+  PERFORMANCE
+  REABILITACAO
 }

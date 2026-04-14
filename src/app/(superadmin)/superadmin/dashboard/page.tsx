@@ -1,8 +1,8 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge, StatsCard, StatsGrid } from '@/components/ui'
-import { Building2, Users, CreditCard, Boxes, TrendingUp, AlertTriangle, Settings2, UserCheck } from 'lucide-react'
+import { Building2, Users, CreditCard, Boxes, TrendingUp, AlertTriangle, Settings2, UserCheck, Layers } from 'lucide-react'
 import Link from 'next/link'
 
 interface DashboardData {
@@ -86,8 +86,7 @@ export default function SuperAdminDashboardPage() {
   ]
 
   const secondaryStats = [
-    { title: 'Blocos', value: stats?.activeBlocks ?? 0, total: stats?.totalBlocks ?? 0, icon: <Boxes className="w-4 h-4" />, href: '/superadmin/blocks' },
-    { title: 'Regras', value: stats?.activeRules ?? 0, total: stats?.totalRules ?? 0, icon: <Settings2 className="w-4 h-4" />, href: '/superadmin/rules' },
+    { title: 'Fases / Treinos', value: '19', icon: <Layers className="w-4 h-4" />, href: '/superadmin/phases' },
     { title: 'Planos', value: stats?.totalPlans ?? 0, icon: <CreditCard className="w-4 h-4" />, href: '/superadmin/plans' },
   ]
 
@@ -131,7 +130,6 @@ export default function SuperAdminDashboardPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-xl font-bold text-foreground">{stat.value}</span>
-                    {stat.total !== undefined && <span className="text-muted-foreground text-sm">/ {stat.total}</span>}
                   </div>
                 </div>
               </CardContent>

@@ -1,46 +1,26 @@
 // ============================================================================
-// MÉTODO EXPERT TRAINING — SERVIÇO DE TEMPLATE DE TREINO
+// MÉTODO EXPERT TRAINING — SERVIÇO DE TEMPLATE DE TREINO (Legado)
 // ============================================================================
-// Template FIXO por pilar + periodização por fase + controle de frequência 85%
+// Mantém calculateProgress, getNextSessionWithPeriodization e tipos
+// usados por endpoints ativos (next-session, progress, workout detail).
 //
-// REGRA DE CONSISTÊNCIA:
-//   - Cada pilar (LOWER, PUSH, PULL) tem UM template fixo por ciclo
-//   - Os exercícios são selecionados UMA VEZ e reutilizados em TODAS as
-//     ocorrências dessa categoria no ciclo inteiro
-//   - Apenas variáveis de progressão (reps, load, rest) mudam por semana
-//   - ZERO repetição de exercício dentro da mesma sessão
+// A geração de treinos agora é feita por phaseWorkouts.ts + trainingPhases.ts.
 // ============================================================================
 
-import { Pillar, PILLAR_LABELS, PILLARS } from './pillarRotation'
-import {
-    ExerciseLevel,
-    PainContext,
-    generatePillarTemplate,
-    applyWeeklyProgression,
-    validateSessionExercises,
-    getPreparationExercises,
-    generateFinalProtocol,
-    pickPillarFocos,
-    assignTechniques,
-    BlockPrescription,
-    PreparationExercise,
-    PillarTemplate,
-} from './pillarExercises'
-
 // ============================================================================
-// TIPOS
+// TIPOS (usados em leitura de templateJson de treinos existentes)
 // ============================================================================
 
 export interface SessionTemplate {
     sessionIndex: number
-    pillar: Pillar
+    pillar: string
     pillarLabel: string
     preparation: {
         title: string
         totalTime: string
-        exercises: PreparationExercise[]
+        exercises: any[]
     }
-    blocks: BlockPrescription[]
+    blocks: any[]
     finalProtocol: {
         name: string
         totalTime: string
@@ -55,8 +35,7 @@ export interface WorkoutTemplate {
     targetWeeks: number
     methodology: string
     pillarSystem: string
-    /** Templates fixos por pilar — gerados UMA VEZ e reutilizados */
-    pillarTemplates: Record<string, PillarTemplate>
+    pillarTemplates?: Record<string, any>
 }
 
 export interface WorkoutProgress {
@@ -84,125 +63,6 @@ export interface WorkoutProgress {
 const MIN_WEEKS = 6
 const MAX_WEEKS = 8
 const ATTENDANCE_THRESHOLD = 0.85
-
-// ============================================================================
-// GERAÇÃO DO TEMPLATE — 2 FASES: FOCOS PRIMEIRO, DEPOIS COMPLETO
-// ============================================================================
-
-/**
- * Gera o template de sessões com TEMPLATES FIXOS POR PILAR.
- * 
- * REGRA PRINCIPAL (2 FASES):
- * FASE 1: Reserva TODOS os exercícios FOCO de TODOS os pilares PRIMEIRO.
- *         Isso garante que secundários de um pilar não "roubem" focos de outro.
- * FASE 2: Gera templates completos com focos pré-atribuídos.
- *         Secundários e cores são selecionados ao redor dos focos já reservados.
- */
-export function generateWorkoutTemplate(
-    pillarSchedule: Pillar[],
-    primaryGoal: string,
-    sessionsPerWeek: number,
-    targetWeeks: number = MAX_WEEKS,
-    clientLevel: ExerciseLevel = 'BEGINNER',
-    pain?: PainContext,
-): WorkoutTemplate {
-    // ======================================================================
-    // FASE 1: Reservar FOCOS de TODOS os pilares PRIMEIRO
-    // ======================================================================
-    const uniquePillars = Array.from(new Set(pillarSchedule)) as Pillar[]
-    const pillarTemplates: Record<string, PillarTemplate> = {}
-
-    // Set GLOBAL que rastreia TODOS os exercícios usados em TODOS os pilares
-    const globalUsedNames = new Set<string>()
-
-    // Reservar os 3 FOCOs de cada pilar ANTES de gerar secundários/cores
-    const pillarFocos: Record<string, any[]> = {}
-    for (const pillar of uniquePillars) {
-        const focos = pickPillarFocos(pillar, clientLevel, pain, globalUsedNames)
-        pillarFocos[pillar] = focos
-        focos.forEach(f => globalUsedNames.add(f.name))
-        console.log(`🎯 FOCOs ${pillar} reservados: ${focos.map(f => f.name).join(', ')}`)
-    }
-
-    console.log(`📋 Total FOCOs reservados: ${globalUsedNames.size} exercícios`)
-
-    // ======================================================================
-    // FASE 2: Gerar templates completos com FOCOs pré-atribuídos
-    // ======================================================================
-    for (const pillar of uniquePillars) {
-        const template = generatePillarTemplate(
-            pillar, clientLevel, pain, globalUsedNames, pillarFocos[pillar]
-        )
-        
-        // Adicionar todos os exercícios deste pilar ao set global
-        for (const name of template.exerciseNames) {
-            globalUsedNames.add(name)
-        }
-        
-        // Validar: nenhum exercício duplicado no template
-        const validation = validateSessionExercises(template.blocks)
-        if (!validation.valid) {
-            console.error(`⚠️ Template ${pillar} tem problemas:`, validation.errors)
-        }
-        
-        pillarTemplates[pillar] = template
-        console.log(`✅ Template ${pillar} gerado: ${template.exerciseNames.length} exercícios únicos (total global: ${globalUsedNames.size})`)
-    }
-
-    // ======================================================================
-    // STEP 2: Gerar sessões reutilizando os templates fixos
-    // ======================================================================
-    const sessions: SessionTemplate[] = pillarSchedule.map((pillar, sessionIndex) => {
-        const pillarTemplate = pillarTemplates[pillar]
-        if (!pillarTemplate) {
-            throw new Error(`Template não encontrado para pilar ${pillar}`)
-        }
-
-        // Calcular semana e fase desta sessão
-        const weekIndex = Math.floor(sessionIndex / sessionsPerWeek)
-        const weekPhase = calculatePhase(weekIndex + 1, targetWeeks)
-
-        // Reutilizar o template FIXO, aplicando apenas progressão semanal
-        let blocks = applyWeeklyProgression(pillarTemplate, weekIndex, weekPhase)
-
-        // Aplicar técnicas de intensificação baseadas no nível do aluno
-        blocks = assignTechniques(blocks, clientLevel)
-
-        // Validação final anti-duplicidade
-        const validation = validateSessionExercises(blocks)
-        if (!validation.valid) {
-            console.error(`⚠️ Sessão ${sessionIndex} (${pillar}) falhou validação:`, validation.errors)
-        }
-
-        // Preparação contextualizada ao pilar (variação por sessão é OK aqui)
-        const prepExercises = getPreparationExercises(pillar, sessionIndex)
-
-        // Protocolo final baseado no objetivo, fase, pilar E NÍVEL
-        const finalProtocol = generateFinalProtocol(primaryGoal, weekPhase, pillar, clientLevel)
-
-        return {
-            sessionIndex,
-            pillar,
-            pillarLabel: PILLAR_LABELS[pillar],
-            preparation: {
-                title: 'Preparação do Movimento',
-                totalTime: '12 minutos',
-                exercises: prepExercises,
-            },
-            blocks,
-            finalProtocol,
-        }
-    })
-
-    return {
-        sessions,
-        sessionsPerWeek,
-        targetWeeks: Math.min(MAX_WEEKS, Math.max(MIN_WEEKS, targetWeeks)),
-        methodology: 'Método EXPERT PRO TRAINING',
-        pillarSystem: 'LOWER → PUSH → PULL (rodízio circular)',
-        pillarTemplates,
-    }
-}
 
 // ============================================================================
 // CÁLCULO DE PROGRESSO
@@ -326,7 +186,6 @@ export function getNextSessionWithPeriodization(
     }
 
     // Clonar — a periodização já foi aplicada durante a geração
-    // (os blocos já contêm as reps/load corretas para cada semana)
     const session: SessionTemplate = JSON.parse(JSON.stringify(baseSession))
 
     return { session, progress }
@@ -339,13 +198,10 @@ export function getNextSessionWithPeriodization(
 /**
  * Expande o template em um scheduleJson completo para compatibilidade
  * com a UI existente (exibição de semanas) e geração de PDF.
- * 
- * REGRA: usa os mesmos blocos que já estão no template (já periodizados).
- * NÃO recalcula exercícios. Estrutura é idêntica ao template.
  */
 export function expandTemplateToSchedule(
     template: WorkoutTemplate,
-    primaryGoal: string,
+    _primaryGoal: string,
 ): any {
     const weekDays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
     const optimalDays =
@@ -373,7 +229,6 @@ export function expandTemplateToSchedule(
         const phaseLabel = phase === 'ADAPTATION' ? 'Adaptação' :
             phase === 'DEVELOPMENT' ? 'Desenvolvimento' : 'Pico'
 
-        // Pegar as sessões DESTA semana (fatia do template completo)
         const startIdx = week * template.sessionsPerWeek
         const endIdx = startIdx + template.sessionsPerWeek
         const weekSessions = template.sessions.slice(startIdx, endIdx)
@@ -383,7 +238,6 @@ export function expandTemplateToSchedule(
             phase,
             phaseLabel,
             sessions: weekSessions.map((session, idx) => {
-                // Blocos já vêm periodizados do template — NÃO recalcular
                 const prepTime = 12
                 const blocksTime = 45
                 const protocolTime = parseInt(session.finalProtocol.totalTime) || 6

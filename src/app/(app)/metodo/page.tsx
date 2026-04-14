@@ -1,316 +1,280 @@
-﻿'use client'
+'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  BookOpen, 
-  Clock, 
-  Target, 
-  Layers, 
-  Zap, 
-  Timer,
+// ============================================================================
+// EXPERT TRAINING - MÉTODO (Informativo)
+// ============================================================================
+// Página que exibe como funciona o método de periodização por fases
+// ============================================================================
+
+import { useState } from 'react'
+import {
+  BookOpen,
+  Layers,
+  Target,
+  Zap,
+  Heart,
+  ArrowUpRight,
+  ChevronDown,
   ChevronRight,
-  CheckCircle,
-  Play,
-  Pause
+  Dumbbell,
+  Clock,
+  TrendingUp,
 } from 'lucide-react'
-import { generateDailySchedule, validateDailySchedule } from '@/lib/method-expert-training/engine'
-import { DailySchedule, Assessment } from '@/lib/method-expert-training/types'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
-// Avaliação de exemplo para demonstração do método
-const SAMPLE_ASSESSMENT: Assessment = {
-  complaints: ['Dor no joelho', 'Falta de mobilidade'],
-  painMap: [{ region: 'joelho', intensity: 4 }],
-  movementScores: {
-    squat: 2,
-    hinge: 4,
-    lunge: 3,
-    push: 5,
-    pull: 5,
-    rotation: 4,
-    gait: 5,
+// ============================================================================
+// DADOS DAS FASES
+// ============================================================================
+
+const LEVELS = [
+  {
+    key: 'CONDICIONAMENTO',
+    label: 'Condicionamento',
+    icon: Heart,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-500/20',
+    description: 'Base para todos os alunos. 2 fases de adaptação e condicionamento geral.',
+    phases: ['Condicionamento 1', 'Condicionamento 2'],
   },
-  limitingCapacities: ['stability', 'mobility'],
-  primaryGoal: 'saude',
-  frequencyPerWeek: 3,
-  level: 'intermediario',
-}
+  {
+    key: 'INICIANTE',
+    label: 'Iniciante',
+    icon: Target,
+    color: 'text-green-400',
+    bg: 'bg-green-500/10 border-green-500/20',
+    description: 'Hipertrofia e força com exercícios fundamentais.',
+    phases: ['Hipertrofia', 'Força'],
+  },
+  {
+    key: 'INTERMEDIARIO',
+    label: 'Intermediário',
+    icon: Zap,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10 border-yellow-500/20',
+    description: 'Periodização completa com fases específicas por objetivo.',
+    phases: ['Hipertrofia', 'Força', 'Potência', 'Resistência', 'Metabólico', 'Hipertrofia 2'],
+  },
+  {
+    key: 'AVANCADO',
+    label: 'Avançado',
+    icon: ArrowUpRight,
+    color: 'text-red-400',
+    bg: 'bg-red-500/10 border-red-500/20',
+    description: 'Máxima complexidade e volume. Variações para evitar platô.',
+    phases: ['Hipertrofia', 'Força', 'Potência', 'Resistência', 'Metabólico', 'Hipertrofia 2', 'Força 2', 'Resistência 2', 'Metabólico 2'],
+  },
+]
+
+const OBJECTIVES = [
+  {
+    name: 'Hipertrofia',
+    icon: '💪',
+    fases: ['Condicionamento', 'Hipertrofia', 'Força', 'Hipertrofia 2', 'Hipertrofia 3', 'Hipertrofia 4'],
+    color: 'border-purple-500/30 bg-purple-500/5',
+  },
+  {
+    name: 'Emagrecimento',
+    icon: '🔥',
+    fases: ['Condicionamento', 'Hipertrofia', 'Força', 'Resistência', 'Metabólico'],
+    color: 'border-amber-500/30 bg-amber-500/5',
+  },
+  {
+    name: 'Performance',
+    icon: '⚡',
+    fases: ['Condicionamento', 'Hipertrofia', 'Força', 'Potência', 'Resistência'],
+    color: 'border-cyan-500/30 bg-cyan-500/5',
+  },
+  {
+    name: 'Reabilitação',
+    icon: '🩹',
+    fases: ['Condicionamento', 'Hipertrofia', 'Força'],
+    color: 'border-green-500/30 bg-green-500/5',
+  },
+]
+
+// ============================================================================
+// PÁGINA
+// ============================================================================
 
 export default function MetodoPage() {
-  const [schedule, setSchedule] = useState<DailySchedule | null>(null)
-  const [validation, setValidation] = useState<{ valid: boolean; errors: string[] } | null>(null)
-
-  useEffect(() => {
-    const generated = generateDailySchedule(SAMPLE_ASSESSMENT)
-    setSchedule(generated)
-    setValidation(validateDailySchedule(generated))
-  }, [])
-
-  if (!schedule) {
-    return (
-      <div className="p-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
-      </div>
-    )
-  }
+  const [expandedLevel, setExpandedLevel] = useState<string | null>('CONDICIONAMENTO')
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <BookOpen className="h-8 w-8 text-amber-500" />
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Método EXPERT PRO TRAINING
-          </h1>
-        </div>
-        <p className="text-muted-foreground">
-          Estrutura completa do cronograma diário baseado na metodologia EXPERT PRO TRAINING
+      <div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+          <BookOpen className="h-7 w-7 text-amber-500" />
+          Método Expert Training
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Periodização por fases — cada fase dura 6 semanas com exercícios fixos e progressão de carga.
         </p>
       </div>
 
-      {/* Hierarquia do Método */}
-      <section className="mb-10">
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Layers className="h-5 w-5 text-amber-500" />
-          Hierarquia do Método
-        </h2>
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="grid gap-4">
-            <div className="flex items-start gap-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-              <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold shrink-0">1</div>
-              <div>
-                <h3 className="font-semibold text-foreground">Preparação do Movimento</h3>
-                <p className="text-sm text-muted-foreground">Mobilidade, ativação de core, estabilidade articular e ativação neuromuscular</p>
-              </div>
+      {/* Princípios */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="bg-amber-500/5 border-amber-500/20">
+          <CardContent className="p-4 flex items-start gap-3">
+            <Clock className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-500 text-sm">6 Semanas</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Cada fase tem duração fixa de 6 semanas (S1→S6) com exercícios idênticos.
+              </p>
             </div>
-            <div className="flex items-start gap-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shrink-0">2</div>
-              <div>
-                <h3 className="font-semibold text-foreground">3 Blocos de Treino (Obrigatórios)</h3>
-                <p className="text-sm text-muted-foreground">Cada bloco: Foco Principal → Push/Pull Integrado → Core</p>
-              </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-500/5 border-blue-500/20">
+          <CardContent className="p-4 flex items-start gap-3">
+            <TrendingUp className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-blue-400 text-sm">Progressão de Carga</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Volume e intensidade aumen­tam semana a semana dentro da mesma fase.
+              </p>
             </div>
-            <div className="flex items-start gap-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold shrink-0">3</div>
-              <div>
-                <h3 className="font-semibold text-foreground">Protocolo Final</h3>
-                <p className="text-sm text-muted-foreground">HIIT, regenerativo ou específico conforme objetivo</p>
-              </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-500/5 border-green-500/20">
+          <CardContent className="p-4 flex items-start gap-3">
+            <Layers className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-green-400 text-sm">3 Pilares</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Cada treino é dividido em <strong>Perna</strong>, <strong>Empurra</strong> e <strong>Puxa</strong>.
+              </p>
             </div>
-          </div>
-        </div>
-      </section>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Regras de Descanso */}
-      <section className="mb-10">
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Timer className="h-5 w-5 text-amber-500" />
-          Descansos Explícitos (Obrigatórios)
-        </h2>
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
-            <div className="p-5">
-              <h3 className="font-medium text-foreground mb-3">Entre Exercícios</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Foco Principal</span>
-                  <span className="font-mono text-amber-500">60-90s</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Push/Pull Integrado</span>
-                  <span className="font-mono text-amber-500">40-60s</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Core</span>
-                  <span className="font-mono text-amber-500">20-40s</span>
-                </li>
-              </ul>
-            </div>
-            <div className="p-5">
-              <h3 className="font-medium text-foreground mb-3">Entre Blocos</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Bloco 1 → 2</span>
-                  <span className="font-mono text-blue-500">90-120s</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Bloco 2 → 3</span>
-                  <span className="font-mono text-blue-500">120-150s</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Após Bloco 3</span>
-                  <span className="font-mono text-green-500">60-90s</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Exemplo Real de Cronograma */}
-      <section className="mb-10">
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Target className="h-5 w-5 text-amber-500" />
-          Exemplo Real de Cronograma do Dia
-        </h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Foco do dia: <span className="text-amber-500 font-semibold">{schedule.focus}</span>
-        </p>
-
-        {/* Preparação */}
-        <div className="bg-card border border-border rounded-lg mb-4">
-          <div className="p-4 border-b border-border bg-amber-500/10">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Play className="h-4 w-4 text-amber-500" />
-                {schedule.preparation.title}
-              </h3>
-              <span className="text-sm text-amber-500 font-mono">{schedule.preparation.totalTime}</span>
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="grid gap-2">
-              {schedule.preparation.exercises.map((ex, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <span className="text-sm text-foreground">{ex.name}</span>
-                  <span className="text-xs text-muted-foreground font-mono">{ex.duration}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Blocos */}
-        {schedule.blocks.map((block) => (
-          <div key={block.blockIndex} className="bg-card border border-border rounded-lg mb-4">
-            <div className="p-4 border-b border-border bg-blue-500/10">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-foreground">Bloco {block.blockIndex}</h3>
-                <span className="text-xs text-muted-foreground">
-                  Descanso após: <span className="text-blue-500 font-mono">{block.restAfterBlock}</span>
-                </span>
-              </div>
-            </div>
-            <div className="divide-y divide-border">
-              {block.exercises.map((ex, i) => (
-                <div key={i} className="p-4">
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        ex.role === 'FOCO_PRINCIPAL' 
-                          ? 'bg-amber-500/20 text-amber-500' 
-                          : ex.role === 'PUSH_PULL_INTEGRADO'
-                          ? 'bg-purple-500/20 text-purple-400'
-                          : 'bg-green-500/20 text-green-400'
-                      }`}>
-                        {ex.role.replace(/_/g, ' ')}
-                      </span>
+      {/* Níveis */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Dumbbell className="h-5 w-5 text-amber-500" />
+            Níveis de Treinamento
+          </CardTitle>
+          <CardDescription>Clique para expandir e ver as fases de cada nível</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {LEVELS.map((level) => {
+            const Icon = level.icon
+            const isExpanded = expandedLevel === level.key
+            return (
+              <div key={level.key} className={`rounded-lg border ${level.bg} overflow-hidden`}>
+                <button
+                  onClick={() => setExpandedLevel(isExpanded ? null : level.key)}
+                  className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-5 w-5 ${level.color}`} />
+                    <div className="text-left">
+                      <span className={`font-semibold ${level.color}`}>{level.label}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{level.description}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      Descanso: {ex.rest}
-                    </span>
                   </div>
-                  <p className="font-medium text-foreground">{ex.name}</p>
-                  <p className="text-sm text-muted-foreground">{ex.execution}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {level.phases.length} fases
+                    </Badge>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-0">
+                    <div className="flex flex-wrap gap-2">
+                      {level.phases.map((phase, i) => (
+                        <Badge
+                          key={i}
+                          className="bg-background/50 border-border text-foreground"
+                        >
+                          {i + 1}. {phase}
+                          <span className="ml-1 text-muted-foreground text-[10px]">6 sem.</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Fases por Objetivo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Target className="h-5 w-5 text-amber-500" />
+            Fases por Objetivo do Aluno
+          </CardTitle>
+          <CardDescription>
+            As fases disponíveis mudam conforme o objetivo do aluno
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {OBJECTIVES.map((obj) => (
+              <div key={obj.name} className={`rounded-lg border p-4 ${obj.color}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">{obj.icon}</span>
+                  <span className="font-semibold text-foreground">{obj.name}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Protocolo Final */}
-        <div className="bg-card border border-border rounded-lg">
-          <div className="p-4 border-b border-border bg-green-500/10">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Zap className="h-4 w-4 text-green-500" />
-                Protocolo Final
-              </h3>
-              <span className="text-sm text-green-500 font-mono">{schedule.finalProtocol.totalTime}</span>
-            </div>
-          </div>
-          <div className="p-4">
-            <p className="font-medium text-foreground">{schedule.finalProtocol.name}</p>
-            {schedule.finalProtocol.structure && (
-              <p className="text-sm text-muted-foreground mt-1">{schedule.finalProtocol.structure}</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Validação */}
-      {validation && (
-        <section className="mb-10">
-          <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-amber-500" />
-            Validação do Cronograma
-          </h2>
-          <div className={`p-4 rounded-lg border ${
-            validation.valid 
-              ? 'bg-green-500/10 border-green-500/20' 
-              : 'bg-red-500/10 border-red-500/20'
-          }`}>
-            {validation.valid ? (
-              <div className="flex items-center gap-2 text-green-500">
-                <CheckCircle className="h-5 w-5" />
-                <span className="font-medium">Cronograma válido - todas as regras atendidas</span>
-              </div>
-            ) : (
-              <div>
-                <p className="font-medium text-red-400 mb-2">Erros encontrados:</p>
-                <ul className="list-disc list-inside text-sm text-red-400">
-                  {validation.errors.map((err, i) => (
-                    <li key={i}>{err}</li>
+                <div className="flex flex-wrap gap-1.5">
+                  {obj.fases.map((fase, i) => (
+                    <Badge key={i} variant="outline" className="text-[10px]">
+                      {fase}
+                    </Badge>
                   ))}
-                </ul>
+                </div>
               </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Regras Obrigatórias */}
-      <section className="mb-10">
-        <h2 className="text-xl font-semibold text-foreground mb-4">
-          Regras Obrigatórias do Método
-        </h2>
-        <div className="bg-card border border-border rounded-lg p-6">
-          <ul className="space-y-3">
-            <li className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-              <span className="text-foreground">Sempre 3 blocos de treino (nunca 2)</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-              <span className="text-foreground">Todos os blocos iniciam com FOCO PRINCIPAL (padrão de movimento mais deficiente)</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-              <span className="text-foreground">Descansos explícitos em todos os níveis (exercícios e blocos)</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-              <span className="text-foreground">Preparação do movimento obrigatória antes dos blocos</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-              <span className="text-foreground">Protocolo final sempre presente após o Bloco 3</span>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      {/* Audit Info */}
-      <section className="text-sm text-muted-foreground">
-        <details className="cursor-pointer">
-          <summary className="hover:text-foreground">Ver regras aplicadas pelo motor</summary>
-          <div className="mt-2 p-3 bg-muted/50 rounded-lg font-mono text-xs">
-            {schedule.audit.rulesTriggered.map((rule, i) => (
-              <div key={i}>{rule}</div>
             ))}
           </div>
-        </details>
-      </section>
+        </CardContent>
+      </Card>
+
+      {/* Regras */}
+      <Card className="bg-amber-500/5 border-amber-500/20">
+        <CardContent className="p-5">
+          <h3 className="font-semibold text-amber-500 mb-3 flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Regras do Método
+          </h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">•</span>
+              <span>Todos os alunos começam pelo <strong className="text-foreground">Condicionamento</strong>, independente do objetivo</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">•</span>
+              <span>Todos passam pela fase de <strong className="text-foreground">Força</strong> antes de avançar</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">•</span>
+              <span><strong className="text-foreground">Potência</strong> está disponível somente para Performance</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">•</span>
+              <span><strong className="text-foreground">Metabólico</strong> está disponível somente para Emagrecimento</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">•</span>
+              <span><strong className="text-foreground">Hipertrofia 2, 3, 4</strong> estão disponíveis somente para Hipertrofia</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">•</span>
+              <span>A avaliação física é realizada a cada <strong className="text-foreground">60 dias</strong> para reclassificar o nível</span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   )
 }

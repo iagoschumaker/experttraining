@@ -17,7 +17,8 @@ import {
   DollarSign,
   Database,
   Pyramid,
-  Brain
+  Brain,
+  Layers
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -55,9 +56,9 @@ const sidebarLinks: SidebarLink[] = [
     icon: <Users className="w-5 h-5" />,
   },
   {
-    href: '/superadmin/metodo',
-    label: 'Método',
-    icon: <Boxes className="w-5 h-5" />,
+    href: '/superadmin/phases',
+    label: 'Fases / Treinos',
+    icon: <Layers className="w-5 h-5" />,
   },
   {
     href: '/superadmin/backup',
