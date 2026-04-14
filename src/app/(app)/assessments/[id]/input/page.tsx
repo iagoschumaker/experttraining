@@ -36,6 +36,36 @@ import {
 } from 'lucide-react'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { SkinfoldsInput, PollockResult } from '@/services/pollock'
+import { getAvailablePhases } from '@/services/trainingPhases'
+import type { TrainingPhase, TrainingLevel, ClientObjective } from '@/services/trainingPhases'
+
+// Labels
+const PHASE_LABELS: Record<string, string> = {
+  CONDICIONAMENTO_1: 'Fundamento Híbrido I',
+  CONDICIONAMENTO_2: 'Condicionamento Híbrido',
+  HIPERTROFIA: 'Hipertrofia Híbrida',
+  FORCA: 'Força Híbrida',
+  POTENCIA: 'Potência Híbrida',
+  RESISTENCIA: 'Resistência / Fadiga',
+  METABOLICO: 'Metabólico',
+  HIPERTROFIA_2: 'Hipertrofia Híbrida II',
+  FORCA_2: 'Força Híbrida II',
+  RESISTENCIA_2: 'Resistência / Fadiga II',
+  METABOLICO_2: 'Metabólico II',
+}
+
+const OBJECTIVE_OPTIONS = [
+  { value: 'EMAGRECIMENTO', label: 'Emagrecimento', description: 'Perda de gordura e composição corporal' },
+  { value: 'HIPERTROFIA_OBJ', label: 'Hipertrofia', description: 'Ganho de massa muscular' },
+  { value: 'PERFORMANCE', label: 'Performance', description: 'Desempenho atlético e funcional' },
+  { value: 'REABILITACAO', label: 'Reabilitação / Saúde', description: 'Recuperação e qualidade de vida' },
+]
+
+const LEVEL_TO_TRAINING: Record<string, TrainingLevel> = {
+  BEGINNER: 'INICIANTE',
+  INTERMEDIATE: 'INTERMEDIARIO',
+  ADVANCED: 'AVANCADO',
+}
 
 // Types
 interface MovementTest {
@@ -196,6 +226,8 @@ export default function AssessmentInputPage() {
   const [step, setStep] = useState(1) // 1: Complaints, 2: Pain Map, 3: Movement Tests, 4: Body Metrics, 5: Level
   const [newComplaint, setNewComplaint] = useState('')
   const [assessmentDate, setAssessmentDate] = useState('')
+  const [selectedObjective, setSelectedObjective] = useState<ClientObjective>('HIPERTROFIA_OBJ')
+  const [selectedPhase, setSelectedPhase] = useState<TrainingPhase>('CONDICIONAMENTO_1')
 
   // Form state
   const [formData, setFormData] = useState<AssessmentInput>({
@@ -212,6 +244,10 @@ export default function AssessmentInputPage() {
     },
     level: 'BEGINNER',
   })
+
+  // Compute available phases based on level and objective
+  const trainingLevel = LEVEL_TO_TRAINING[formData.level] || 'INICIANTE'
+  const availablePhases = getAvailablePhases(trainingLevel, selectedObjective)
 
   // Body metrics (optional)
   const [bodyMetrics, setBodyMetrics] = useState<BodyMetrics>({
@@ -381,6 +417,8 @@ export default function AssessmentInputPage() {
           inputJson: formData,
           bodyMetrics: Object.keys(cleanBodyMetrics).length > 0 ? cleanBodyMetrics : undefined,
           assessmentDate,
+          selectedPhase,
+          objective: selectedObjective,
         }),
       })
 
@@ -1055,123 +1093,198 @@ export default function AssessmentInputPage() {
         </Card>
       )}
 
-      {/* Step 5: Level and Process */}
+      {/* Step 5: Level, Objective, Phase and Process */}
       {step === 5 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Nível de Experiência</CardTitle>
-            <CardDescription>
-              Selecione o nível de experiência do cliente com treinamento
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              {[
-                {
-                  value: 'BEGINNER',
-                  label: 'Iniciante',
-                  description: 'Pouca ou nenhuma experiência com treinamento',
-                },
-                {
-                  value: 'INTERMEDIATE',
-                  label: 'Intermediário',
-                  description: 'Experiência moderada, pratica regularmente',
-                },
-                {
-                  value: 'ADVANCED',
-                  label: 'Avançado',
-                  description: 'Experiência significativa, atleta ou similar',
-                },
-              ].map((level) => (
-                <button
-                  key={level.value}
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      level: level.value as AssessmentInput['level'],
-                    })
-                  }
-                  className={`rounded-lg border-2 p-4 text-left transition-colors ${formData.level === level.value
-                    ? 'border-amber-500 bg-amber-500/10'
-                    : 'border-border hover:border-amber-500'
-                    }`}
-                >
-                  <div className="font-medium">{level.label}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    {level.description}
-                  </div>
-                </button>
-              ))}
-            </div>
+        <div className="space-y-4">
+          {/* Level */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Nível de Experiência</CardTitle>
+              <CardDescription>
+                Selecione o nível de experiência do cliente com treinamento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  {
+                    value: 'BEGINNER',
+                    label: 'Iniciante',
+                    description: 'Pouca ou nenhuma experiência com treinamento',
+                  },
+                  {
+                    value: 'INTERMEDIATE',
+                    label: 'Intermediário',
+                    description: 'Experiência moderada, pratica regularmente',
+                  },
+                  {
+                    value: 'ADVANCED',
+                    label: 'Avançado',
+                    description: 'Experiência significativa, atleta ou similar',
+                  },
+                ].map((level) => (
+                  <button
+                    key={level.value}
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        level: level.value as AssessmentInput['level'],
+                      })
+                      // Reset phase when level changes
+                      const newTrainingLevel = LEVEL_TO_TRAINING[level.value] || 'INICIANTE'
+                      const newPhases = getAvailablePhases(newTrainingLevel, selectedObjective)
+                      if (!newPhases.includes(selectedPhase)) {
+                        setSelectedPhase(newPhases[0])
+                      }
+                    }}
+                    className={`rounded-lg border-2 p-4 text-left transition-colors ${formData.level === level.value
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-border hover:border-blue-500'
+                      }`}
+                  >
+                    <div className="font-medium">{level.label}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {level.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Summary */}
-            <div className="rounded-lg bg-card border border-border p-4">
-              <h4 className="mb-2 font-medium">Resumo da Avaliação</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Queixas:</span>
-                  <span>{formData.complaints.length} registrada(s)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Regiões com dor:
-                  </span>
-                  <span>
-                    {
-                      Object.values(formData.painMap).filter((v) => v > 0)
-                        .length
-                    }{' '}
-                    região(ões)
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Score médio de movimento:
-                  </span>
-                  <span>
-                    {(
-                      Object.values(formData.movementTests).reduce(
-                        (acc, t) => acc + t.score,
-                        0
-                      ) / 7
-                    ).toFixed(1)}
-                    /3
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Nível:</span>
-                  <span>
-                    {formData.level === 'BEGINNER'
-                      ? 'Iniciante'
-                      : formData.level === 'INTERMEDIATE'
-                        ? 'Intermediário'
-                        : 'Avançado'}
-                  </span>
+          {/* Objective */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Objetivo do Treinamento</CardTitle>
+              <CardDescription>
+                Selecione o objetivo principal do cliente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {OBJECTIVE_OPTIONS.map((obj) => (
+                  <button
+                    key={obj.value}
+                    onClick={() => {
+                      setSelectedObjective(obj.value as ClientObjective)
+                      // Reset phase when objective changes
+                      const newPhases = getAvailablePhases(trainingLevel, obj.value as ClientObjective)
+                      if (!newPhases.includes(selectedPhase)) {
+                        setSelectedPhase(newPhases[0])
+                      }
+                    }}
+                    className={`rounded-lg border-2 p-4 text-left transition-colors ${selectedObjective === obj.value
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : 'border-border hover:border-emerald-500'
+                      }`}
+                  >
+                    <div className="font-medium">{obj.label}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {obj.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Phase */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Fase do Treinamento</CardTitle>
+              <CardDescription>
+                Selecione a fase recomendada (baseada no nível e objetivo). Cada fase dura 6 semanas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {availablePhases.map((phase) => (
+                  <button
+                    key={phase}
+                    onClick={() => setSelectedPhase(phase)}
+                    className={`rounded-lg border-2 p-3 text-left transition-colors ${selectedPhase === phase
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-border hover:border-amber-500'
+                      }`}
+                  >
+                    <div className="font-medium text-sm">{PHASE_LABELS[phase] || phase}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {phase.replace(/_/g, ' ')}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary + Process */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo e Processamento</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-card border border-border p-4">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Queixas:</span>
+                    <span>{formData.complaints.length} registrada(s)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Regiões com dor:</span>
+                    <span>
+                      {Object.values(formData.painMap).filter((v) => v > 0).length} região(ões)
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Score médio:</span>
+                    <span>
+                      {(Object.values(formData.movementTests).reduce((acc, t) => acc + t.score, 0) / 7).toFixed(1)}/3
+                    </span>
+                  </div>
+                  <div className="border-t border-border my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nível:</span>
+                    <Badge className="bg-blue-500">
+                      {formData.level === 'BEGINNER' ? 'Iniciante' : formData.level === 'INTERMEDIATE' ? 'Intermediário' : 'Avançado'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Objetivo:</span>
+                    <Badge className="bg-emerald-500">
+                      {OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label || selectedObjective}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fase:</span>
+                    <Badge className="bg-amber-500">
+                      {PHASE_LABELS[selectedPhase] || selectedPhase}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Process button */}
-            <Button
-              onClick={handleProcess}
-              disabled={processing}
-              className="w-full"
-              size="lg"
-            >
-              {processing ? (
-                <>
-                  <AlertCircle className="mr-2 h-4 w-4 animate-pulse" />
-                  Processando Avaliação...
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" />
-                  Processar Avaliação
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              {/* Process button */}
+              <Button
+                onClick={handleProcess}
+                disabled={processing}
+                className="w-full"
+                size="lg"
+              >
+                {processing ? (
+                  <>
+                    <AlertCircle className="mr-2 h-4 w-4 animate-pulse" />
+                    Processando Avaliação...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Processar Avaliação
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Navigation */}

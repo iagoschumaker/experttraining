@@ -66,6 +66,8 @@ const updateAssessmentSchema = z.object({
   }).optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']).optional(),
   assessmentDate: z.string().optional(),
+  selectedPhase: z.string().optional(),
+  objective: z.string().optional(),
 })
 
 // GET - Get assessment by ID
@@ -208,7 +210,7 @@ export async function PUT(
       )
     }
 
-    const { inputJson, bodyMetrics, status, assessmentDate } = validation.data
+    const { inputJson, bodyMetrics, status, assessmentDate, selectedPhase, objective } = validation.data
 
     // Build update data
     const updateData: any = {}
@@ -220,6 +222,12 @@ export async function PUT(
     }
     if (status !== undefined) {
       updateData.status = status
+    }
+    if (selectedPhase) {
+      updateData.selectedPhase = selectedPhase
+    }
+    if (objective) {
+      updateData.objective = objective
     }
     if (assessmentDate) {
       // Parse date-only strings as noon to avoid timezone boundary shifts
