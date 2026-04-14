@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 // ============================================================================
 // EXPERT PRO TRAINING - SUPERADMIN BACKUP PAGE
@@ -96,6 +96,8 @@ export default function SuperAdminBackupPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migrationResult, setMigrationResult] = useState<any>(null)
 
   const fetchBackups = async () => {
     setLoading(true)
@@ -115,6 +117,32 @@ export default function SuperAdminBackupPage() {
   useEffect(() => {
     fetchBackups()
   }, [])
+
+  const handleMigratePhaseData = async () => {
+    if (!confirm('⚠️ MIGRAÇÃO DE DADOS\n\nIsso vai atualizar todos os clientes, avaliações e treinos para o novo formato de fases.\n\nNenhum dado será deletado, apenas campos vazios serão preenchidos.\n\nDeseja continuar?')) {
+      return
+    }
+    
+    setMigrating(true)
+    setMigrationResult(null)
+    try {
+      const res = await fetch('/api/superadmin/migrate-phase-data', {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMigrationResult(data.data)
+        alert(`✅ Migração concluída!\n\nClientes atualizados: ${data.data.summary.clientsUpdated}\nAvaliações: ${data.data.summary.assessmentsUpdated}\nTreinos: ${data.data.summary.workoutsUpdated}\nErros: ${data.data.summary.errors}`)
+      } else {
+        alert('❌ Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('❌ Erro na migração')
+    } finally {
+      setMigrating(false)
+    }
+  }
 
   const handleCreateBackup = async () => {
     setCreating(true)
@@ -442,6 +470,77 @@ export default function SuperAdminBackupPage() {
                 </Table>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Migration Zone */}
+      <Card className="border-amber-500/50 bg-amber-500/5">
+        <CardHeader>
+          <CardTitle className="text-lg text-amber-500 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Zona de Migração
+          </CardTitle>
+          <CardDescription>
+            Ferramentas para migrar dados existentes para o novo formato
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <h4 className="font-semibold mb-2">Migrar para Sistema de Fases</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              Atualiza todos os clientes, avaliações e treinos existentes para o novo formato de fases.
+              Define <strong>objetivo</strong>, <strong>fase atual</strong> e <strong>nível</strong> baseados nos dados existentes.
+              Nenhum dado existente é deletado.
+            </p>
+            <Button 
+              variant="outline" 
+              className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+              onClick={handleMigratePhaseData}
+              disabled={migrating}
+            >
+              {migrating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Migrando dados...
+                </>
+              ) : (
+                <>
+                  <Database className="w-4 h-4 mr-2" />
+                  Executar Migração
+                </>
+              )}
+            </Button>
+          </div>
+
+          {migrationResult && (
+            <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <h4 className="font-semibold text-green-600 mb-2">✅ Resultado da Migração</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Clientes:</span>{' '}
+                  <strong>{migrationResult.summary.clientsUpdated}</strong> / {migrationResult.summary.totalClients}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Avaliações:</span>{' '}
+                  <strong>{migrationResult.summary.assessmentsUpdated}</strong> / {migrationResult.summary.totalAssessments}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Treinos:</span>{' '}
+                  <strong>{migrationResult.summary.workoutsUpdated}</strong> / {migrationResult.summary.totalWorkouts}
+                </div>
+              </div>
+              {migrationResult.errors?.length > 0 && (
+                <div className="mt-3 p-3 bg-red-500/10 rounded text-sm">
+                  <span className="text-red-500 font-semibold">Erros ({migrationResult.errors.length}):</span>
+                  <ul className="mt-1 space-y-1 text-muted-foreground">
+                    {migrationResult.errors.map((err: string, i: number) => (
+                      <li key={i}>• {err}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

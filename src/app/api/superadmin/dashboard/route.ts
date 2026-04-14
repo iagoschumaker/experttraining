@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - SUPERADMIN DASHBOARD API
 // ============================================================================
 
@@ -21,12 +21,11 @@ export async function GET() {
       suspendedStudios,
       totalUsers,
       superAdminUsers,
-      totalBlocks,
-      activeBlocks,
-      totalRules,
-      activeRules,
       totalPlans,
       totalClients,
+      totalWorkouts,
+      activeWorkouts,
+      totalAssessments,
       recentStudios,
       recentUsers,
     ] = await Promise.all([
@@ -35,12 +34,11 @@ export async function GET() {
       prisma.studio.count({ where: { status: 'SUSPENDED' } }),
       prisma.user.count(),
       prisma.user.count({ where: { isSuperAdmin: true } }),
-      prisma.block.count(),
-      prisma.block.count({ where: { isActive: true } }),
-      prisma.rule.count(),
-      prisma.rule.count({ where: { isActive: true } }),
       prisma.plan.count(),
       prisma.client.count(),
+      prisma.workout.count(),
+      prisma.workout.count({ where: { isActive: true } }),
+      prisma.assessment.count(),
       prisma.studio.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
@@ -52,10 +50,6 @@ export async function GET() {
         select: { id: true, name: true, email: true, createdAt: true },
       }),
     ])
-
-    // Calculate monthly revenue - simplified for now
-    // TODO: Implement proper usage-based revenue calculation
-    const monthlyRevenue = 0 // Will be calculated from actual usage records
 
     // Get suspended studios list
     const suspendedStudiosList = await prisma.studio.findMany({
@@ -74,20 +68,18 @@ export async function GET() {
           totalUsers,
           superAdminUsers,
           regularUsers: totalUsers - superAdminUsers,
-          totalBlocks,
-          activeBlocks,
-          totalRules,
-          activeRules,
           totalPlans,
           totalClients,
-          monthlyRevenue,
+          totalWorkouts,
+          activeWorkouts,
+          totalAssessments,
         },
         suspendedStudiosList,
         recentStudios,
         recentUsers,
         systemStatus: {
-          decisionEngine: activeRules > 0 ? 'operational' : 'no_rules',
-          blocks: activeBlocks > 0 ? 'operational' : 'no_blocks',
+          phaseEngine: 'operational',
+          totalPhases: 19,
         },
       },
     })

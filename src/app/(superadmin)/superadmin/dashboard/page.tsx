@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge, StatsCard, StatsGrid } from '@/components/ui'
-import { Building2, Users, CreditCard, Boxes, TrendingUp, AlertTriangle, Settings2, UserCheck, Layers } from 'lucide-react'
+import { Building2, Users, CreditCard, TrendingUp, AlertTriangle, UserCheck, Layers, Dumbbell, ClipboardCheck } from 'lucide-react'
 import Link from 'next/link'
 
 interface DashboardData {
@@ -10,22 +10,19 @@ interface DashboardData {
     totalStudios: number
     activeStudios: number
     suspendedStudios: number
-    inactiveStudios: number
     totalUsers: number
     superAdminUsers: number
     regularUsers: number
-    totalBlocks: number
-    activeBlocks: number
-    totalRules: number
-    activeRules: number
     totalPlans: number
     totalClients: number
-    monthlyRevenue: number
+    totalWorkouts: number
+    activeWorkouts: number
+    totalAssessments: number
   }
   suspendedStudiosList: { id: string; name: string; slug: string }[]
   recentStudios: { id: string; name: string; status: string; createdAt: string }[]
   recentUsers: { id: string; name: string; email: string; createdAt: string }[]
-  systemStatus: { decisionEngine: string; blocks: string }
+  systemStatus: { phaseEngine: string; totalPhases: number }
 }
 
 export default function SuperAdminDashboardPage() {
@@ -75,18 +72,19 @@ export default function SuperAdminDashboardPage() {
       bgColor: 'bg-purple-400/10',
     },
     {
-      title: 'Receita Mensal',
-      value: `R$ ${(stats?.monthlyRevenue ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: <CreditCard className="w-5 h-5" />,
+      title: 'Treinos Ativos',
+      value: stats?.activeWorkouts ?? 0,
+      total: stats?.totalWorkouts ?? 0,
+      icon: <Dumbbell className="w-5 h-5" />,
       color: 'text-amber-400',
       bgColor: 'bg-amber-400/10',
-      isString: true,
-      href: '/superadmin/plans',
+      href: '/superadmin/studios',
     },
   ]
 
   const secondaryStats = [
     { title: 'Fases / Treinos', value: '19', icon: <Layers className="w-4 h-4" />, href: '/superadmin/phases' },
+    { title: 'Avaliações', value: stats?.totalAssessments ?? 0, icon: <ClipboardCheck className="w-4 h-4" />, href: '/superadmin/studios' },
     { title: 'Planos', value: stats?.totalPlans ?? 0, icon: <CreditCard className="w-4 h-4" />, href: '/superadmin/plans' },
   ]
 
@@ -182,18 +180,22 @@ export default function SuperAdminDashboardPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Regras Ativas</span>
-                <span className="text-foreground font-medium">{stats?.activeRules ?? 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Blocos Ativos</span>
-                <span className="text-foreground font-medium">{stats?.activeBlocks ?? 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Motor de Decisão</span>
-                <Badge variant={data?.systemStatus?.decisionEngine === 'operational' ? 'success' : 'secondary'}>
-                  {data?.systemStatus?.decisionEngine === 'operational' ? 'Operacional' : 'Sem regras'}
+                <span className="text-muted-foreground">Motor de Fases</span>
+                <Badge variant={data?.systemStatus?.phaseEngine === 'operational' ? 'success' : 'secondary'}>
+                  {data?.systemStatus?.phaseEngine === 'operational' ? 'Operacional' : 'Inativo'}
                 </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Fases Disponíveis</span>
+                <span className="text-foreground font-medium">{data?.systemStatus?.totalPhases ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Treinos Ativos</span>
+                <span className="text-foreground font-medium">{stats?.activeWorkouts ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Avaliações Totais</span>
+                <span className="text-foreground font-medium">{stats?.totalAssessments ?? 0}</span>
               </div>
             </div>
           </CardContent>
