@@ -147,8 +147,12 @@ export default function AssessmentResultPage() {
           if (data.data.status === 'COMPLETED') {
             const evoRes = await fetch(`/api/studio/assessments/${assessmentId}/evolution`)
             const evoData = await evoRes.json()
-            if (evoData.success) {
-              setEvolution(evoData.data.evolution)
+            if (evoData.success && evoData.data.previousAssessment) {
+              // Merge insights into evolution object for the UI
+              setEvolution({
+                ...evoData.data.evolution,
+                insights: evoData.data.insights || [],
+              })
             }
           }
         } else {
@@ -321,7 +325,7 @@ export default function AssessmentResultPage() {
           </div>
 
           {/* Evolution Section (if available) */}
-          {evolution && evolution.daysBetween !== null && (
+          {evolution && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -329,7 +333,12 @@ export default function AssessmentResultPage() {
                   Evolução desde a Última Avaliação
                 </CardTitle>
                 <CardDescription>
-                  Comparação com avaliação de {evolution.daysBetween} dias atrás
+                  {evolution.daysBetween !== null
+                    ? evolution.daysBetween === 0
+                      ? 'Comparação com avaliação do mesmo dia'
+                      : `Comparação com avaliação de ${evolution.daysBetween} dia${evolution.daysBetween !== 1 ? 's' : ''} atrás`
+                    : 'Dados de comparação'
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

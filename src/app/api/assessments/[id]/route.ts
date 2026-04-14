@@ -115,6 +115,20 @@ export async function GET(
             level: true,
             objective: true,
             currentPhase: true,
+            workouts: {
+              where: { phase: { not: null } },
+              select: {
+                id: true,
+                phase: true,
+                isActive: true,
+                startDate: true,
+                endDate: true,
+                sessionsCompleted: true,
+                sessionsPerWeek: true,
+                targetWeeks: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
       },
@@ -127,12 +141,37 @@ export async function GET(
       )
     }
 
-    // All trainers in the studio can view any assessment details
-    // (editing/processing is restricted to the assigned trainer or admin)
+    // Build phase history from workouts
+    const phaseHistory = (assessment.client.workouts || [])
+      .filter(w => w.phase)
+      .map(w => ({
+        phase: w.phase,
+        isActive: w.isActive,
+        startDate: w.startDate,
+        endDate: w.endDate,
+        progress: w.sessionsPerWeek > 0
+          ? Math.min(100, Math.round((w.sessionsCompleted / (w.sessionsPerWeek * w.targetWeeks)) * 100))
+          : 0,
+      }))
+
+    // Unique completed phases
+    const completedPhases = [...new Set(
+      phaseHistory
+        .filter(p => !p.isActive && p.progress >= 85)
+        .map(p => p.phase)
+    )]
 
     return NextResponse.json({
       success: true,
-      data: assessment,
+      data: {
+        ...assessment,
+        client: {
+          ...assessment.client,
+          workouts: undefined, // Don't send raw workouts
+          phaseHistory,
+          completedPhases,
+        },
+      },
     })
   } catch (error) {
     console.error('Get assessment error:', error)

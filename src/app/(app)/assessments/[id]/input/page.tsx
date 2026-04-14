@@ -36,8 +36,9 @@ import {
 } from 'lucide-react'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { SkinfoldsInput, PollockResult } from '@/services/pollock'
-import { getAvailablePhases } from '@/services/trainingPhases'
+import { getAvailablePhases, getAvailablePhasesForLevel } from '@/services/trainingPhases'
 import type { TrainingPhase, TrainingLevel, ClientObjective } from '@/services/trainingPhases'
+import { getPhaseWorkout } from '@/services/phaseWorkouts'
 
 // Labels
 const PHASE_LABELS: Record<string, string> = {
@@ -228,6 +229,8 @@ export default function AssessmentInputPage() {
   const [assessmentDate, setAssessmentDate] = useState('')
   const [selectedObjective, setSelectedObjective] = useState<ClientObjective>('HIPERTROFIA_OBJ')
   const [selectedPhase, setSelectedPhase] = useState<TrainingPhase>('CONDICIONAMENTO_1')
+  const [completedPhases, setCompletedPhases] = useState<string[]>([])
+  const [currentPhase, setCurrentPhase] = useState<string | null>(null)
 
   // Form state
   const [formData, setFormData] = useState<AssessmentInput>({
@@ -245,9 +248,14 @@ export default function AssessmentInputPage() {
     level: 'BEGINNER',
   })
 
-  // Compute available phases based on level and objective
+  // Compute available phases: intersection of (level+objective) AND (catalog existence)
   const trainingLevel = LEVEL_TO_TRAINING[formData.level] || 'INICIANTE'
-  const availablePhases = getAvailablePhases(trainingLevel, selectedObjective)
+  const phasesFromRules = getAvailablePhases(trainingLevel, selectedObjective)
+  // Filter to only phases that actually have a template in the catalog
+  const availablePhases = phasesFromRules.filter(phase => {
+    const template = getPhaseWorkout(trainingLevel, phase)
+    return template !== null
+  })
 
   // Body metrics (optional)
   const [bodyMetrics, setBodyMetrics] = useState<BodyMetrics>({
@@ -270,6 +278,13 @@ export default function AssessmentInputPage() {
           setAssessment(data.data)
           if (data.data.inputJson) {
             setFormData(data.data.inputJson)
+          }
+          // Set phase history
+          if (data.data.client?.completedPhases) {
+            setCompletedPhases(data.data.client.completedPhases)
+          }
+          if (data.data.client?.currentPhase) {
+            setCurrentPhase(data.data.client.currentPhase)
           }
           if (data.data.createdAt) {
             // Use local date components to avoid UTC shift
@@ -1193,27 +1208,48 @@ export default function AssessmentInputPage() {
             <CardHeader>
               <CardTitle>Fase do Treinamento</CardTitle>
               <CardDescription>
-                Selecione a fase recomendada (baseada no nível e objetivo). Cada fase dura 6 semanas.
+                Selecione a fase recomendada. Cada fase dura 6 semanas. Fases já concluídas estão marcadas.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {availablePhases.map((phase) => (
-                  <button
-                    key={phase}
-                    onClick={() => setSelectedPhase(phase)}
-                    className={`rounded-lg border-2 p-3 text-left transition-colors ${selectedPhase === phase
-                      ? 'border-amber-500 bg-amber-500/10'
-                      : 'border-border hover:border-amber-500'
-                      }`}
-                  >
-                    <div className="font-medium text-sm">{PHASE_LABELS[phase] || phase}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {phase.replace(/_/g, ' ')}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {availablePhases.length === 0 ? (
+                <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
+                  Nenhuma fase com template disponível para este nível e objetivo.
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {availablePhases.map((phase) => {
+                    const isCompleted = completedPhases.includes(phase)
+                    const isCurrent = currentPhase === phase
+                    return (
+                      <button
+                        key={phase}
+                        onClick={() => setSelectedPhase(phase)}
+                        className={`rounded-lg border-2 p-3 text-left transition-colors relative ${
+                          selectedPhase === phase
+                            ? 'border-amber-500 bg-amber-500/10'
+                            : isCompleted
+                            ? 'border-green-500/30 bg-green-500/5'
+                            : 'border-border hover:border-amber-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-sm flex-1">{PHASE_LABELS[phase] || phase}</div>
+                          {isCompleted && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium whitespace-nowrap">Concluída ✓</span>
+                          )}
+                          {isCurrent && !isCompleted && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Atual</span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {phase.replace(/_/g, ' ')}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
