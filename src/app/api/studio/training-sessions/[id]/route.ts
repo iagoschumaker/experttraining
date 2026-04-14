@@ -1,7 +1,7 @@
 // ============================================================================
 // EXPERT PRO TRAINING - TRAINING SESSION BY ID API
 // ============================================================================
-// PATCH  /api/studio/training-sessions/[id] - Add/remove student
+// PATCH  /api/studio/training-sessions/[id] - Add/remove student + pillar override
 // POST   /api/studio/training-sessions/[id] - Finalize session (do check-ins)
 // DELETE /api/studio/training-sessions/[id] - Discard session
 // ============================================================================
@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 
-// PATCH - Add or remove a student from the session
+// PATCH - Add/remove student OR update pillar override for a student
 export async function PATCH(
     request: NextRequest,
     { params }: { params: { id: string } }
@@ -30,14 +30,13 @@ export async function PATCH(
         }
 
         const body = await request.json()
-        const { addStudent, removeClientId } = body
+        const { addStudent, removeClientId, pillarOverride } = body
         let students = (session.studentsJson as any[]) || []
 
         if (addStudent) {
             // Check if student is already in another active session in the studio
-            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
             const allActive = await prisma.trainingSession.findMany({
-                where: { studioId, finalized: false, createdAt: { gte: todayStart } },
+                where: { studioId, finalized: false },
             })
             for (const s of allActive) {
                 const sStudents = s.studentsJson as any[]
@@ -50,6 +49,17 @@ export async function PATCH(
 
         if (removeClientId) {
             students = students.filter((s: any) => s.clientId !== removeClientId)
+        }
+
+        // Persist trainer's manual pillar selection per student
+        // storedSessionIndex is read back by loadSessionCards on reload/polling
+        if (pillarOverride) {
+            const { clientId, sessionIndex } = pillarOverride
+            students = students.map((s: any) =>
+                s.clientId === clientId
+                    ? { ...s, storedSessionIndex: sessionIndex }
+                    : s
+            )
         }
 
         const updated = await prisma.trainingSession.update({

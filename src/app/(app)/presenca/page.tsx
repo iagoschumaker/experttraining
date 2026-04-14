@@ -205,8 +205,16 @@ export default function PresencaPage() {
         const loaded = await Promise.all(session.students.map(async (entry) => {
             if (!entry.workoutId) return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Sem treino ativo', collapsed: false } as StudentCard
             try {
-                // Use stored pillar override if it exists
-                const overrideIdx = pillarOverridesRef.current.get(entry.clientId)
+                // Priority: in-memory ref > stored in DB (storedSessionIndex) > auto
+                const memOverride = pillarOverridesRef.current.get(entry.clientId)
+                const dbOverride = (entry as any).storedSessionIndex
+                const overrideIdx = memOverride !== undefined ? memOverride : dbOverride
+
+                // Sync ref with DB value so finalize sends correct pillarOverrides
+                if (overrideIdx !== undefined && memOverride === undefined) {
+                    pillarOverridesRef.current.set(entry.clientId, overrideIdx)
+                }
+
                 const url = overrideIdx !== undefined
                     ? `/api/studio/workouts/${entry.workoutId}/next-session?sessionIndex=${overrideIdx}`
                     : `/api/studio/workouts/${entry.workoutId}/next-session`
@@ -428,6 +436,7 @@ export default function PresencaPage() {
         }
 
         try {
+            // 1. Fetch the chosen session data
             const res = await fetchWithAuth(`/api/studio/workouts/${workoutId}/next-session?sessionIndex=${sessionIndex}`)
             const data = await res.json()
             if (!data.success) return
@@ -442,6 +451,14 @@ export default function PresencaPage() {
                 m.set(activeTabId!, cards)
                 return m
             })
+
+            // 2. Persist pillar override in DB so it survives polling / page reload
+            fetchWithAuth(`/api/studio/training-sessions/${activeTabId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pillarOverride: { clientId, sessionIndex } }),
+            }).catch(err => console.error('Persist pillar error:', err))
+
         } catch (err) { console.error('Switch pillar error:', err) }
     }
 
@@ -733,12 +750,36 @@ export default function PresencaPage() {
                                             {card.sessionData.session.finalProtocol && (
                                                 <div className="px-3 py-1.5">
                                                     <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Protocolo Final</p>
+                                                    {/* Exercises list (legacy format) */}
                                                     {(card.sessionData.session.finalProtocol.exercises || []).map((ex: any, i: number) => (
                                                         <div key={i} className="flex items-center justify-between text-xs py-0.5">
                                                             <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
                                                             <span className="text-[10px] font-mono ml-1">{ex.sets}x{ex.reps} {ex.rest}</span>
                                                         </div>
                                                     ))}
+                                                    {/* Structure string (new PhaseWorkoutTemplate format) */}
+                                                    {card.sessionData.session.finalProtocol.structure && (
+                                                        <p className="text-xs text-amber-400 font-medium mt-0.5">
+                                                            {card.sessionData.session.finalProtocol.structure}
+                                                        </p>
+                                                    )}
+                                                    {/* Raw string fallback */}
+                                                    {!card.sessionData.session.finalProtocol.structure &&
+                                                     !(card.sessionData.session.finalProtocol.exercises?.length) &&
+                                                     (card.sessionData.session as any).protocoloFinal && (
+                                                        <p className="text-xs text-amber-400 font-medium mt-0.5">
+                                                            {(card.sessionData.session as any).protocoloFinal}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Raw protocoloFinal string (when finalProtocol object is absent) */}
+                                            {!(card.sessionData.session.finalProtocol) && (card.sessionData.session as any).protocoloFinal && (
+                                                <div className="px-3 py-1.5">
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Protocolo Final</p>
+                                                    <p className="text-xs text-amber-400 font-medium">
+                                                        {(card.sessionData.session as any).protocoloFinal}
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>
