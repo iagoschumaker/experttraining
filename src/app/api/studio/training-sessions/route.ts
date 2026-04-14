@@ -31,16 +31,41 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: 'asc' },
         })
 
-        return NextResponse.json({
-            success: true,
-            data: sessions.map(s => ({
+        // Collect all unique clientIds across sessions
+        const allClientIds = new Set<string>()
+        for (const s of sessions) {
+            const arr = (s.studentsJson as any[]) || []
+            arr.forEach((st: any) => st.clientId && allClientIds.add(st.clientId))
+        }
+
+        // Fetch fresh activeWorkoutId for each client
+        const freshClients = allClientIds.size > 0
+            ? await prisma.client.findMany({
+                where: { id: { in: Array.from(allClientIds) } },
+                select: { id: true, activeWorkoutId: true },
+              })
+            : []
+        const freshWorkoutMap = new Map(freshClients.map(c => [c.id, c.activeWorkoutId]))
+
+        // Build response, refreshing workoutId from DB client data
+        const result = sessions.map(s => {
+            const updatedStudents = (s.studentsJson as any[]).map((st: any) => {
+                const freshId = freshWorkoutMap.get(st.clientId)
+                if (freshId && freshId !== st.workoutId) {
+                    return { ...st, workoutId: freshId }
+                }
+                return st
+            })
+            return {
                 id: s.id,
                 label: s.label,
-                students: s.studentsJson as any[],
+                students: updatedStudents,
                 createdAt: s.createdAt.toISOString(),
                 finalized: s.finalized,
-            })),
+            }
         })
+
+        return NextResponse.json({ success: true, data: result })
     } catch (error) {
         console.error('List training sessions error:', error)
         return NextResponse.json({ success: false, error: 'Erro interno' }, { status: 500 })

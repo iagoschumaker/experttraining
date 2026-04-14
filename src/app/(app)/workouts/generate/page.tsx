@@ -688,11 +688,11 @@ function GenerateWorkoutPage() {
       {/* ================================================================== */}
       {step === 'assessment' && (() => {
         const filtered = availableAssessments.filter(a => {
+          if (!assessmentSearch) return true
           const q = assessmentSearch.toLowerCase()
-          return (
-            a.client.name.toLowerCase().includes(q) ||
-            new Date(a.createdAt).toLocaleDateString('pt-BR').includes(q)
-          )
+          const name = (a.client?.name || '').toLowerCase()
+          const date = new Date(a.createdAt).toLocaleDateString('pt-BR')
+          return name.includes(q) || date.includes(q)
         })
         return (
           <div>

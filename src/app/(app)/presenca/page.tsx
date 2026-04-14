@@ -203,7 +203,7 @@ export default function PresencaPage() {
         setCardsBySession(prev => new Map(prev).set(session.id, initialCards))
 
         const loaded = await Promise.all(session.students.map(async (entry) => {
-            if (!entry.workoutId) return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Sem treino ativo', collapsed: false } as StudentCard
+            if (!entry.workoutId) return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Sem treino ativo — gere um treino para este aluno', collapsed: false } as StudentCard
             try {
                 // Priority: in-memory ref > stored in DB (storedSessionIndex) > auto
                 const memOverride = pillarOverridesRef.current.get(entry.clientId)
@@ -219,8 +219,20 @@ export default function PresencaPage() {
                     ? `/api/studio/workouts/${entry.workoutId}/next-session?sessionIndex=${overrideIdx}`
                     : `/api/studio/workouts/${entry.workoutId}/next-session`
                 const res = await fetchWithAuth(url)
+
+                // 404: workout was deleted or is no longer active
+                if (res.status === 404) {
+                    return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Treino não encontrado — gere um novo treino para este aluno', collapsed: false } as StudentCard
+                }
+
                 const data = await res.json()
-                if (!data.success) return { entry, sessionData: null, loading: false, checkedIn: false, error: data.error || 'Erro', collapsed: false } as StudentCard
+                if (!data.success) {
+                    // legacyWorkout or template missing — informative message
+                    const msg = data.legacyWorkout
+                        ? 'Treino em formato antigo — gere um novo treino'
+                        : (data.error || 'Erro ao carregar treino')
+                    return { entry, sessionData: null, loading: false, checkedIn: false, error: msg, collapsed: false } as StudentCard
+                }
                 const sd = data.data as SessionData
                 return { entry, sessionData: sd, loading: false, checkedIn: sd.checkedInToday || false, error: null, collapsed: false, selectedPillarIndex: overrideIdx } as StudentCard
             } catch { return { entry, sessionData: null, loading: false, checkedIn: false, error: 'Erro de conexão', collapsed: false } as StudentCard }
