@@ -21,13 +21,8 @@ export async function GET(request: NextRequest) {
 
     try {
         // List ALL non-finalized sessions for this trainer+studio
-        // (no date filter — sessions created near BRT midnight would be invisible otherwise)
         const sessions = await prisma.trainingSession.findMany({
-            where: {
-                studioId,
-                trainerId: userId,
-                finalized: false,
-            },
+            where: { studioId, trainerId: userId, finalized: false },
             orderBy: { createdAt: 'asc' },
         })
 
@@ -38,16 +33,27 @@ export async function GET(request: NextRequest) {
             arr.forEach((st: any) => st.clientId && allClientIds.add(st.clientId))
         }
 
-        // Fetch fresh activeWorkoutId for each client
-        const freshClients = allClientIds.size > 0
-            ? await prisma.client.findMany({
-                where: { id: { in: Array.from(allClientIds) } },
-                select: { id: true, activeWorkoutId: true },
-              })
-            : []
-        const freshWorkoutMap = new Map(freshClients.map(c => [c.id, c.activeWorkoutId]))
+        // Fetch the most recent active workout per client
+        // (Client model has no activeWorkoutId — must query Workout table)
+        const freshWorkoutMap = new Map<string, string>()
+        if (allClientIds.size > 0) {
+            const activeWorkouts = await prisma.workout.findMany({
+                where: {
+                    clientId: { in: Array.from(allClientIds) },
+                    isActive: true,
+                },
+                orderBy: { createdAt: 'desc' },
+                select: { id: true, clientId: true },
+            })
+            // Only keep the first (most recent) workout per client
+            for (const w of activeWorkouts) {
+                if (!freshWorkoutMap.has(w.clientId)) {
+                    freshWorkoutMap.set(w.clientId, w.id)
+                }
+            }
+        }
 
-        // Build response, refreshing workoutId from DB client data
+        // Build response, refreshing workoutId from the current active workout
         const result = sessions.map(s => {
             const updatedStudents = (s.studentsJson as any[]).map((st: any) => {
                 const freshId = freshWorkoutMap.get(st.clientId)

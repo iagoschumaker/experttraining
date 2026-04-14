@@ -771,14 +771,18 @@ function GenerateWorkoutPage() {
                   ) : (
                     filtered.map((a) => {
                       const isSelected = selectedAssessment?.id === a.id
-                      const level = a.resultJson?.level || a.resultJson?.fitnessLevel || ''
-                      const levelLabel = level === 'BEGINNER' || level === 'INICIANTE' ? 'Iniciante'
-                        : level === 'INTERMEDIATE' || level === 'INTERMEDIARIO' ? 'Intermediário'
-                        : level === 'ADVANCED' || level === 'AVANCADO' ? 'Avançado' : level
+                      const rawLevel = a.resultJson?.level || a.resultJson?.fitnessLevel || a.resultJson?.nivelAtual || ''
+                      // resultJson.level can be an object in some older assessments — cast to string
+                      const level = String(typeof rawLevel === 'object' ? (rawLevel as any)?.value || '' : rawLevel).toUpperCase()
+                      const levelLabel = level.includes('BEGIN') || level.includes('INIC') ? 'Iniciante'
+                        : level.includes('INTER') ? 'Intermediário'
+                        : level.includes('ADV') || level.includes('AVAN') ? 'Avançado'
+                        : ''
                       const levelColor = level.includes('BEGIN') || level.includes('INIC') ? 'bg-green-500/20 text-green-400'
                         : level.includes('INTER') ? 'bg-blue-500/20 text-blue-400'
                         : level.includes('ADV') || level.includes('AVAN') ? 'bg-purple-500/20 text-purple-400'
                         : 'bg-muted text-muted-foreground'
+
 
                       return (
                         <button
