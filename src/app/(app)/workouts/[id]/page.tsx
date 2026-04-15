@@ -626,21 +626,23 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
 
       {/* Schedule Preview - Smart Layout */}
       {schedule && schedule.weeks && (() => {
-        // Get unique pillars from week 1
         const week1 = schedule.weeks[0]
+
+        // Detect format: new has session.treino, old has session.blocks
+        const isNewFormat = !!week1?.sessions?.[0]?.treino
+
+        // Collect one session per pillar from week 1
         const pillarSessions: Record<string, any> = {}
         week1?.sessions?.forEach((s: any) => {
           const key = s.pillar || 'UNKNOWN'
-          if (!pillarSessions[key]) {
-            pillarSessions[key] = s
-          }
+          if (!pillarSessions[key]) pillarSessions[key] = s
         })
 
-        // Group weeks by phase
+        // Group weeks by phase label
         const phases: { label: string; weeks: number[] }[] = []
         let currentPhase = ''
         schedule.weeks.forEach((w: any) => {
-          const phase = w.phaseLabel || w.phase || 'Treino'
+          const phase = w.phaseLabel || schedule.phaseLabel || 'Treino'
           if (phase !== currentPhase) {
             phases.push({ label: phase, weeks: [w.week] })
             currentPhase = phase
@@ -649,44 +651,47 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
           }
         })
 
-        const pillarStyle = (p: string) => p === 'LOWER'
-          ? 'bg-amber-500/20 text-amber-600 border-amber-500/30'
-          : p === 'PUSH'
-            ? 'bg-blue-500/20 text-blue-500 border-blue-500/30'
-            : 'bg-purple-500/20 text-purple-500 border-purple-500/30'
+        const pillarMeta = (p: string) => {
+          if (p === 'LOWER') return { border: 'border-amber-500/30', bg: 'bg-amber-500/10', text: 'text-amber-600', pill: 'bg-amber-500/20 text-amber-600 border-amber-500/30' }
+          if (p === 'PUSH') return { border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-500', pill: 'bg-blue-500/20 text-blue-500 border-blue-500/30' }
+          return { border: 'border-purple-500/30', bg: 'bg-purple-500/10', text: 'text-purple-500', pill: 'bg-purple-500/20 text-purple-500 border-purple-500/30' }
+        }
 
         return (
           <Card>
             <CardHeader>
               <CardTitle>Cronograma</CardTitle>
               <CardDescription>
-                {schedule.weeks.length} semanas • {schedule.weeklyFrequency || workout.weeklyFrequency || 3} sessões por semana
+                {schedule.weeks.length} semanas • {workout.sessionsPerWeek || workout.weeklyFrequency || 3} sessões por semana
+                {isNewFormat && <span className="ml-2 text-amber-500 text-[10px] font-semibold">● Novo formato Expert Pro</span>}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
 
               {/* Phase Timeline */}
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Fases do Programa
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {phases.map((phase, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border">
-                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary text-primary-foreground font-bold text-xs">
-                        {phase.weeks.length}
+              {phases.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Fases do Programa
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {phases.map((phase, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary text-primary-foreground font-bold text-xs">
+                          {phase.weeks.length}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold">{phase.label}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Sem. {phase.weeks[0]}–{phase.weeks[phase.weeks.length - 1]}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold">{phase.label}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Sem. {phase.weeks[0]}–{phase.weeks[phase.weeks.length - 1]}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Pillar Rotation Table */}
               <div>
@@ -707,13 +712,17 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
                       {schedule.weeks.map((w: any) => (
                         <tr key={w.week} className="hover:bg-muted/30">
                           <td className="px-2 py-1 font-semibold border-b border-border/50">Sem {w.week}</td>
-                          {w.sessions.map((s: any, si: number) => (
-                            <td key={si} className="text-center px-1 py-1 border-b border-border/50">
-                              <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded ${pillarStyle(s.pillar)}`}>
-                                {s.pillarLabel || '—'}
-                              </span>
-                            </td>
-                          ))}
+                          {w.sessions.map((s: any, si: number) => {
+                            const meta = pillarMeta(s.pillar)
+                            const label = s.pillarLabel || (isNewFormat ? s.treino?.pillarLabel : '') || s.pillar || '—'
+                            return (
+                              <td key={si} className="text-center px-1 py-1 border-b border-border/50">
+                                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded ${meta.pill}`}>
+                                  {label}
+                                </span>
+                              </td>
+                            )
+                          })}
                         </tr>
                       ))}
                     </tbody>
@@ -721,148 +730,175 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
                 </div>
               </div>
 
-              {/* Exercises by Pillar (shown ONCE) */}
+              {/* Exercises by Pillar (shown ONCE per pillar) */}
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   📋 Exercícios por Pilar
                   <span className="text-[10px] text-muted-foreground font-normal">(os exercícios se repetem cada semana — só muda a progressão)</span>
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => (
-                    <div key={pillar} className={`border-2 rounded-xl overflow-hidden ${
-                      pillar === 'LOWER' ? 'border-amber-500/30' :
-                      pillar === 'PUSH' ? 'border-blue-500/30' : 'border-purple-500/30'
-                    }`}>
-                      {/* Pillar Header */}
-                      <div className={`px-4 py-2.5 flex items-center justify-between ${
-                        pillar === 'LOWER' ? 'bg-amber-500/10' :
-                        pillar === 'PUSH' ? 'bg-blue-500/10' : 'bg-purple-500/10'
-                      }`}>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-bold ${
-                            pillar === 'LOWER' ? 'text-amber-600' :
-                            pillar === 'PUSH' ? 'text-blue-500' : 'text-purple-500'
-                          }`}>
-                            {session.pillarLabel || pillar}
-                          </span>
+                  {Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => {
+                    const meta = pillarMeta(pillar)
+                    // NEW FORMAT: data lives in session.treino
+                    const treino = isNewFormat ? session.treino : null
+                    const blocos = isNewFormat ? (treino?.blocos || []) : (session.blocks || [])
+                    const prep = session.preparation
+                    const protocol = isNewFormat ? treino?.protocoloFinal : session.finalProtocol
+                    const pillarLabel = isNewFormat
+                      ? (treino?.pillarLabel || session.pillarLabel || pillar)
+                      : (session.pillarLabel || pillar)
+
+                    return (
+                      <div key={pillar} className={`border-2 rounded-xl overflow-hidden ${meta.border}`}>
+                        {/* Header */}
+                        <div className={`px-4 py-2.5 flex items-center justify-between ${meta.bg}`}>
+                          <span className={`text-sm font-bold ${meta.text}`}>{pillarLabel}</span>
+                          {!isNewFormat && <span className="text-xs text-muted-foreground font-mono">{session.estimatedDuration} min</span>}
                         </div>
-                        <span className="text-xs text-muted-foreground font-mono">{session.estimatedDuration} min</span>
-                      </div>
 
-                      <div className="p-3 space-y-3">
-                        {/* Preparation */}
-                        {session.preparation && (
-                          <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Preparação</span>
-                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">{session.preparation.totalTime}</span>
-                            </div>
-                            <div className="space-y-0.5">
-                              {session.preparation.exercises?.map((ex: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                  <span className="flex-1">{ex.name}</span>
-                                  <span className="shrink-0 ml-2 font-mono text-[10px]">
-                                    {ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Blocks */}
-                        <div className="space-y-2">
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Blocos</span>
-                          {session.blocks.map((b: any, bIdx: number) => (
-                            <div key={bIdx} className="p-2.5 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-foreground">{b.name || `Bloco ${bIdx + 1}`}</span>
-                                <span className="text-[10px] text-blue-500 font-mono">{b.restAfterBlock}</span>
+                        <div className="p-3 space-y-3">
+                          {/* Preparation */}
+                          {prep && (
+                            <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                  🔥 {prep.title || 'Preparação'}
+                                </span>
+                                {prep.totalTime && (
+                                  <span className="text-[10px] text-orange-500 font-mono">{prep.totalTime}</span>
+                                )}
                               </div>
-                              <div className="space-y-2">
-                                {b.exercises?.map((ex: any, exIdx: number) => {
-                                  // Use week 0, first session with this pillar
-                                  const wIdx = 0
-                                  const sIdx = week1.sessions.findIndex((ss: any) => ss.pillar === pillar)
-                                  const wKey = `w${wIdx}-s${sIdx}-b${bIdx}-e${exIdx}`
+                              <div className="space-y-0.5">
+                                {(prep.exercises || []).map((ex: any, idx: number) => {
+                                  // NEW: ex = { name, detail } — OLD: ex = { name, sets, reps, duration }
+                                  const detail = typeof ex === 'string' ? ex : (ex.detail || (ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration))
+                                  const name = typeof ex === 'string' ? ex : ex.name
                                   return (
-                                    <div key={exIdx} className="space-y-1">
-                                      <div className="flex items-start gap-1.5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 mt-0.5 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
-                                          (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
-                                            'bg-green-500/20 text-green-600'
-                                          }`}>
-                                          {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
-                                            (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
-                                        </span>
-                                        <div className="flex flex-wrap items-center gap-1 min-w-0">
-                                          <span className="text-xs font-medium leading-tight">{ex.name}</span>
-                                          {ex.technique && (
-                                            <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">
-                                              {ex.technique}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2 ml-6 text-[11px]">
-                                        {ex.sets && ex.reps && (
-                                          <span className="text-muted-foreground font-mono">{ex.sets}×{ex.reps}</span>
-                                        )}
-                                        <span className="text-amber-500 font-mono text-[10px]">{ex.rest}</span>
-                                        <div className="flex items-center gap-0.5 ml-auto">
-                                          <Weight className="w-3 h-3 text-muted-foreground" />
-                                          <input
-                                            type="text"
-                                            inputMode="decimal"
-                                            placeholder="—"
-                                            defaultValue={ex.weight || ''}
-                                            className={`w-14 text-[11px] text-center rounded border bg-background px-1 py-0.5 focus:ring-1 focus:ring-primary outline-none ${savingWeight === wKey ? 'border-green-400 bg-green-500/10' : 'border-border'
-                                              }`}
-                                            onBlur={(e) => {
-                                              const val = e.target.value.trim()
-                                              if (val !== (ex.weight || '')) {
-                                                const sIdxFinal = week1.sessions.findIndex((ss: any) => ss.pillar === pillar)
-                                                saveWeight(0, sIdxFinal, bIdx, exIdx, val)
-                                              }
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                (e.target as HTMLInputElement).blur()
-                                              }
-                                            }}
-                                          />
-                                          <span className="text-[9px] text-muted-foreground">kg</span>
-                                        </div>
-                                      </div>
+                                    <div key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                      <span className="flex-1">{name}</span>
+                                      {detail && <span className="shrink-0 ml-2 font-mono text-[10px]">{detail}</span>}
                                     </div>
                                   )
                                 })}
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          )}
 
-                        {/* Protocol */}
-                        {session.finalProtocol && (
-                          <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-                                {session.finalProtocol.name}
-                              </span>
-                              <span className="text-[10px] text-green-600 dark:text-green-400 font-mono">
-                                {session.finalProtocol.totalTime}
-                              </span>
-                            </div>
-                            {session.finalProtocol.structure && (
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {session.finalProtocol.structure}
-                              </p>
+                          {/* Blocks */}
+                          <div className="space-y-2">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Blocos</span>
+                            {blocos.length === 0 && (
+                              <p className="text-xs text-muted-foreground italic">Nenhum bloco cadastrado</p>
                             )}
+                            {blocos.map((b: any, bIdx: number) => {
+                              // NEW: bloco = { name, exercises: [{name, reps, load}] }
+                              // OLD: bloco = { name, restAfterBlock, exercises: [{name, role, sets, reps, rest, weight}] }
+                              const exercises = b.exercises || []
+                              return (
+                                <div key={bIdx} className="p-2.5 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-foreground">{b.name || `Bloco ${bIdx + 1}`}</span>
+                                    {b.restAfterBlock && (
+                                      <span className="text-[10px] text-blue-500 font-mono">{b.restAfterBlock}</span>
+                                    )}
+                                  </div>
+                                  <div className="space-y-2">
+                                    {exercises.map((ex: any, exIdx: number) => {
+                                      const sIdx = week1.sessions.findIndex((ss: any) => ss.pillar === pillar)
+                                      const wKey = `w0-s${sIdx}-b${bIdx}-e${exIdx}`
+                                      // Position label for new format
+                                      const posLabel = exIdx === 0 ? '🎯' : exIdx === 1 ? '🔄' : '⚡'
+                                      return (
+                                        <div key={exIdx} className="space-y-1">
+                                          <div className="flex items-start gap-1.5">
+                                            {isNewFormat ? (
+                                              <span className="text-sm shrink-0 mt-0.5">{posLabel}</span>
+                                            ) : (
+                                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 mt-0.5 ${
+                                                ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-600' :
+                                                (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-500' :
+                                                'bg-green-500/20 text-green-600'
+                                              }`}>
+                                                {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
+                                                  (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
+                                              </span>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-1 min-w-0">
+                                              <span className="text-xs font-medium leading-tight">{ex.name}</span>
+                                              {ex.technique && (
+                                                <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">
+                                                  {ex.technique}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 ml-6 text-[11px]">
+                                            {/* NEW: reps already a string like '3×12' */}
+                                            {isNewFormat ? (
+                                              <span className="text-muted-foreground font-mono">{ex.reps}</span>
+                                            ) : (
+                                              ex.sets && ex.reps && (
+                                                <span className="text-muted-foreground font-mono">{ex.sets}×{ex.reps}</span>
+                                              )
+                                            )}
+                                            {ex.load && <span className="text-amber-500 font-mono text-[10px]">{ex.load}</span>}
+                                            {ex.rest && <span className="text-amber-500 font-mono text-[10px]">{ex.rest}</span>}
+                                            <div className="flex items-center gap-0.5 ml-auto">
+                                              <Weight className="w-3 h-3 text-muted-foreground" />
+                                              <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                placeholder="—"
+                                                defaultValue={ex.weight || ''}
+                                                className={`w-14 text-[11px] text-center rounded border bg-background px-1 py-0.5 focus:ring-1 focus:ring-primary outline-none ${
+                                                  savingWeight === wKey ? 'border-green-400 bg-green-500/10' : 'border-border'
+                                                }`}
+                                                onBlur={(e) => {
+                                                  const val = e.target.value.trim()
+                                                  if (val !== (ex.weight || '')) {
+                                                    saveWeight(0, sIdx, bIdx, exIdx, val)
+                                                  }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                                                }}
+                                              />
+                                              <span className="text-[9px] text-muted-foreground">kg</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
-                        )}
+
+                          {/* Protocol Final */}
+                          {protocol && (
+                            <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                  ⚡ Protocolo Final
+                                </span>
+                              </div>
+                              {typeof protocol === 'string' ? (
+                                <p className="text-[11px] text-muted-foreground mt-1">{protocol}</p>
+                              ) : (
+                                <>
+                                  <span className="text-[10px] text-green-500 font-mono">{protocol.name}</span>
+                                  {protocol.structure && (
+                                    <p className="text-[10px] text-muted-foreground mt-1">{protocol.structure}</p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -870,6 +906,9 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
           </Card>
         )
       })()}
+
+
+
 
       {/* Notes */}
       {workout.notes && (
