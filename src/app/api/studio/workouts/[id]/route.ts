@@ -189,14 +189,17 @@ export async function GET(
       weeks: schedule.weeks?.map((week: any) => ({
         ...week,
         sessions: week.sessions?.map((session: any) => {
-          // Se já tem blocos no formato correto (com exercises que têm role), mantém
+          // NOVO FORMATO (Expert Pro v2): session.treino.blocos — não tocar
+          if (session.treino) return session
+
+          // LEGADO: Se já tem blocos no formato correto (com exercises que têm role), mantém
           const hasCorrectFormat = session.blocks?.some((b: any) =>
             b.exercises?.some((ex: any) => ex.role)
           )
 
           if (hasCorrectFormat) return session
 
-          // Gerar blocos no formato Método Expert Training
+          // Gerar blocos no formato Método Expert Training (treinos muito antigos)
           const expertBlocks = generateExpertBlocks(mainFocus)
 
           // Gerar preparação se não existir (com exercícios específicos baseados no foco)

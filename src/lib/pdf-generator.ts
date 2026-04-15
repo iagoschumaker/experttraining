@@ -85,20 +85,67 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
 
   const numPillars = Object.keys(pillarSessions).length
 
+  // Normalize session to unified format for PDF rendering
+  const normalizeSession = (session: any) => {
+    const isNew = !!session.treino
+    const treino = isNew ? session.treino : null
+    const blocos = isNew ? (treino?.blocos || []) : (session.blocks || [])
+    const prep = session.preparation
+    const rawProtocol = isNew ? treino?.protocoloFinal : session.finalProtocol
+    const protocol = rawProtocol
+      ? (typeof rawProtocol === 'string'
+          ? { name: 'Protocolo Final', structure: rawProtocol, totalTime: '' }
+          : rawProtocol)
+      : null
+    const pillarLabel = isNew
+      ? (treino?.pillarLabel || session.pillarLabel || session.pillar)
+      : (session.pillarLabel || session.pillar)
+
+    // Normalize prep exercises
+    const prepExercises = (prep?.exercises || []).map((ex: any) => ({
+      name: typeof ex === 'string' ? ex : ex.name,
+      detail: typeof ex === 'string' ? '' : (ex.detail || (ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || '')),
+    }))
+
+    // Normalize blocks
+    const normBlocos = blocos.map((b: any) => ({
+      name: b.name,
+      restAfterBlock: b.restAfterBlock || '',
+      exercises: (b.exercises || []).map((ex: any, i: number) => {
+        if (isNew) {
+          // New: {name, reps (string), load}
+          const roles = ['FOCO_PRINCIPAL', 'SECUNDARIO', 'CORE_STABILITY']
+          return { name: ex.name, role: roles[i] || 'CORE_STABILITY', sets: '', reps: ex.reps || '', rest: ex.load || '', weight: ex.weight }
+        }
+        return { name: ex.name, role: ex.role, sets: ex.sets, reps: ex.reps, rest: ex.rest, weight: ex.weight }
+      }),
+    }))
+
+    return { pillarLabel, prep: prep ? { ...prep, exercises: prepExercises } : null, blocos: normBlocos, protocol, estimatedDuration: session.estimatedDuration }
+  }
+
   // Pillar cards in grid
   const pillarGrid = `<div style="display:grid;grid-template-columns:repeat(${numPillars}, 1fr);gap:3mm;align-items:start">
-    ${Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => `
+    ${Object.entries(pillarSessions).map(([pillar, session]: [string, any]) => {
+    const norm = normalizeSession(session)
+    return `
     <div style="border:1px solid ${pBorder(pillar)};border-radius:2mm;overflow:hidden">
       <div style="background:${pBg(pillar)};padding:2mm 3mm;border-bottom:0.5px solid ${pBorder(pillar)};display:flex;align-items:center;gap:2mm">
-        <span style="font-size:9pt;font-weight:700;color:${pColor(pillar)}">${session.pillarLabel || pillar}</span>
-        <span style="font-size:6pt;color:#666;margin-left:auto">${session.estimatedDuration || 60} min</span>
+        <span style="font-size:9pt;font-weight:700;color:${pColor(pillar)}">${norm.pillarLabel}</span>
+        <span style="font-size:6pt;color:#666;margin-left:auto">${norm.estimatedDuration || 60} min</span>
       </div>
       <div style="padding:2mm">
-        ${genPrep(session.preparation)}
-        ${session.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}
-        ${genProt(session.finalProtocol)}
+        ${norm.prep ? `<div style="background:#fffbeb;border:0.5px solid #fcd34d;border-radius:1mm;padding:1.5mm;margin-bottom:1.5mm">
+          <div style="font-size:6pt;font-weight:600;color:#b45309;margin-bottom:0.5mm">Preparação <span style="font-weight:400">${norm.prep.totalTime || ''}</span></div>
+          <div style="font-size:5.5pt;color:#78716c">
+            ${norm.prep.exercises.map((ex: any) => `<div style="display:flex;justify-content:space-between;padding:0.4mm 0"><span>${ex.name}</span><span>${ex.detail || ''}</span></div>`).join('')}
+          </div>
+        </div>` : ''}
+        ${norm.blocos.map((b: any, i: number) => genBlock(b, i)).join('')}
+        ${genProt(norm.protocol)}
       </div>
-    </div>`).join('')}
+    </div>`
+  }).join('')}
   </div>`
 
   // Rotation table — compact
@@ -134,17 +181,30 @@ export async function generateWorkoutPDF(workout: any, schedule: any) {
       </tr>
       ${allWeeks.map((w: any) => {
         const s = w.sessions?.[0]
-        const fEx = s?.blocks?.[0]?.exercises?.[0]
-        const sEx = s?.blocks?.[0]?.exercises?.find((e: any) => e.role === 'SECUNDARIO' || e.role === 'PUSH_PULL_INTEGRADO')
-        const cEx = s?.blocks?.[0]?.exercises?.find((e: any) => e.role === 'CORE_STABILITY')
+        const isNew = !!s?.treino
+        let fReps = '', sReps = '', cReps = '', fRest = '', protName = ''
+        if (isNew) {
+          const b0 = s?.treino?.blocos?.[0]?.exercises || []
+          fReps = b0[0]?.reps || ''; sReps = b0[1]?.reps || ''; cReps = b0[2]?.reps || ''
+          fRest = b0[0]?.load || ''
+          const rawP = s?.treino?.protocoloFinal
+          protName = typeof rawP === 'string' ? 'Protocolo Final' : (rawP?.name || '')
+        } else {
+          const fEx = s?.blocks?.[0]?.exercises?.[0]
+          const sEx = s?.blocks?.[0]?.exercises?.find((e: any) => e.role === 'SECUNDARIO' || e.role === 'PUSH_PULL_INTEGRADO')
+          const cEx = s?.blocks?.[0]?.exercises?.find((e: any) => e.role === 'CORE_STABILITY')
+          fReps = fEx ? `${fEx.sets}×${fEx.reps}` : ''; sReps = sEx ? `${sEx.sets}×${sEx.reps}` : ''
+          cReps = cEx ? `${cEx.sets}×${cEx.reps}` : ''; fRest = fEx?.rest || ''
+          protName = s?.finalProtocol?.name || ''
+        }
         return `<tr>
           <td style="padding:1.2mm 2mm;font-weight:600;border-bottom:0.5px solid #eee">${w.week}</td>
           <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#666">${w.phaseLabel || ''}</td>
-          <td style="padding:1.2mm;border-bottom:0.5px solid #eee"><b style="color:#c2410c">${fEx ? `${fEx.sets}×${fEx.reps}` : ''}</b></td>
-          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#7c3aed">${sEx ? `${sEx.sets}×${sEx.reps}` : ''}</td>
-          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#15803d">${cEx ? `${cEx.sets}×${cEx.reps}` : ''}</td>
-          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#d97706">${fEx?.rest || ''}</td>
-          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#047857">${s?.finalProtocol?.name || ''}</td>
+          <td style="padding:1.2mm;border-bottom:0.5px solid #eee"><b style="color:#c2410c">${fReps}</b></td>
+          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#7c3aed">${sReps}</td>
+          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#15803d">${cReps}</td>
+          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#d97706">${fRest}</td>
+          <td style="padding:1.2mm;border-bottom:0.5px solid #eee;color:#047857">${protName}</td>
         </tr>`
       }).join('')}
     </table>

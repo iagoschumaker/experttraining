@@ -65,7 +65,11 @@ export async function PATCH(
             )
         }
 
-        const block = session.blocks?.[blockIdx]
+        // Suportar novo formato (session.treino.blocos) e legado (session.blocks)
+        const isNewFormat = !!session.treino
+        const blocos = isNewFormat ? session.treino?.blocos : session.blocks
+
+        const block = blocos?.[blockIdx]
         if (!block) {
             return NextResponse.json(
                 { success: false, error: 'Bloco não encontrado' },
@@ -81,7 +85,7 @@ export async function PATCH(
             )
         }
 
-        // Atualizar o peso
+        // Atualizar o peso no lugar certo
         exercise.weight = weight ? String(weight) : null
 
         // Salvar o scheduleJson atualizado

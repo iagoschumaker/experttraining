@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -172,21 +172,49 @@ export default function TreinoAlunoPage() {
     }
 
     // Gerar sessão/dia (card igual desktop)
-    const genSession = (s: any) => `
-      <div class="day-card">
+    const genSession = (s: any) => {
+      const isNew = !!s.treino
+      const blocos = isNew ? (s.treino?.blocos || []) : (s.blocks || [])
+      const rawProtocol = isNew ? s.treino?.protocoloFinal : s.finalProtocol
+      const protocol = rawProtocol
+        ? (typeof rawProtocol === 'string' ? { name: 'Protocolo Final', structure: rawProtocol, totalTime: '' } : rawProtocol)
+        : null
+      const normBlocos = blocos.map((b: any) =>
+        `<div class="block-card">
+          <div class="block-header">
+            <span>${b.name || 'Bloco'}</span>
+            <span class="time">${b.restAfterBlock || ''}</span>
+          </div>
+          <div class="block-content">
+            ${(b.exercises || []).map((e: any, i: number) => {
+              if (isNew) {
+                const roles = ['FOCO_PRINCIPAL', 'SECUNDARIO', 'CORE_STABILITY']
+                const label = i === 0 ? 'F' : i === 1 ? 'S' : 'C'
+                const cls = i === 0 ? 'ex-f' : i === 1 ? 'ex-p' : 'ex-c'
+                return `<div class="ex-row"><span class="ex-badge ${cls}">${label}</span><span class="ex-name">${e.name}</span><span class="ex-info">${e.reps || ''} <em>${e.load || ''}</em></span></div>`
+              }
+              return exRow(e)
+            }).join('')}
+          </div>
+        </div>`
+      ).join('')
+      const protStr = protocol
+        ? `<div class="prot-card"><div class="prot-header"><span>${protocol.name || 'Protocolo'}</span><span class="time">${protocol.totalTime || ''}</span></div>${protocol.structure ? `<div class="prot-structure">${protocol.structure}</div>` : ''}</div>`
+        : ''
+      return `<div class="day-card">
         <div class="day-header">
-          <div class="day-badge">${s.session}</div>
-          <span class="day-title">Dia ${s.session}</span>
+          <div class="day-badge">${s.session || s.day || 1}</div>
+          <span class="day-title">${s.pillarLabel || s.treino?.pillarLabel || `Dia ${s.session || 1}`}</span>
           <span class="day-duration">${s.estimatedDuration || 60} min</span>
         </div>
         <div class="day-content">
           ${genPrep(s.preparation)}
           <div class="blocks-label">Blocos</div>
-          ${s.blocks.map((b: any, i: number) => genBlock(b, i)).join('')}
-          ${genProtocol(s.finalProtocol)}
+          ${normBlocos}
+          ${protStr}
         </div>
-      </div>
-    `
+      </div>`
+    }
 
     // Gerar semana (layout grid 3 colunas)
     const genWeek = (w: any, isLast: boolean) => `
@@ -568,58 +596,78 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
                                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
                                   Blocos
                                 </span>
-                                {session.blocks.map((b: any, idx: number) => (
-                                  <div key={idx} className="p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                                    <div className="flex items-center justify-between mb-1.5">
-                                      <span className="text-xs font-semibold text-white">
-                                        {b.name || `Bloco ${idx + 1}`}
-                                      </span>
-                                      <span className="text-[10px] text-blue-400 font-mono">
-                                        {b.restAfterBlock}
-                                      </span>
-                                    </div>
-                                    <div className="space-y-1">
-                                      {b.exercises?.map((ex: any, exIdx: number) => (
-                                        <div key={exIdx} className="flex items-center justify-between text-xs">
-                                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-400' :
-                                                (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-400' :
-                                                  'bg-green-500/20 text-green-400'
+                                {(() => {
+                                  const isNew = !!session.treino
+                                  const blocos = isNew ? (session.treino?.blocos || []) : (session.blocks || [])
+                                  return blocos.map((b: any, idx: number) => (
+                                    <div key={idx} className="p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                                      <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-xs font-semibold text-white">
+                                          {b.name || `Bloco ${idx + 1}`}
+                                        </span>
+                                        <span className="text-[10px] text-blue-400 font-mono">
+                                          {b.restAfterBlock || ''}
+                                        </span>
+                                      </div>
+                                      <div className="space-y-1">
+                                        {(b.exercises || []).map((ex: any, exIdx: number) => (
+                                          <div key={exIdx} className="flex items-center justify-between text-xs">
+                                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
+                                                isNew
+                                                  ? (exIdx === 0 ? 'bg-amber-500/20 text-amber-400' : exIdx === 1 ? 'bg-purple-500/20 text-purple-400' : 'bg-green-500/20 text-green-400')
+                                                  : (ex.role === 'FOCO_PRINCIPAL' ? 'bg-amber-500/20 text-amber-400' :
+                                                    (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'bg-purple-500/20 text-purple-400' :
+                                                    'bg-green-500/20 text-green-400')
                                               }`}>
-                                              {ex.role === 'FOCO_PRINCIPAL' ? 'F' :
-                                                (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C'}
-                                            </span>
-                                            <span className="truncate font-medium text-white">{ex.name}</span>
+                                                {isNew
+                                                  ? (exIdx === 0 ? 'F' : exIdx === 1 ? 'S' : 'C')
+                                                  : (ex.role === 'FOCO_PRINCIPAL' ? 'F' :
+                                                    (ex.role === 'SECUNDARIO' || ex.role === 'PUSH_PULL_INTEGRADO') ? 'S' : 'C')}
+                                              </span>
+                                              <span className="truncate font-medium text-white">{ex.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-[10px] text-zinc-400 shrink-0 ml-2">
+                                              {isNew
+                                                ? <span>{ex.reps}</span>
+                                                : (ex.sets && ex.reps && <span>{ex.sets}×{ex.reps}</span>)
+                                              }
+                                              <span className="text-amber-400 font-mono">{isNew ? ex.load : ex.rest}</span>
+                                            </div>
                                           </div>
-                                          <div className="flex items-center gap-1 text-[10px] text-zinc-400 shrink-0 ml-2">
-                                            {ex.sets && ex.reps && <span>{ex.sets}×{ex.reps}</span>}
-                                            <span className="text-amber-400 font-mono">{ex.rest}</span>
-                                          </div>
-                                        </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))
+                                })()}
                               </div>
 
                               {/* Protocolo Final */}
-                              {session.finalProtocol && (
-                                <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-lg">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-green-400">
-                                      {session.finalProtocol.name}
-                                    </span>
-                                    <span className="text-[10px] text-green-400 font-mono">
-                                      {session.finalProtocol.totalTime}
-                                    </span>
+                              {(() => {
+                                const isNew = !!session.treino
+                                const rawProtocol = isNew ? session.treino?.protocoloFinal : session.finalProtocol
+                                if (!rawProtocol) return null
+                                const protocol = typeof rawProtocol === 'string'
+                                  ? { name: 'Protocolo Final', structure: rawProtocol, totalTime: '' }
+                                  : rawProtocol
+                                return (
+                                  <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-semibold text-green-400">
+                                        {protocol.name}
+                                      </span>
+                                      <span className="text-[10px] text-green-400 font-mono">
+                                        {protocol.totalTime}
+                                      </span>
+                                    </div>
+                                    {protocol.structure && (
+                                      <p className="text-[10px] text-zinc-400 mt-1">
+                                        {protocol.structure}
+                                      </p>
+                                    )}
                                   </div>
-                                  {session.finalProtocol.structure && (
-                                    <p className="text-[10px] text-zinc-400 mt-1">
-                                      {session.finalProtocol.structure}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
+                                )
+                              })()}
                             </div>
                           </div>
                         ))}
