@@ -301,7 +301,7 @@ export default function AssessmentResultPage() {
                   Definidos na geração do treino
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  💡 Vá para <strong>Treinos > Criar Treino</strong> usando esta avaliação
+                  💡 Vá para <strong>Treinos {'>'} Criar Treino</strong> usando esta avaliação
                 </p>
               </CardContent>
             </Card>
