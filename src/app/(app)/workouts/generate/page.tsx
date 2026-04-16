@@ -510,6 +510,9 @@ function GenerateWorkoutPage() {
       setStep('mode')
     } else if (step === 'config' && generationMode === 'manual') {
       setStep('edit')
+    } else if (step === 'mode' && selectedObjective === 'GESTANTE') {
+      // Skip phase step when going back for gestante
+      setStep('objective')
     } else if (stepIndex > 0) {
       setStep(STEPS[stepIndex - 1].key)
     }
@@ -525,8 +528,20 @@ function GenerateWorkoutPage() {
       setStep('objective')
     } else if (step === 'objective') {
       if (!selectedObjective) { setError('Selecione um objetivo'); return }
-      await loadPhasesForObjective()
-      setStep('phase')
+      if (selectedObjective === 'GESTANTE') {
+        // Auto-determine phase from gestational week and skip phase step
+        if (!gestationalWeek) { setError('Informe a semana gestacional'); return }
+        const autoPhase = gestationalWeek <= 12 ? 'GESTANTE_T1'
+          : gestationalWeek <= 27 ? 'GESTANTE_T2'
+          : gestationalWeek <= 35 ? 'GESTANTE_T3_A'
+          : 'GESTANTE_T3_B'
+        setSelectedPhase(autoPhase)
+        // Skip phase step, go directly to mode
+        setStep('mode')
+      } else {
+        await loadPhasesForObjective()
+        setStep('phase')
+      }
     } else if (step === 'phase') {
       if (!selectedPhase) { setError('Selecione uma fase'); return }
       setStep('mode')
@@ -551,7 +566,7 @@ function GenerateWorkoutPage() {
   // Can we proceed from the current step?
   function canGoNext(): boolean {
     if (step === 'assessment') return !!selectedAssessment && !!clientInfo
-    if (step === 'objective') return !!selectedObjective
+    if (step === 'objective') return !!selectedObjective && (selectedObjective !== 'GESTANTE' || !!gestationalWeek)
     if (step === 'phase') return !!selectedPhase
     if (step === 'mode') return true
     if (step === 'edit') return editableTreinos.length > 0
