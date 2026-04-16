@@ -17,12 +17,17 @@ export type TrainingPhase =
   | 'FORCA_2'
   | 'RESISTENCIA_2'
   | 'METABOLICO_2'
+  | 'GESTANTE_T1'
+  | 'GESTANTE_T2'
+  | 'GESTANTE_T3_A'
+  | 'GESTANTE_T3_B'
 
 export type ClientObjective =
   | 'EMAGRECIMENTO'
   | 'HIPERTROFIA_OBJ'
   | 'PERFORMANCE'
   | 'REABILITACAO'
+  | 'GESTANTE'
 
 export type TrainingLevel = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO'
 
@@ -38,6 +43,10 @@ export const PHASE_LABELS: Record<TrainingPhase, string> = {
   FORCA_2: 'Força Híbrida II',
   RESISTENCIA_2: 'Resistência / Fadiga II',
   METABOLICO_2: 'Metabólico II',
+  GESTANTE_T1: 'Gestante — 1º Trimestre',
+  GESTANTE_T2: 'Gestante — 2º Trimestre',
+  GESTANTE_T3_A: 'Gestante — 3º Trimestre (28-35 sem)',
+  GESTANTE_T3_B: 'Gestante — Pré-Parto (36-42 sem)',
 }
 
 export const OBJECTIVE_LABELS: Record<ClientObjective, string> = {
@@ -45,6 +54,7 @@ export const OBJECTIVE_LABELS: Record<ClientObjective, string> = {
   HIPERTROFIA_OBJ: 'Hipertrofia',
   PERFORMANCE: 'Performance',
   REABILITACAO: 'Reabilitação / Saúde',
+  GESTANTE: 'Gestante',
 }
 
 export const LEVEL_LABELS: Record<TrainingLevel, string> = {
@@ -80,6 +90,12 @@ const PHASES_BY_OBJECTIVE: Record<ClientObjective, TrainingPhase[]> = {
   REABILITACAO: [
     'HIPERTROFIA',
     'FORCA',
+  ],
+  GESTANTE: [
+    'GESTANTE_T1',
+    'GESTANTE_T2',
+    'GESTANTE_T3_A',
+    'GESTANTE_T3_B',
   ],
 }
 
@@ -145,6 +161,11 @@ export function getAvailablePhases(
   const levelPhases = PHASES_BY_LEVEL[level] || PHASES_BY_LEVEL.INICIANTE
   const objectivePhases = PHASES_BY_OBJECTIVE[objective] || PHASES_BY_OBJECTIVE.REABILITACAO
   
+  // GESTANTE: fases próprias, ignora nível (gestante não tem nível de treino)
+  if (objective === 'GESTANTE') {
+    return objectivePhases
+  }
+
   // Condicionamento é SEMPRE primeiro
   const result: TrainingPhase[] = ['CONDICIONAMENTO_1', 'CONDICIONAMENTO_2']
   

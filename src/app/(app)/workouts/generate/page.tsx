@@ -126,6 +126,7 @@ const OBJECTIVE_ICONS: Record<string, string> = {
   HIPERTROFIA_OBJ: '💪',
   PERFORMANCE: '⚡',
   REABILITACAO: '🏥',
+  GESTANTE: '🤰',
 }
 
 const OBJECTIVE_DESCRIPTIONS: Record<string, string> = {
@@ -133,6 +134,7 @@ const OBJECTIVE_DESCRIPTIONS: Record<string, string> = {
   HIPERTROFIA_OBJ: 'Foco em ganho muscular com fases de condicionamento, força e hipertrofia progressiva',
   PERFORMANCE: 'Foco em desempenho esportivo com fases de condicionamento, força, potência e resistência',
   REABILITACAO: 'Foco em recuperação e saúde com fases de condicionamento e força',
+  GESTANTE: 'Protocolo adaptado por trimestre — sessões full-body, FC máx 140bpm, foco em manutenção de tônus e assoalho pélvico',
 }
 
 const PHASE_DESCRIPTIONS: Record<string, string> = {
@@ -147,6 +149,10 @@ const PHASE_DESCRIPTIONS: Record<string, string> = {
   FORCA_2: 'Variação II da força — evitar platô.',
   RESISTENCIA_2: 'Variação II da resistência — novos desafios.',
   METABOLICO_2: 'Variação II do metabólico — novos circuitos.',
+  GESTANTE_T1: '1º trimestre (1-12 sem) — adaptação, controle FC, fortalecimento pélvico.',
+  GESTANTE_T2: '2º trimestre (13-27 sem) — manutenção de força, equilíbrio, respiração.',
+  GESTANTE_T3_A: '3º trimestre (28-35 sem) — redução de carga, mobilidade, relaxamento.',
+  GESTANTE_T3_B: 'Pré-Parto (36-42 sem) — preparação para o parto, alongamento suave.',
 }
 
 // Mapeamento de exercícios → regiões do corpo para avisos
@@ -234,6 +240,7 @@ function GenerateWorkoutPage() {
   const [weeklyFrequency, setWeeklyFrequency] = useState(3)
   const [notes, setNotes] = useState('')
   const [levelUp, setLevelUp] = useState(false)
+  const [gestationalWeek, setGestationalWeek] = useState<number | null>(null)
 
   // Assessment search
   const [assessmentSearch, setAssessmentSearch] = useState('')
@@ -454,6 +461,7 @@ function GenerateWorkoutPage() {
         levelUp,
         mode: generationMode,
         objective: selectedObjective || undefined,
+        gestationalWeek: (selectedObjective === 'GESTANTE' && gestationalWeek) ? gestationalWeek : undefined,
       }
 
       if (generationMode === 'manual' && editableTreinos.length > 0) {
@@ -889,6 +897,47 @@ function GenerateWorkoutPage() {
               </Card>
             ))}
           </div>
+
+          {/* Gestante extra fields */}
+          {selectedObjective === 'GESTANTE' && (
+            <div className="mt-4 space-y-3">
+              <div className="p-4 bg-pink-500/10 border border-pink-500/20 rounded-lg">
+                <h4 className="text-sm font-semibold text-pink-600 dark:text-pink-400 mb-3 flex items-center gap-2">
+                  🤰 Informações da Gestação
+                </h4>
+                <div>
+                  <label className="text-xs font-medium text-foreground block mb-1">
+                    Semana gestacional atual
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={42}
+                    value={gestationalWeek || ''}
+                    onChange={(e) => setGestationalWeek(e.target.value ? parseInt(e.target.value) : null)}
+                    placeholder="Ex: 16"
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                  {gestationalWeek && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {gestationalWeek <= 12 ? '1º Trimestre — Fase de adaptação' :
+                       gestationalWeek <= 27 ? '2º Trimestre — Manutenção e equilíbrio' :
+                       gestationalWeek <= 35 ? '3º Trimestre — Redução gradual' :
+                       'Pré-Parto — Preparação para o parto'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs space-y-1">
+                <p className="font-semibold text-amber-600 dark:text-amber-400">⚠️ Regras de Segurança</p>
+                <p className="text-muted-foreground">• FC máxima: 140 bpm (teste da fala)</p>
+                <p className="text-muted-foreground">• Temperatura corporal {'<'} 38.5°C</p>
+                <p className="text-muted-foreground">• 30-40 min por sessão, esforço leve a moderado</p>
+                <p className="text-muted-foreground">• Evitar movimentos balísticos e grandes amplitudes</p>
+                <p className="text-muted-foreground">• Liberação médica obrigatória</p>
+              </div>
+            </div>
+          )}
 
           {/* Navigation */}
           <div className="flex justify-between mt-6">

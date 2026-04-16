@@ -213,6 +213,8 @@ model Client {
   isActive            Boolean        @default(true) @map("is_active")
   lastPillarIndex     Int            @default(0) @map("last_pillar_index")
   trainingDaysPerWeek Int?           @map("training_days_per_week")
+  gestationalWeek     Int?           @map("gestational_week")
+  dueDate             DateTime?      @map("due_date")
   level               String         @default("INICIANTE")
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
@@ -604,6 +606,10 @@ enum TrainingPhase {
   FORCA_2
   RESISTENCIA_2
   METABOLICO_2
+  GESTANTE_T1
+  GESTANTE_T2
+  GESTANTE_T3_A
+  GESTANTE_T3_B
 }
 
 enum ClientObjective {
@@ -611,4 +617,5 @@ enum ClientObjective {
   HIPERTROFIA_OBJ
   PERFORMANCE
   REABILITACAO
+  GESTANTE
 }

@@ -624,8 +624,145 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         </CardContent>
       </Card>
 
-      {/* Schedule Preview - Smart Layout */}
-      {schedule && schedule.weeks && (() => {
+
+      {/* Schedule Preview — GESTANTE */}
+      {schedule && schedule.isGestante && (() => {
+        const week1 = schedule.weeks?.[0]
+        const session = week1?.sessions?.[0]?.gestante
+        if (!session) return null
+
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🤰</span>
+                <div>
+                  <CardTitle>{schedule.phaseLabel}</CardTitle>
+                  <CardDescription>
+                    {schedule.totalWeeks} semanas • {week1?.sessions?.length || 3} sessões/semana
+                    <span className="ml-1 text-pink-500">• Sem. gestacional {schedule.gestationalWeeksRange}</span>
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Safety Notes */}
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">🛡️ Regras de Segurança</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  {session.safetyNotes?.map((note: string, i: number) => (
+                    <p key={i} className="text-[11px] text-muted-foreground">{note}</p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Session Card */}
+              <div className="border-2 border-pink-500/30 rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 bg-pink-500/10 border-b border-pink-500/20">
+                  <span className="text-sm font-bold text-pink-600 dark:text-pink-400">{session.title}</span>
+                  <span className="ml-2 text-[10px] font-mono text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded">
+                    ~{session.estimatedDuration} min
+                  </span>
+                </div>
+
+                <div className="p-3 space-y-3">
+                  {/* Warmup */}
+                  {session.warmup && (
+                    <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-sm">{session.warmup.icon}</span>
+                        <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">{session.warmup.name}</span>
+                        <span className="text-[10px] text-orange-500 font-mono ml-auto">{session.warmup.duration}</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        {session.warmup.exercises?.map((ex: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span className="flex-1">{ex.name}</span>
+                            <span className="shrink-0 ml-2 font-mono text-[10px] text-orange-500">{ex.reps}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Exercise Blocks */}
+                  {session.blocks?.map((block: any, bIdx: number) => (
+                    <div key={bIdx} className="rounded-lg border border-blue-500/20 overflow-hidden">
+                      <div className="flex items-center justify-between px-2.5 py-1.5 bg-blue-500/5 border-b border-blue-500/15">
+                        <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                          <span>{block.icon}</span> {block.name}
+                        </span>
+                        <span className="text-[10px] text-blue-500 font-mono">{block.duration}</span>
+                      </div>
+                      <div className="divide-y divide-border/30">
+                        {block.exercises?.map((ex: any, exIdx: number) => (
+                          <div key={exIdx} className="px-2.5 py-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-medium">{ex.name}</span>
+                              <span className="text-[10px] font-mono text-muted-foreground">{ex.reps}</span>
+                            </div>
+                            {ex.notes && (
+                              <p className="text-[10px] text-blue-500 mt-0.5">💡 {ex.notes}</p>
+                            )}
+                            {ex.caution && (
+                              <p className="text-[10px] text-red-400 mt-0.5">⚠️ {ex.caution}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Stretching */}
+                  {session.stretching && (
+                    <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-sm">{session.stretching.icon}</span>
+                        <span className="text-xs font-semibold text-green-600 dark:text-green-400">{session.stretching.name}</span>
+                        <span className="text-[10px] text-green-500 font-mono ml-auto">{session.stretching.duration}</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        {session.stretching.exercises?.map((ex: any, i: number) => (
+                          <div key={i} className="px-1">
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span className="flex-1">{ex.name}</span>
+                              <span className="shrink-0 ml-2 font-mono text-[10px] text-green-500">{ex.reps}</span>
+                            </div>
+                            {ex.notes && <p className="text-[10px] text-green-500/70">💡 {ex.notes}</p>}
+                            {ex.caution && <p className="text-[10px] text-red-400">⚠️ {ex.caution}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Relaxation */}
+                  {session.relaxation && (
+                    <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-sm">{session.relaxation.icon}</span>
+                        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{session.relaxation.name}</span>
+                        <span className="text-[10px] text-purple-500 font-mono ml-auto">{session.relaxation.duration}</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        {session.relaxation.exercises?.map((ex: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span className="flex-1">{ex.name}</span>
+                            <span className="shrink-0 ml-2 font-mono text-[10px] text-purple-500">{ex.reps}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Schedule Preview — Expert Pro (pilares) */}
+      {schedule && schedule.weeks && !schedule.isGestante && (() => {
         const week1 = schedule.weeks[0]
 
         // Detect format: new has session.treino, old has session.blocks

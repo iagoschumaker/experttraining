@@ -44,6 +44,7 @@ import {
   type TrainingLevel,
 } from '@/services/trainingPhases'
 import { getPhaseWorkout, type PhaseWorkoutTemplate } from '@/services/phaseWorkouts'
+import { getGestanteWorkout, isGestantePhase, type GestantePhaseTemplate } from '@/services/phaseWorkoutsGestante'
 
 // ============================================================================
 // SCHEMA DE VALIDAÇÃO
@@ -62,11 +63,16 @@ const generateWorkoutSchema = z.object({
     'FORCA_2',
     'RESISTENCIA_2',
     'METABOLICO_2',
+    'GESTANTE_T1',
+    'GESTANTE_T2',
+    'GESTANTE_T3_A',
+    'GESTANTE_T3_B',
   ]),
   weeklyFrequency: z.number().min(2).max(6),
   notes: z.string().optional(),
   levelUp: z.boolean().optional(),
-  objective: z.enum(['EMAGRECIMENTO', 'HIPERTROFIA_OBJ', 'PERFORMANCE', 'REABILITACAO']).optional(),
+  objective: z.enum(['EMAGRECIMENTO', 'HIPERTROFIA_OBJ', 'PERFORMANCE', 'REABILITACAO', 'GESTANTE']).optional(),
+  gestationalWeek: z.number().min(1).max(42).optional(),
   mode: z.enum(['auto', 'manual']).optional().default('auto'),
   customTemplate: z.any().optional(), // Treinos editados pelo personal (modo manual)
 })
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { assessmentId, phase, weeklyFrequency, notes, levelUp, mode, customTemplate, objective: bodyObjective } = validation.data
+    const { assessmentId, phase, weeklyFrequency, notes, levelUp, mode, customTemplate, objective: bodyObjective, gestationalWeek } = validation.data
 
     // ========================================================================
     // Buscar avaliação
@@ -269,8 +275,102 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // BUSCAR TEMPLATE DA FASE NO CATÁLOGO
+    // RAMO: GESTANTE vs EXPERT PRO
     // ========================================================================
+    const isGestante = objective === 'GESTANTE' || isGestantePhase(phase)
+
+    if (isGestante) {
+      // ====================================================================
+      // FLUXO GESTANTE — sem pilares, sem rotação, sessão full-body
+      // ====================================================================
+      const gestanteTemplate = getGestanteWorkout(phase as TrainingPhase)
+      if (!gestanteTemplate) {
+        return NextResponse.json(
+          { success: false, error: `Template gestante não encontrado para fase ${phase}.` },
+          { status: 400 }
+        )
+      }
+
+      const gestanteFreq = gestanteTemplate.sessionsPerWeek
+      const schedule = buildGestanteSchedule(gestanteTemplate, gestanteFreq)
+
+      const workoutName = `${gestanteTemplate.phaseLabel} - ${assessment.client.name}`
+
+      const [workout] = await prisma.$transaction([
+        prisma.workout.create({
+          data: {
+            clientId: assessment.clientId,
+            studioId,
+            createdById: userId,
+            name: workoutName,
+            phase: phase as any,
+            assessmentId,
+            blocksUsed: [],
+            scheduleJson: schedule,
+            templateJson: gestanteTemplate as any,
+            targetWeeks: PHASE_DURATION_WEEKS,
+            sessionsPerWeek: gestanteFreq,
+            sessionsCompleted: 0,
+            startDate: new Date(),
+            isActive: true,
+          },
+          include: {
+            client: { select: { id: true, name: true } },
+          },
+        }),
+        prisma.client.update({
+          where: { id: assessment.clientId },
+          data: {
+            currentPhase: phase as any,
+            objective: 'GESTANTE',
+            gestationalWeek: gestationalWeek || null,
+            trainingDaysPerWeek: gestanteFreq,
+          },
+        }),
+      ])
+
+      await prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'GENERATE',
+          entity: 'Workout',
+          entityId: workout.id,
+          newData: {
+            type: 'GESTANTE',
+            assessmentId,
+            phase,
+            phaseLabel: gestanteTemplate.phaseLabel,
+            trimester: gestanteTemplate.trimester,
+            gestationalWeek,
+            weeklyFrequency: gestanteFreq,
+          } as any,
+        },
+      })
+
+      const progress = calculatePhaseProgress(0, gestanteFreq)
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          workout,
+          schedule,
+          template: gestanteTemplate,
+          progress,
+          level: 'GESTANTE',
+          phase,
+          phaseLabel: gestanteTemplate.phaseLabel,
+          objective: 'GESTANTE',
+          isGestante: true,
+          recommendations: [],
+        },
+      })
+    }
+
+    // ========================================================================
+    // FLUXO EXPERT PRO (normal) — pilares + rotação
+    // ========================================================================
+
+    // BUSCAR TEMPLATE DA FASE NO CATÁLOGO
     const phaseTemplate = getPhaseWorkout(newLevel, phase as TrainingPhase)
 
     if (!phaseTemplate) {
@@ -289,9 +389,7 @@ export async function POST(request: NextRequest) {
     console.log(`   - Treinos no template: ${phaseTemplate.treinos.length}`)
     console.log(`   - Duração: ${PHASE_DURATION_WEEKS} semanas`)
 
-    // ========================================================================
     // GERAR ROTAÇÃO DE PILARES
-    // ========================================================================
     const pillarSchedule = generatePillarRotation({
       trainingDaysPerWeek: weeklyFrequency,
       totalWeeks: PHASE_DURATION_WEEKS,
@@ -300,16 +398,7 @@ export async function POST(request: NextRequest) {
 
     const allPillars = pillarSchedule.schedule.flat()
 
-    console.log(`🔄 ROTAÇÃO DE PILARES:`)
-    console.log(`   - Último índice: ${lastPillarIndex}`)
-    console.log(`   - Frequência: ${weeklyFrequency}x/semana`)
-    console.log(`   - Total sessões: ${allPillars.length}`)
-    console.log(`   - Próximo índice: ${pillarSchedule.lastIndexAfterProgram}`)
-
-    // ========================================================================
     // MONTAR SCHEDULE BASEADO NO TEMPLATE DA FASE
-    // ========================================================================
-    // Se modo manual e customTemplate fornecido, usar o template editado
     const finalTemplate = (mode === 'manual' && customTemplate)
       ? {
           ...phaseTemplate,
@@ -319,9 +408,7 @@ export async function POST(request: NextRequest) {
 
     const schedule = buildScheduleFromPhase(finalTemplate, allPillars, weeklyFrequency)
 
-    // ========================================================================
     // SALVAR TREINO
-    // ========================================================================
     const modeLabel = mode === 'manual' ? ' (Manual)' : ''
     const workoutName = `${phaseTemplate.phaseLabel}${modeLabel} - ${assessment.client.name}`
 
@@ -354,7 +441,7 @@ export async function POST(request: NextRequest) {
           trainingDaysPerWeek: weeklyFrequency,
           level: newLevel,
           currentPhase: phase as any,
-          objective: objective, // Salva o objetivo selecionado para pré-preencher na próxima geração
+          objective: objective,
         },
       }),
     ])
@@ -497,6 +584,61 @@ function buildScheduleFromPhase(
     phase: template.phase,
     totalWeeks: PHASE_DURATION_WEEKS,
     totalSessions: allPillars.length,
+    weeks,
+  }
+}
+
+/**
+ * Constrói schedule gestante: sessões full-body idênticas (sem rotação de pilares).
+ * Cada sessão traz: aquecimento, blocos, alongamento, relaxamento, alertas de segurança.
+ */
+function buildGestanteSchedule(
+  template: GestantePhaseTemplate,
+  sessionsPerWeek: number
+) {
+  const weeks: any[] = []
+  let sessionIndex = 0
+
+  for (let week = 0; week < PHASE_DURATION_WEEKS; week++) {
+    const weekSessions: any[] = []
+
+    for (let day = 0; day < sessionsPerWeek; day++) {
+      sessionIndex++
+      weekSessions.push({
+        sessionNumber: sessionIndex,
+        day: day + 1,
+        pillar: 'GESTANTE',
+        pillarLabel: 'Sessão Gestante',
+        gestante: {
+          title: template.session.title,
+          estimatedDuration: template.session.estimatedDuration,
+          warmup: template.session.warmup,
+          blocks: template.session.blocks,
+          stretching: template.session.stretching,
+          relaxation: template.session.relaxation,
+          safetyNotes: template.session.safetyNotes,
+        },
+        week: week + 1,
+        weekLabel: `S${week + 1}`,
+      })
+    }
+
+    weeks.push({
+      week: week + 1,
+      sessions: weekSessions,
+    })
+  }
+
+  return {
+    phaseLabel: template.phaseLabel,
+    phase: template.phase,
+    trimester: template.trimester,
+    gestationalWeeksRange: template.gestationalWeeksRange,
+    isGestante: true,
+    maxHeartRate: template.maxHeartRate,
+    maxTemp: template.maxTemp,
+    totalWeeks: PHASE_DURATION_WEEKS,
+    totalSessions: PHASE_DURATION_WEEKS * sessionsPerWeek,
     weeks,
   }
 }
