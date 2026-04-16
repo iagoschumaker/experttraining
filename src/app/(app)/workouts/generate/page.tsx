@@ -661,49 +661,54 @@ function GenerateWorkoutPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/workouts">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Dumbbell className="h-6 w-6 text-amber-500" />
-            Gerar Treino
-          </h1>
-          <p className="text-sm text-muted-foreground">Método Expert Pro Training</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/workouts">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Gerar Treino
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Método Expert Pro Training
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Step Indicator */}
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
+      {/* Step Indicator — circular (like assessments) */}
+      <div className="flex items-center justify-center gap-2">
         {STEPS.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2 shrink-0">
+          <div key={s.key} className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors ${
                 i === stepIndex
                   ? 'bg-amber-500 text-white'
                   : i < stepIndex
-                  ? 'bg-amber-500/20 text-amber-500'
+                  ? 'bg-green-500 text-white'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {i < stepIndex ? <CheckCircle className="h-4 w-4" /> : s.icon}
-              <span className="hidden sm:inline">{s.label}</span>
+              {i < stepIndex ? <CheckCircle className="h-5 w-5" /> : s.icon}
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`w-6 h-0.5 ${i < stepIndex ? 'bg-amber-500' : 'bg-muted'}`} />
+              <div className={`w-6 h-0.5 ${i < stepIndex ? 'bg-green-500' : 'bg-muted'}`} />
             )}
           </div>
         ))}
       </div>
+      <div className="text-center text-sm text-gray-500">
+        {STEPS[stepIndex]?.label}
+      </div>
 
       {/* Error */}
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
           <p className="text-sm text-red-400">{error}</p>
         </div>
