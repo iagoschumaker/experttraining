@@ -535,6 +535,10 @@ function GenerateWorkoutPage() {
         await loadTemplateForEditing()
         setStep('edit')
       } else {
+        // Auto-set frequency for gestante
+        if (selectedObjective === 'GESTANTE') {
+          setWeeklyFrequency(selectedPhase === 'GESTANTE_T3_B' ? 2 : 3)
+        }
         setStep('config')
       }
     } else if (step === 'edit') {
@@ -1452,33 +1456,55 @@ function GenerateWorkoutPage() {
             </CardContent>
           </Card>
 
-          {/* Frequency */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-base">Frequência Semanal</CardTitle>
-              <CardDescription>Quantos dias por semana o aluno treina?</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 flex-wrap">
-                {[2, 3, 4, 5, 6].map(freq => (
-                  <Button
-                    key={freq}
-                    variant={weeklyFrequency === freq ? 'default' : 'outline'}
-                    className={weeklyFrequency === freq ? 'bg-amber-500 hover:bg-amber-600' : ''}
-                    onClick={() => setWeeklyFrequency(freq)}
-                  >
-                    {freq}x
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Total: {weeklyFrequency * 6} sessões em 6 semanas
-              </p>
-            </CardContent>
-          </Card>
+          {/* Frequency — hidden for GESTANTE (auto-determined by trimester) */}
+          {selectedObjective !== 'GESTANTE' ? (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">Frequência Semanal</CardTitle>
+                <CardDescription>Quantos dias por semana o aluno treina?</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 flex-wrap">
+                  {[2, 3, 4, 5, 6].map(freq => (
+                    <Button
+                      key={freq}
+                      variant={weeklyFrequency === freq ? 'default' : 'outline'}
+                      className={weeklyFrequency === freq ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                      onClick={() => setWeeklyFrequency(freq)}
+                    >
+                      {freq}x
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Total: {weeklyFrequency * 6} sessões em 6 semanas
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="mb-6 border-pink-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🤰</span>
+                  <div>
+                    <p className="font-medium text-foreground">Frequência definida pelo trimestre</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedPhase === 'GESTANTE_T3_B' ? '2x por semana (pré-parto)' : '3x por semana'}
+                      {' '} • Sessões de {selectedPhase === 'GESTANTE_T3_B' ? '25' : selectedPhase === 'GESTANTE_T3_A' ? '30' : '35'} min
+                    </p>
+                    {gestationalWeek && (
+                      <p className="text-xs text-pink-500 mt-1">
+                        Semana gestacional: {gestationalWeek}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Level Up */}
-          {clientInfo?.level !== 'AVANCADO' && (
+          {/* Level Up — hidden for GESTANTE */}
+          {selectedObjective !== 'GESTANTE' && clientInfo?.level !== 'AVANCADO' && (
             <Card className="mb-6">
               <CardContent className="p-4">
                 <label className="flex items-center gap-3 cursor-pointer">
