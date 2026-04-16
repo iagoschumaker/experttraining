@@ -453,6 +453,7 @@ function GenerateWorkoutPage() {
         notes,
         levelUp,
         mode: generationMode,
+        objective: selectedObjective || undefined,
       }
 
       if (generationMode === 'manual' && editableTreinos.length > 0) {

@@ -66,6 +66,7 @@ const generateWorkoutSchema = z.object({
   weeklyFrequency: z.number().min(2).max(6),
   notes: z.string().optional(),
   levelUp: z.boolean().optional(),
+  objective: z.enum(['EMAGRECIMENTO', 'HIPERTROFIA_OBJ', 'PERFORMANCE', 'REABILITACAO']).optional(),
   mode: z.enum(['auto', 'manual']).optional().default('auto'),
   customTemplate: z.any().optional(), // Treinos editados pelo personal (modo manual)
 })
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { assessmentId, phase, weeklyFrequency, notes, levelUp, mode, customTemplate } = validation.data
+    const { assessmentId, phase, weeklyFrequency, notes, levelUp, mode, customTemplate, objective: bodyObjective } = validation.data
 
     // ========================================================================
     // Buscar avaliação
@@ -234,7 +235,9 @@ export async function POST(request: NextRequest) {
     })
     const lastPillarIndex = clientData?.lastPillarIndex ?? 0
     const currentLevel = (clientData?.level || 'INICIANTE') as TrainingLevel
-    const objective = (clientData?.objective ||
+    // Prioridade: 1) objetivo selecionado na UI de geração, 2) client, 3) assessment, 4) fallback
+    const objective = (bodyObjective ||
+      clientData?.objective ||
       assessment.objective ||
       mapGoalToObjective(result.primaryGoal || inputData?.primaryGoal)) as ClientObjective
 
@@ -351,7 +354,7 @@ export async function POST(request: NextRequest) {
           trainingDaysPerWeek: weeklyFrequency,
           level: newLevel,
           currentPhase: phase as any,
-          objective: objective as any,
+          objective: objective, // Salva o objetivo selecionado para pré-preencher na próxima geração
         },
       }),
     ])
