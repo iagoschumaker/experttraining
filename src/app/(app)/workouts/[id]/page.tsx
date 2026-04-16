@@ -570,8 +570,25 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{workout.blocks.length}</p>
-            <p className="text-sm text-muted-foreground">no programa</p>
+            <p className="text-2xl font-bold">
+              {workout.blocks.length > 0
+                ? workout.blocks.length
+                : (() => {
+                    // v2: count unique pillar types from schedule
+                    const s = workout.scheduleJson as any
+                    if (s?.pillarLabels) return Object.keys(s.pillarLabels).length
+                    const w1 = s?.weeks?.[0]
+                    if (w1?.sessions) {
+                      const pillars = new Set(w1.sessions.map((ses: any) => ses.treino?.pilar || ses.pillar || ses.focus).filter(Boolean))
+                      return pillars.size || w1.sessions.length
+                    }
+                    return 0
+                  })()
+              }
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {workout.blocks.length > 0 ? 'blocos no programa' : 'pilares de treino'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -595,34 +612,36 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         </Card>
       )}
 
-      {/* Blocks Used */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Blocos Utilizados</CardTitle>
-          <CardDescription>Exercícios e padrões de movimento do programa</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            {workout.blocks.map((block) => (
-              <div key={block.id} className="p-4 border rounded-lg space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">{block.name}</h4>
-                  <Badge variant="outline">{block.code}</Badge>
+      {/* Blocks Used — only if legacy blocks exist */}
+      {workout.blocks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Blocos Utilizados</CardTitle>
+            <CardDescription>Exercícios e padrões de movimento do programa</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {workout.blocks.map((block) => (
+                <div key={block.id} className="p-4 border rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">{block.name}</h4>
+                    <Badge variant="outline">{block.code}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{block.description}</p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-muted-foreground">
+                      Categoria: <span className="font-medium">{block.category}</span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Frequência: <span className="font-medium">{block.weeklyFrequency}x/sem</span>
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{block.description}</p>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">
-                    Categoria: <span className="font-medium">{block.category}</span>
-                  </span>
-                  <span className="text-muted-foreground">
-                    Frequência: <span className="font-medium">{block.weeklyFrequency}x/sem</span>
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
 
       {/* Schedule Preview — GESTANTE */}

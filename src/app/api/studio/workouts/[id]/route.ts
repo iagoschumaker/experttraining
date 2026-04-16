@@ -175,10 +175,10 @@ export async function GET(
       ]
     }
 
-    // Extrair weeklyFrequency e phaseDuration do scheduleJson
+    // Extrair weeklyFrequency e phaseDuration — priorizar colunas do DB
     const schedule = workout.scheduleJson as any
-    const weeklyFrequency = schedule?.weeklyFrequency || 0
-    const phaseDuration = schedule?.phaseDuration || 0
+    const weeklyFrequency = workout.sessionsPerWeek || schedule?.weeklyFrequency || 0
+    const phaseDuration = workout.targetWeeks || schedule?.phaseDuration || 0
     const mainFocus = schedule?.mainFocus || schedule?.primaryFocus || 'PERNA'
 
     // Enriquecer scheduleJson - para treinos antigos, gerar estrutura Método Expert
