@@ -270,8 +270,8 @@ export default function AssessmentResultPage() {
         </Card>
       ) : result ? (
         <>
-          {/* Summary Cards - Nível, Objetivo, Fase */}
-          <div className="grid gap-4 md:grid-cols-3">
+          {/* Summary Card - Nível */}
+          <div className="grid gap-4 md:grid-cols-2">
             <Card className="border-l-4 border-l-blue-500">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -284,41 +284,24 @@ export default function AssessmentResultPage() {
                   {LEVEL_LABELS[clientLevel?.toUpperCase()] || translateDifficulty(clientLevel)}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Classificação do aluno
+                  Classificação do aluno baseada na avaliação
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-emerald-500">
+            <Card className="border-l-4 border-l-muted">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Objetivo
+                  Objetivo e Fase
                 </CardTitle>
-                <Target className="h-4 w-4 text-emerald-500" />
+                <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-500">
-                  {OBJECTIVE_LABELS[clientObjective] || clientObjective}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Meta de treinamento
+                <p className="text-sm text-muted-foreground">
+                  Definidos na geração do treino
                 </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-amber-500">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Fase Recomendada
-                </CardTitle>
-                <Layers className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-amber-500">
-                  {PHASE_LABELS[selectedPhase] || selectedPhase?.replace(/_/g, ' ')}
-                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Próxima fase de treino (6 semanas)
+                  💡 Vá para <strong>Treinos > Criar Treino</strong> usando esta avaliação
                 </p>
               </CardContent>
             </Card>

@@ -36,37 +36,8 @@ import {
 } from 'lucide-react'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { SkinfoldsInput, PollockResult } from '@/services/pollock'
-import { getAvailablePhases, getAvailablePhasesForLevel } from '@/services/trainingPhases'
-import type { TrainingPhase, TrainingLevel, ClientObjective } from '@/services/trainingPhases'
-import { getPhaseWorkout } from '@/services/phaseWorkouts'
 
-// Labels
-const PHASE_LABELS: Record<string, string> = {
-  CONDICIONAMENTO_1: 'Fundamento Híbrido I',
-  CONDICIONAMENTO_2: 'Condicionamento Híbrido',
-  HIPERTROFIA: 'Hipertrofia Híbrida',
-  FORCA: 'Força Híbrida',
-  POTENCIA: 'Potência Híbrida',
-  RESISTENCIA: 'Resistência / Fadiga',
-  METABOLICO: 'Metabólico',
-  HIPERTROFIA_2: 'Hipertrofia Híbrida II',
-  FORCA_2: 'Força Híbrida II',
-  RESISTENCIA_2: 'Resistência / Fadiga II',
-  METABOLICO_2: 'Metabólico II',
-}
 
-const OBJECTIVE_OPTIONS = [
-  { value: 'EMAGRECIMENTO', label: 'Emagrecimento', description: 'Perda de gordura e composição corporal' },
-  { value: 'HIPERTROFIA_OBJ', label: 'Hipertrofia', description: 'Ganho de massa muscular' },
-  { value: 'PERFORMANCE', label: 'Performance', description: 'Desempenho atlético e funcional' },
-  { value: 'REABILITACAO', label: 'Reabilitação / Saúde', description: 'Recuperação e qualidade de vida' },
-]
-
-const LEVEL_TO_TRAINING: Record<string, TrainingLevel> = {
-  BEGINNER: 'INICIANTE',
-  INTERMEDIATE: 'INTERMEDIARIO',
-  ADVANCED: 'AVANCADO',
-}
 
 // Types
 interface MovementTest {
@@ -227,10 +198,7 @@ export default function AssessmentInputPage() {
   const [step, setStep] = useState(1) // 1: Complaints, 2: Pain Map, 3: Movement Tests, 4: Body Metrics, 5: Level
   const [newComplaint, setNewComplaint] = useState('')
   const [assessmentDate, setAssessmentDate] = useState('')
-  const [selectedObjective, setSelectedObjective] = useState<ClientObjective>('HIPERTROFIA_OBJ')
-  const [selectedPhase, setSelectedPhase] = useState<TrainingPhase>('CONDICIONAMENTO_1')
-  const [completedPhases, setCompletedPhases] = useState<string[]>([])
-  const [currentPhase, setCurrentPhase] = useState<string | null>(null)
+
 
   // Form state
   const [formData, setFormData] = useState<AssessmentInput>({
@@ -246,15 +214,6 @@ export default function AssessmentInputPage() {
       gait: { score: 0, observations: '' },
     },
     level: 'BEGINNER',
-  })
-
-  // Compute available phases: intersection of (level+objective) AND (catalog existence)
-  const trainingLevel = LEVEL_TO_TRAINING[formData.level] || 'INICIANTE'
-  const phasesFromRules = getAvailablePhases(trainingLevel, selectedObjective)
-  // Filter to only phases that actually have a template in the catalog
-  const availablePhases = phasesFromRules.filter(phase => {
-    const template = getPhaseWorkout(trainingLevel, phase)
-    return template !== null
   })
 
   // Body metrics (optional)
@@ -279,13 +238,7 @@ export default function AssessmentInputPage() {
           if (data.data.inputJson) {
             setFormData(data.data.inputJson)
           }
-          // Set phase history
-          if (data.data.client?.completedPhases) {
-            setCompletedPhases(data.data.client.completedPhases)
-          }
-          if (data.data.client?.currentPhase) {
-            setCurrentPhase(data.data.client.currentPhase)
-          }
+          // Phase history no longer needed in assessment (moved to generation)
           if (data.data.createdAt) {
             // Use local date components to avoid UTC shift
             const d = new Date(data.data.createdAt)
@@ -432,8 +385,6 @@ export default function AssessmentInputPage() {
           inputJson: formData,
           bodyMetrics: Object.keys(cleanBodyMetrics).length > 0 ? cleanBodyMetrics : undefined,
           assessmentDate,
-          selectedPhase,
-          objective: selectedObjective,
         }),
       })
 
@@ -1145,12 +1096,6 @@ export default function AssessmentInputPage() {
                         ...formData,
                         level: level.value as AssessmentInput['level'],
                       })
-                      // Reset phase when level changes
-                      const newTrainingLevel = LEVEL_TO_TRAINING[level.value] || 'INICIANTE'
-                      const newPhases = getAvailablePhases(newTrainingLevel, selectedObjective)
-                      if (!newPhases.includes(selectedPhase)) {
-                        setSelectedPhase(newPhases[0])
-                      }
                     }}
                     className={`rounded-lg border-2 p-4 text-left transition-colors ${formData.level === level.value
                       ? 'border-blue-500 bg-blue-500/10'
@@ -1167,91 +1112,13 @@ export default function AssessmentInputPage() {
             </CardContent>
           </Card>
 
-          {/* Objective */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Objetivo do Treinamento</CardTitle>
-              <CardDescription>
-                Selecione o objetivo principal do cliente
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {OBJECTIVE_OPTIONS.map((obj) => (
-                  <button
-                    key={obj.value}
-                    onClick={() => {
-                      setSelectedObjective(obj.value as ClientObjective)
-                      // Reset phase when objective changes
-                      const newPhases = getAvailablePhases(trainingLevel, obj.value as ClientObjective)
-                      if (!newPhases.includes(selectedPhase)) {
-                        setSelectedPhase(newPhases[0])
-                      }
-                    }}
-                    className={`rounded-lg border-2 p-4 text-left transition-colors ${selectedObjective === obj.value
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : 'border-border hover:border-emerald-500'
-                      }`}
-                  >
-                    <div className="font-medium">{obj.label}</div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {obj.description}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Phase */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Fase do Treinamento</CardTitle>
-              <CardDescription>
-                Selecione a fase recomendada. Cada fase dura 6 semanas. Fases já concluídas estão marcadas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {availablePhases.length === 0 ? (
-                <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
-                  Nenhuma fase com template disponível para este nível e objetivo.
-                </div>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {availablePhases.map((phase) => {
-                    const isCompleted = completedPhases.includes(phase)
-                    const isCurrent = currentPhase === phase
-                    return (
-                      <button
-                        key={phase}
-                        onClick={() => setSelectedPhase(phase)}
-                        className={`rounded-lg border-2 p-3 text-left transition-colors relative ${
-                          selectedPhase === phase
-                            ? 'border-amber-500 bg-amber-500/10'
-                            : isCompleted
-                            ? 'border-green-500/30 bg-green-500/5'
-                            : 'border-border hover:border-amber-500'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="font-medium text-sm flex-1">{PHASE_LABELS[phase] || phase}</div>
-                          {isCompleted && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium whitespace-nowrap">Concluída ✓</span>
-                          )}
-                          {isCurrent && !isCompleted && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Atual</span>
-                          )}
-                        </div>
-                        <div className="mt-0.5 text-xs text-muted-foreground">
-                          {phase.replace(/_/g, ' ')}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Info: Objetivo e Fase são definidos na geração do treino */}
+          <div className="p-3 bg-muted/50 border border-border rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              💡 <strong>Objetivo</strong> e <strong>Fase do Treinamento</strong> são definidos na hora de gerar o treino, não na avaliação.
+              Isso permite reaproveitar avaliações para diferentes objetivos no futuro.
+            </p>
+          </div>
 
           {/* Summary + Process */}
           <Card>
@@ -1282,18 +1149,6 @@ export default function AssessmentInputPage() {
                     <span className="text-muted-foreground">Nível:</span>
                     <Badge className="bg-blue-500">
                       {formData.level === 'BEGINNER' ? 'Iniciante' : formData.level === 'INTERMEDIATE' ? 'Intermediário' : 'Avançado'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Objetivo:</span>
-                    <Badge className="bg-emerald-500">
-                      {OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label || selectedObjective}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Fase:</span>
-                    <Badge className="bg-amber-500">
-                      {PHASE_LABELS[selectedPhase] || selectedPhase}
                     </Badge>
                   </div>
                 </div>
