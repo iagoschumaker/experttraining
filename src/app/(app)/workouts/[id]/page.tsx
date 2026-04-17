@@ -45,6 +45,8 @@ interface Workout {
   status: string
   weeklyFrequency: number
   phaseDuration: number
+  sessionsPerWeek: number
+  targetWeeks: number
   notes: string | null
   createdAt: string
   blocksUsed: string[]
@@ -650,21 +652,37 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         const session = week1?.sessions?.[0]?.gestante
         if (!session) return null
 
+        const freqPerWeek = workout.sessionsPerWeek || week1?.sessions?.length || 3
+        const totalSessions = (schedule.totalWeeks || workout.phaseDuration) * freqPerWeek
+
         return (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🤰</span>
-                <div>
+                <div className="flex-1">
                   <CardTitle>{schedule.phaseLabel}</CardTitle>
-                  <CardDescription>
-                    {schedule.totalWeeks} semanas • {week1?.sessions?.length || 3} sessões/semana
-                    <span className="ml-1 text-pink-500">• Sem. gestacional {schedule.gestationalWeeksRange}</span>
+                  <CardDescription className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                    <span>📅 {schedule.totalWeeks || workout.phaseDuration} semanas</span>
+                    <span>🏃 {freqPerWeek}x por semana</span>
+                    <span>📊 {totalSessions} sessões no total</span>
+                    <span>⏱ ~{session.estimatedDuration} min/sessão</span>
+                    <span className="text-pink-500">🤰 Sem. gestacional {schedule.gestationalWeeksRange}</span>
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Evolution note */}
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">📈 Evolução do Programa</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Ao completar este cronograma, gere um novo treino informando a semana gestacional atual.
+                  O sistema selecionará automaticamente a fase correta: {' '}
+                  <span className="font-medium">1–12 sem → 1º Tri • 13–27 → 2º Tri • 28–35 → 3º Tri A • 36–42 → 3º Tri B</span>
+                </p>
+              </div>
+
               {/* Safety Notes */}
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                 <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">🛡️ Regras de Segurança</p>

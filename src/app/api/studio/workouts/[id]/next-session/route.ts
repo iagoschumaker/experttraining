@@ -37,6 +37,65 @@ function normalizeTemplate(raw: any): WorkoutTemplate {
         return raw as WorkoutTemplate
     }
 
+    // ========================================================================
+    // GESTANTE FORMAT: templateJson = { isGestante: true, session: {...}, ... }
+    // Stored by buildGestanteSchedule via getGestanteWorkout
+    // ========================================================================
+    if (raw && raw.isGestante === true && raw.session) {
+        const s = raw.session
+        // Build a simplified session that the presença card can render
+        const blocks = (s.blocks || []).map((b: any, i: number) => ({
+            code: `G${i + 1}`,
+            name: b.name || `Bloco ${i + 1}`,
+            exercises: (b.exercises || []).map((ex: any) => ({
+                name: ex.name || '',
+                sets: ex.sets || 2,
+                reps: ex.reps || '',
+                rest: ex.rest || '60s',
+                weight: null,
+                blockIdx: i,
+                exerciseIdx: 0,
+                role: 'gestante',
+                notes: ex.notes,
+                caution: ex.caution,
+            })),
+        }))
+
+        const preparation = s.warmup ? {
+            title: s.warmup.name || 'Aquecimento Gestante',
+            totalTime: s.warmup.duration || '10 min',
+            exercises: (s.warmup.exercises || []).map((ex: any) => ({
+                name: ex.name || '',
+                sets: 1,
+                reps: ex.reps || '',
+                rest: '',
+                role: 'warmup',
+            })),
+        } : null
+
+        return {
+            sessions: [{
+                sessionIndex: 0,
+                pillar: 'GESTANTE',
+                pillarLabel: raw.phaseLabel || 'Sessão Gestante 🤰',
+                preparation,
+                blocks,
+                finalProtocol: null,
+                // Keep gestante raw for rich display
+                isGestante: true,
+                gestanteSession: s,
+                phaseLabel: raw.phaseLabel,
+                trimester: raw.trimester,
+                gestationalWeeksRange: raw.gestationalWeeksRange,
+                maxHeartRate: raw.maxHeartRate,
+            }],
+            sessionsPerWeek: raw.sessionsPerWeek || 3,
+            targetWeeks: raw.targetWeeks || 6,
+            methodology: 'GESTANTE',
+            pillarSystem: 'GESTANTE',
+        }
+    }
+
     // New PhaseWorkoutTemplate format: has treinos[]
     if (raw && Array.isArray(raw.treinos) && raw.treinos.length > 0) {
         const preparations: any[] = raw.preparations || []
