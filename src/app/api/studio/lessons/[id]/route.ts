@@ -16,8 +16,8 @@ import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
 import { z } from 'zod'
 
-// Flag para desativar modificações em aulas
-const LESSONS_DEPRECATED = true
+// Flag para desativar modificações em aulas (REATIVADO para CRUD do calendário)
+const LESSONS_DEPRECATED = false
 
 // ============================================================================
 // GET - Lesson Details
@@ -107,31 +107,60 @@ export async function GET(
 }
 
 // ============================================================================
-// PUT - Update/Complete Lesson [DEPRECATED]
+// PATCH — Editar focus/data/horário de um check-in manual
 // ============================================================================
-// ⚠️ FUNCIONALIDADE DESCONTINUADA
-// A atualização de aulas foi desativada.
-// ============================================================================
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Bloquear atualização de aulas
-  if (LESSONS_DEPRECATED) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Funcionalidade descontinuada. O controle por aulas foi removido do Método Expert Training.',
-        deprecated: true
-      },
-      { status: 410 }
-    )
+  const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
+  if ('error' in auth) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
   }
+  const { userId, studioId } = auth
+  const lessonId = params.id
 
-  return NextResponse.json(
-    { success: false, error: 'Funcionalidade descontinuada' },
-    { status: 410 }
-  )
+  try {
+    const body = await request.json()
+    const { focus, date, time } = body
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, studioId },
+      select: { id: true, date: true, startedAt: true },
+    })
+    if (!lesson) {
+      return NextResponse.json({ success: false, error: 'Check-in não encontrado' }, { status: 404 })
+    }
+
+    let newDate = lesson.date
+    let newStartedAt = lesson.startedAt
+    if (date) {
+      const [year, month, day] = date.split('-').map(Number)
+      newDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+      const [hours, minutes] = (time || '08:00').split(':').map(Number)
+      newStartedAt = new Date(Date.UTC(year, month - 1, day, hours + 3, minutes, 0))
+    }
+
+    const updated = await prisma.lesson.update({
+      where: { id: lessonId },
+      data: {
+        focus: focus !== undefined ? (focus?.trim() || null) : undefined,
+        date: newDate,
+        startedAt: newStartedAt,
+        endedAt: newStartedAt,
+      },
+      select: { id: true, date: true, startedAt: true, focus: true, workoutId: true },
+    })
+
+    await prisma.auditLog.create({
+      data: { userId, studioId, action: 'UPDATE', entity: 'Lesson', entityId: lessonId, newData: { focus, date, time } },
+    })
+
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error) {
+    console.error('Patch lesson error:', error)
+    return NextResponse.json({ success: false, error: 'Erro ao editar check-in' }, { status: 500 })
+  }
 }
 
 /* CÓDIGO LEGADO - MANTIDO PARA REFERÊNCIA
@@ -324,28 +353,52 @@ async function PUT_LEGACY(
 PUT_LEGACY END */
 
 // ============================================================================
-// DELETE - Cancel Lesson [DEPRECATED]
-// ============================================================================
-// ⚠️ FUNCIONALIDADE DESCONTINUADA
+// DELETE — Excluir check-in e decrementar sessionsCompleted do treino
 // ============================================================================
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Bloquear cancelamento de aulas
-  if (LESSONS_DEPRECATED) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Funcionalidade descontinuada. O controle por aulas foi removido do Método Expert Training.',
-        deprecated: true
-      },
-      { status: 410 }
-    )
+  const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
+  if ('error' in auth) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
   }
+  const { userId, studioId } = auth
+  const lessonId = params.id
 
-  return NextResponse.json(
-    { success: false, error: 'Funcionalidade descontinuada' },
-    { status: 410 }
-  )
+  try {
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, studioId },
+      select: { id: true, workoutId: true },
+    })
+    if (!lesson) {
+      return NextResponse.json({ success: false, error: 'Check-in não encontrado' }, { status: 404 })
+    }
+
+    await prisma.lessonClient.deleteMany({ where: { lessonId } })
+    await prisma.lesson.delete({ where: { id: lessonId } })
+
+    if (lesson.workoutId) {
+      const wo = await prisma.workout.findUnique({
+        where: { id: lesson.workoutId },
+        select: { sessionsCompleted: true },
+      })
+      if (wo && wo.sessionsCompleted > 0) {
+        await prisma.workout.update({
+          where: { id: lesson.workoutId },
+          data: { sessionsCompleted: { decrement: 1 } },
+        })
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: { userId, studioId, action: 'DELETE', entity: 'Lesson', entityId: lessonId,
+        oldData: { lessonId, workoutId: lesson.workoutId } },
+    })
+
+    return NextResponse.json({ success: true, message: 'Check-in excluído com sucesso' })
+  } catch (error) {
+    console.error('Delete lesson error:', error)
+    return NextResponse.json({ success: false, error: 'Erro ao excluir check-in' }, { status: 500 })
+  }
 }

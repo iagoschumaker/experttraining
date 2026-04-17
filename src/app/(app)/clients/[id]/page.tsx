@@ -136,16 +136,23 @@ export default function ClientDetailPage() {
   // Manual check-in state
   const [isCheckinOpen, setIsCheckinOpen] = useState(false)
   const [checkinDate, setCheckinDate] = useState(
-    new Date().toISOString().split('T')[0] // today in YYYY-MM-DD
+    new Date().toISOString().split('T')[0]
   )
   const [checkinTime, setCheckinTime] = useState('08:00')
   const [checkinFocus, setCheckinFocus] = useState('')
   const [savingCheckin, setSavingCheckin] = useState(false)
+  // Edit check-in state
+  const [editLesson, setEditLesson] = useState<any>(null) // lesson being edited
+  const [editFocus, setEditFocus] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
   // Calendar state
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
+  const [calendarWorkoutFilter, setCalendarWorkoutFilter] = useState<string | null>(null)
 
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
@@ -234,17 +241,58 @@ export default function ClientDetailPage() {
       const data = await res.json()
       if (data.success) {
         setIsCheckinOpen(false)
-        // Reload client to refresh check-in history
         const refresh = await fetch(`/api/clients/${clientId}`)
         const refreshed = await refresh.json()
         if (refreshed.success) setClient(refreshed.data)
       } else {
         alert(data.error || 'Erro ao registrar check-in')
       }
-    } catch (error) {
+    } catch {
       alert('Erro ao registrar check-in')
     } finally {
       setSavingCheckin(false)
+    }
+  }
+
+  const handleEditCheckin = async () => {
+    if (!editLesson) return
+    setSavingEdit(true)
+    try {
+      const res = await fetch(`/api/studio/lessons/${editLesson.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ focus: editFocus || null, date: editDate, time: editTime }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setEditLesson(null)
+        const refresh = await fetch(`/api/clients/${clientId}`)
+        const refreshed = await refresh.json()
+        if (refreshed.success) setClient(refreshed.data)
+      } else {
+        alert(data.error || 'Erro ao editar check-in')
+      }
+    } catch {
+      alert('Erro ao editar check-in')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleDeleteCheckin = async (lessonId: string) => {
+    if (!confirm('Excluir este check-in? A sessão será decrementada do treino.')) return
+    try {
+      const res = await fetch(`/api/studio/lessons/${lessonId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        const refresh = await fetch(`/api/clients/${clientId}`)
+        const refreshed = await refresh.json()
+        if (refreshed.success) setClient(refreshed.data)
+      } else {
+        alert(data.error || 'Erro ao excluir check-in')
+      }
+    } catch {
+      alert('Erro ao excluir check-in')
     }
   }
 
@@ -542,25 +590,30 @@ export default function ClientDetailPage() {
         </Card>
       </div>
 
-      {/* Presença & Check-in — Calendário Visual */}
+      {/* Presença & Check-in — Calendário Compacto com CRUD */}
       {(() => {
         const stats = (client as any).attendanceStats
-        const history: any[] = (client as any).checkInHistory || []
-        if (!stats && history.length === 0) return null
+        const allHistory: any[] = (client as any).checkInHistory || []
+        const availablePillars: string[] = (client as any).availablePillars || []
+        const allWorkouts: any[] = (client as any).workouts || []
+        if (!stats && allHistory.length === 0) return null
+
+        // Filter by workout if filter active
+        const history = calendarWorkoutFilter
+          ? allHistory.filter((l: any) => l.workoutId === calendarWorkoutFilter)
+          : allHistory
 
         const pct = stats ? Math.round(stats.attendanceRate * 100) : 0
         const barColor = pct >= 85 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
         const statusText = pct >= 85 ? 'No alvo ✓' : pct >= 60 ? 'Abaixo' : 'Crítico'
 
-        // Build map of attended dates for fast lookup
         const attendedDates = new Map<string, any>()
         for (const lesson of history) {
           const d = new Date(lesson.date)
           const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-          attendedDates.set(key, lesson)
+          if (!attendedDates.has(key)) attendedDates.set(key, lesson)
         }
 
-        // Calendar grid
         const year = calendarMonth.getFullYear()
         const month = calendarMonth.getMonth()
         const monthLabel = calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
@@ -582,91 +635,119 @@ export default function ClientDetailPage() {
           setIsCheckinOpen(true)
         }
 
+        const openEditFor = (lesson: any) => {
+          const d = new Date(lesson.date)
+          const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+          const timeStr = lesson.startedAt
+            ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
+            : '08:00'
+          setEditLesson(lesson)
+          setEditDate(dateStr)
+          setEditTime(timeStr)
+          setEditFocus(lesson.focus || '')
+        }
+
         return (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-green-500" />
-                Presença & Check-in
+            <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Activity className="h-4 w-4 text-green-500" />
+                Presença
               </CardTitle>
-              <Dialog open={isCheckinOpen} onOpenChange={setIsCheckinOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="gap-1 text-xs"
-                    onClick={() => { setCheckinDate(todayKey); setCheckinFocus(''); setCheckinTime('08:00') }}>
-                    <Plus className="h-3 w-3" />
-                    Check-in Manual
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Registrar Check-in Manual</DialogTitle>
-                    <DialogDescription>Registre uma presença para {client.name}</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="checkin-date">Data</Label>
-                      <Input id="checkin-date" type="date" value={checkinDate}
-                        onChange={(e) => setCheckinDate(e.target.value)}
-                        max={new Date().toISOString().split('T')[0]} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="checkin-time">Horário</Label>
-                      <div className="relative">
-                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input id="checkin-time" type="time" value={checkinTime}
-                          onChange={(e) => setCheckinTime(e.target.value)} className="pl-8" />
+              <div className="flex items-center gap-2">
+                {/* Workout filter */}
+                {allWorkouts.length > 1 && (
+                  <select
+                    className="text-[11px] h-7 rounded-md border border-border bg-background px-2 text-muted-foreground"
+                    value={calendarWorkoutFilter || ''}
+                    onChange={e => setCalendarWorkoutFilter(e.target.value || null)}>
+                    <option value="">Todos os treinos</option>
+                    {allWorkouts.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name || 'Treino'} {w.isActive ? '(ativo)' : ''}</option>
+                    ))}
+                  </select>
+                )}
+                <Dialog open={isCheckinOpen} onOpenChange={setIsCheckinOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs h-7 px-2"
+                      onClick={() => { setCheckinDate(todayKey); setCheckinFocus(''); setCheckinTime('08:00') }}>
+                      <Plus className="h-3 w-3" />
+                      Check-in
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">Registrar Check-in</DialogTitle>
+                      <DialogDescription className="text-xs">Presença para {client.name}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Data</Label>
+                          <Input type="date" value={checkinDate}
+                            onChange={(e) => setCheckinDate(e.target.value)}
+                            max={todayKey} className="h-8 text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Horário</Label>
+                          <Input type="time" value={checkinTime}
+                            onChange={(e) => setCheckinTime(e.target.value)} className="h-8 text-xs" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Treino do dia (opcional)</Label>
+                        {availablePillars.length > 0 ? (
+                          <select
+                            className="w-full h-8 rounded-md border border-border bg-background px-2 text-xs"
+                            value={checkinFocus}
+                            onChange={e => setCheckinFocus(e.target.value)}>
+                            <option value="">— Não informar —</option>
+                            {availablePillars.map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                        ) : (
+                          <Input placeholder="Ex: PERNA, EMPURRA, PUXA..." value={checkinFocus}
+                            onChange={(e) => setCheckinFocus(e.target.value)} className="h-8 text-xs" />
+                        )}
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="checkin-focus">Foco do Treino (opcional)</Label>
-                      <Input id="checkin-focus" placeholder="Ex: LOWER, PUSH, PULL, PERNA..."
-                        value={checkinFocus} onChange={(e) => setCheckinFocus(e.target.value)} />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCheckinOpen(false)}>Cancelar</Button>
-                    <Button onClick={handleManualCheckin} disabled={savingCheckin || !checkinDate}>
-                      {savingCheckin ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Registrar
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter className="gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsCheckinOpen(false)}>Cancelar</Button>
+                      <Button size="sm" onClick={handleManualCheckin} disabled={savingCheckin || !checkinDate}>
+                        {savingCheckin && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                        Registrar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Stats row */}
+            <CardContent className="space-y-3 pt-0">
+              {/* Stats compact */}
               {stats && (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className="text-2xl font-bold text-green-400">{stats.sessionsCompleted}</div>
-                      <div className="text-xs text-muted-foreground">Sessões feitas</div>
-                    </div>
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className="text-2xl font-bold text-amber-400">{stats.remaining}</div>
-                      <div className="text-xs text-muted-foreground">Restantes</div>
-                    </div>
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className="text-2xl font-bold text-blue-400">{stats.sessionsPerWeek}x</div>
-                      <div className="text-xs text-muted-foreground">/semana</div>
-                    </div>
-                    <div className="rounded-xl border p-3 text-center">
-                      <div className={`text-2xl font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{pct}%</div>
-                      <div className="text-xs text-muted-foreground">Frequência</div>
-                    </div>
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { label: 'Feitas', val: stats.sessionsCompleted, color: 'text-green-400' },
+                      { label: 'Restam', val: stats.remaining, color: 'text-amber-400' },
+                      { label: '/semana', val: `${stats.sessionsPerWeek}x`, color: 'text-blue-400' },
+                      { label: 'Freq.', val: `${pct}%`, color: pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400' },
+                    ].map(s => (
+                      <div key={s.label} className="rounded-lg border p-2 text-center">
+                        <div className={`text-lg font-bold leading-none ${s.color}`}>{s.val}</div>
+                        <div className="text-[9px] text-muted-foreground mt-0.5">{s.label}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Progresso: {stats.sessionsCompleted}/{stats.totalExpected}</span>
-                      <span className={`font-bold ${pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{statusText}</span>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                    </div>
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>{stats.sessionsCompleted}/{stats.totalExpected} sessões</span>
+                    <span className={pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400'}>{statusText}</span>
                   </div>
                   {stats.workoutId && (
                     <Link href={`/workouts/${stats.workoutId}`}>
-                      <Button variant="outline" size="sm" className="w-full text-xs">
+                      <Button variant="outline" size="sm" className="w-full text-xs h-7">
                         Ver treino ativo{stats.workoutName ? `: ${stats.workoutName}` : ''}
                       </Button>
                     </Link>
@@ -674,58 +755,107 @@ export default function ClientDetailPage() {
                 </div>
               )}
 
-              {/* Calendar grid */}
-              <div className="space-y-2">
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <button className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors text-xs"
+              <Separator />
+
+              {/* Compact Calendar */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <button className="p-1 rounded hover:bg-muted/50 text-muted-foreground text-[10px]"
                     onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}>◀</button>
-                  <p className="text-xs font-semibold capitalize">{monthLabel}</p>
-                  <button className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                  <p className="text-[11px] font-semibold capitalize">{monthLabel}</p>
+                  <button className="p-1 rounded hover:bg-muted/50 text-muted-foreground text-[10px]"
                     onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
                     disabled={year >= today.getFullYear() && month >= today.getMonth()}>▶</button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-0.5">
-                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
-                    <div key={d} className="text-center text-[9px] font-semibold text-muted-foreground py-1">{d}</div>
+                <div className="grid grid-cols-7 gap-px">
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                    <div key={i} className="text-center text-[9px] font-semibold text-muted-foreground pb-0.5">{d}</div>
                   ))}
                   {cells.map((day, idx) => {
-                    if (day === null) return <div key={`e-${idx}`} className="aspect-square" />
+                    if (day === null) return <div key={`e-${idx}`} />
                     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                     const lesson = attendedDates.get(dateKey)
                     const isToday = dateKey === todayKey
                     const isFuture = dateKey > todayKey
-                    const isAttended = !!lesson
                     return (
-                      <button key={dateKey} disabled={isFuture}
-                        title={isAttended
-                          ? `✓ ${lesson.focus || 'Treino'} · ${lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''}`
-                          : isFuture ? '' : `Registrar presença – ${day}/${month + 1}`}
-                        onClick={() => !isAttended && !isFuture && openCheckinFor(day)}
-                        className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-[11px] font-semibold transition-all
-                          ${isAttended
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/40 cursor-default'
-                            : isFuture ? 'text-muted-foreground/25 cursor-default'
-                            : isToday ? 'border-2 border-amber-400 text-amber-400 hover:bg-amber-500/10 cursor-pointer'
-                            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground cursor-pointer border border-transparent hover:border-muted'}`}>
-                        {isAttended && <span className="text-green-500 text-[8px] leading-none">✓</span>}
+                      <button key={dateKey}
+                        onClick={() => lesson ? openEditFor(lesson) : !isFuture && openCheckinFor(day)}
+                        disabled={isFuture}
+                        title={lesson ? `✓ ${lesson.focus || 'Treino'} — clique para editar` : isFuture ? '' : `Registrar ${day}/${month + 1}`}
+                        className={`relative aspect-square flex flex-col items-center justify-center rounded text-[10px] font-medium transition-all
+                          ${lesson ? 'bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30 cursor-pointer'
+                            : isFuture ? 'text-muted-foreground/20 cursor-default'
+                            : isToday ? 'border border-amber-400 text-amber-400 hover:bg-amber-500/10 cursor-pointer'
+                            : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground cursor-pointer'}`}>
+                        {lesson && <span className="text-[7px] text-green-500 leading-none">✓</span>}
                         <span className="leading-none">{day}</span>
-                        {isAttended && lesson.focus && (
-                          <span className="text-[7px] leading-none mt-0.5 text-green-400/70 truncate w-full text-center px-0.5">{lesson.focus}</span>
-                        )}
                       </button>
                     )
                   })}
                 </div>
-                <p className="text-[10px] text-muted-foreground text-center pt-1">
-                  🟢 Presente · Toque em um dia vazio para registrar presença
+
+                <p className="text-[9px] text-muted-foreground text-center mt-1">
+                  🟢 Presente · Clique para editar · Dia vazio para registrar
                 </p>
               </div>
             </CardContent>
+
+            {/* Edit lesson modal */}
+            <Dialog open={!!editLesson} onOpenChange={(o) => !o && setEditLesson(null)}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="text-sm">Editar Check-in</DialogTitle>
+                  <DialogDescription className="text-xs">
+                    {editLesson?.focus && <span className="font-medium text-foreground">{editLesson.focus} · </span>}
+                    {editDate && new Date(editDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Data</Label>
+                      <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                        max={todayKey} className="h-8 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Horário</Label>
+                      <Input type="time" value={editTime} onChange={e => setEditTime(e.target.value)} className="h-8 text-xs" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Treino</Label>
+                    {availablePillars.length > 0 ? (
+                      <select className="w-full h-8 rounded-md border border-border bg-background px-2 text-xs"
+                        value={editFocus} onChange={e => setEditFocus(e.target.value)}>
+                        <option value="">— Não informar —</option>
+                        {availablePillars.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    ) : (
+                      <Input placeholder="Ex: PERNA, EMPURRA..." value={editFocus}
+                        onChange={e => setEditFocus(e.target.value)} className="h-8 text-xs" />
+                    )}
+                  </div>
+                </div>
+                <DialogFooter className="gap-2 flex-row justify-between">
+                  <Button variant="destructive" size="sm" className="text-xs"
+                    onClick={() => { handleDeleteCheckin(editLesson.id); setEditLesson(null) }}>
+                    🗑 Excluir
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditLesson(null)}>Cancelar</Button>
+                    <Button size="sm" onClick={handleEditCheckin} disabled={savingEdit}>
+                      {savingEdit && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                      Salvar
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </Card>
         )
       })()}
+
 
 
       {/* Assessments */}

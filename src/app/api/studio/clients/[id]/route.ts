@@ -108,6 +108,7 @@ export async function GET(
             sessionsPerWeek: true,
             targetWeeks: true,
             startDate: true,
+            templateJson: true,
           },
         },
         _count: {
@@ -160,8 +161,12 @@ export async function GET(
       }
     }
 
-    // Get check-in history (all completed lessons for this client)
     const workoutIds = client.workouts.map((w: any) => w.id)
+    // Build workoutId→name map for history enrichment
+    const workoutNameMap: Record<string, string> = {}
+    for (const w of client.workouts) {
+      workoutNameMap[(w as any).id] = (w as any).name || 'Treino'
+    }
     const checkInHistory = workoutIds.length > 0
       ? await prisma.lesson.findMany({
         where: {
@@ -169,7 +174,7 @@ export async function GET(
           status: 'COMPLETED',
         },
         orderBy: { date: 'desc' },
-        take: 50,
+        take: 200,
         select: {
           id: true,
           date: true,
@@ -184,9 +189,31 @@ export async function GET(
       })
       : []
 
+    // Enrich history with workout name
+    const enrichedHistory = checkInHistory.map((l: any) => ({
+      ...l,
+      workoutName: l.workoutId ? workoutNameMap[l.workoutId] || 'Treino' : null,
+    }))
+
+    // Extract available pillars from active workout template
+    const activeWo = client.workouts.find((w: any) => w.isActive) as any
+    let availablePillars: string[] = []
+    if (activeWo?.templateJson) {
+      const tj = activeWo.templateJson as any
+      if (Array.isArray(tj.treinos)) {
+        availablePillars = tj.treinos.map((t: any) => t.pillarLabel).filter(Boolean)
+      } else if (Array.isArray(tj.sessions)) {
+        const seen = new Set<string>()
+        for (const s of tj.sessions) {
+          const lbl = s.pillarLabel
+          if (lbl && !seen.has(lbl)) { seen.add(lbl); availablePillars.push(lbl) }
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: { ...client, trainer, attendanceStats, checkInHistory },
+      data: { ...client, trainer, attendanceStats, checkInHistory: enrichedHistory, availablePillars },
     })
   } catch (error) {
     console.error('Get client error:', error)
