@@ -97,6 +97,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Check ALL non-finalized sessions (no date limit) — catches stuck sessions from previous days
+        // Auto-expire sessions older than 12 hours (stuck from previous days)
+        const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000)
+        await prisma.trainingSession.updateMany({
+            where: {
+                studioId,
+                finalized: false,
+                createdAt: { lt: twelveHoursAgo },
+            },
+            data: { finalized: true },
+        })
+
+        // Check remaining non-finalized sessions (only recent ones)
         const activeSessions = await prisma.trainingSession.findMany({
             where: { studioId, finalized: false },
         })
@@ -113,7 +125,7 @@ export async function POST(request: NextRequest) {
         if (conflicting.length > 0) {
             return NextResponse.json({
                 success: false,
-                error: `Aluno(s) já em sessão ativa: ${conflicting.map((c: any) => c.clientName).join(', ')}. Limpe as sessões travadas se necessário.`,
+                error: `Aluno(s) já em sessão ativa: ${conflicting.map((c: any) => c.clientName).join(', ')}. Finalize a sessão atual ou remova o aluno dela.`,
             }, { status: 409 })
         }
 

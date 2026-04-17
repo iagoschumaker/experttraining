@@ -38,10 +38,14 @@ function normalizeTemplate(raw: any): WorkoutTemplate {
     }
 
     // ========================================================================
-    // GESTANTE FORMAT: templateJson = { isGestante: true, session: {...}, ... }
-    // Stored by buildGestanteSchedule via getGestanteWorkout
+    // GESTANTE FORMAT: templateJson = GestantePhaseTemplate
+    // { phase: 'GESTANTE_T1', session: {...}, phaseLabel, trimester, ... }
+    // The `isGestante` flag is NOT in templateJson — detect by phase prefix or session field
     // ========================================================================
-    if (raw && raw.isGestante === true && raw.session) {
+    if (raw && raw.session && (
+        (typeof raw.phase === 'string' && raw.phase.startsWith('GESTANTE_')) ||
+        raw.isGestante === true
+    )) {
         const s = raw.session
         // Build a simplified session that the presença card can render
         const blocks = (s.blocks || []).map((b: any, i: number) => ({
