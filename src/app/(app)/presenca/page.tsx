@@ -45,6 +45,11 @@ interface SessionData {
         preparation?: any
         blocks?: Array<{ code: string; name: string; exercises: SessionExercise[] }>
         finalProtocol?: any
+        isGestante?: boolean
+        gestanteSession?: any
+        trimester?: string
+        gestationalWeeksRange?: string
+        maxHeartRate?: number
     }
     progress: {
         attendanceRate: number; attendanceRateLabel: string; attendanceStatus: string
@@ -379,9 +384,9 @@ export default function PresencaPage() {
         try {
             // Build pillarOverrides map: clientId → sessionIndex (from manual selections)
             const pillarOverridesMap: Record<string, number> = {}
-            for (const [clientId, sessionIndex] of pillarOverridesRef.current.entries()) {
+            Array.from(pillarOverridesRef.current.entries()).forEach(([clientId, sessionIndex]) => {
                 pillarOverridesMap[clientId] = sessionIndex
-            }
+            })
 
             const res = await fetchWithAuth(`/api/studio/training-sessions/${activeTabId}`, {
                 method: 'POST',

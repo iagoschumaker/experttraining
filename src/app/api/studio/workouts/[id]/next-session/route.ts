@@ -78,7 +78,7 @@ function normalizeTemplate(raw: any): WorkoutTemplate {
         } : null
 
         return {
-            sessions: [{
+            sessions: [({
                 sessionIndex: 0,
                 pillar: 'GESTANTE',
                 pillarLabel: raw.phaseLabel || 'Sessão Gestante 🤰',
@@ -92,7 +92,7 @@ function normalizeTemplate(raw: any): WorkoutTemplate {
                 trimester: raw.trimester,
                 gestationalWeeksRange: raw.gestationalWeeksRange,
                 maxHeartRate: raw.maxHeartRate,
-            }],
+            }) as any],
             sessionsPerWeek: raw.sessionsPerWeek || 3,
             targetWeeks: raw.targetWeeks || 6,
             methodology: 'GESTANTE',
