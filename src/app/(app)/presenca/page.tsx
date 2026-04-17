@@ -633,21 +633,30 @@ export default function PresencaPage() {
                             <div className={`px-3 py-2 flex items-center justify-between cursor-pointer ${card.checkedIn ? 'bg-green-500/5' : card.error ? 'bg-red-500/5' : 'bg-muted/20'
                                 }`} onClick={() => toggleCollapse(card.entry.clientId)}>
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${card.checkedIn ? 'bg-green-500/20 text-green-500' : 'bg-amber-500/20 text-amber-500'
-                                        }`}>{initials(card.entry.clientName)}</div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${card.checkedIn ? 'bg-green-500/20 text-green-500' : 'bg-amber-500/20 text-amber-500'}`}>{initials(card.entry.clientName)}</div>
                                     <div className="min-w-0">
                                         <p className="font-medium text-sm truncate">{card.entry.clientName}</p>
-                                        {/* Last pillar badge — shown BEFORE today’s pillar selector */}
+                                        {/* Last pillar chip — more visible */}
                                         {card.sessionData?.lastLesson?.focus && (
-                                            <p className="text-[9px] text-muted-foreground truncate">
-                                                ↩ Último: <span className="font-semibold text-orange-400">{card.sessionData.lastLesson.focus}</span>
-                                                {' '}({new Date(card.sessionData.lastLesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit' })})
-                                            </p>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[9px] text-muted-foreground">↩ Último:</span>
+                                                <span className="text-[9px] font-bold px-1.5 py-0 h-4 rounded-full bg-orange-500/20 text-orange-400 inline-flex items-center">
+                                                    {card.sessionData.lastLesson.focus}
+                                                </span>
+                                                <span className="text-[9px] text-muted-foreground">
+                                                    {new Date(card.sessionData.lastLesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit' })}
+                                                </span>
+                                            </div>
                                         )}
                                         {card.sessionData && (
-                                            <div className="flex items-center gap-1 flex-wrap">
+                                            <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                                                {/* Lock badge when manually overridden */}
+                                                {pillarOverridesRef.current.has(card.entry.clientId) && (
+                                                    <span className="text-[9px] px-1 py-0 h-4 rounded-full font-bold bg-blue-500/20 text-blue-400 inline-flex items-center">
+                                                        🔒
+                                                    </span>
+                                                )}
                                                 {(() => {
-                                                    // Deduplicate by pillarLabel — show only unique pillars
                                                     const sessions = card.sessionData.availableSessions || []
                                                     const uniquePillars = sessions.reduce((acc, s) => {
                                                         if (!acc.find(p => p.pillarLabel === s.pillarLabel)) acc.push(s)

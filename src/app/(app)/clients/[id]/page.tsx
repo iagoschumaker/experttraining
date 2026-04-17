@@ -141,6 +141,11 @@ export default function ClientDetailPage() {
   const [checkinTime, setCheckinTime] = useState('08:00')
   const [checkinFocus, setCheckinFocus] = useState('')
   const [savingCheckin, setSavingCheckin] = useState(false)
+  // Calendar state
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
 
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
@@ -537,26 +542,57 @@ export default function ClientDetailPage() {
         </Card>
       </div>
 
-      {/* Presença & Check-in — before assessments */}
+      {/* Presença & Check-in — Calendário Visual */}
       {(() => {
         const stats = (client as any).attendanceStats
-        const history = (client as any).checkInHistory || []
+        const history: any[] = (client as any).checkInHistory || []
         if (!stats && history.length === 0) return null
 
         const pct = stats ? Math.round(stats.attendanceRate * 100) : 0
         const barColor = pct >= 85 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
         const statusText = pct >= 85 ? 'No alvo ✓' : pct >= 60 ? 'Abaixo' : 'Crítico'
 
+        // Build map of attended dates for fast lookup
+        const attendedDates = new Map<string, any>()
+        for (const lesson of history) {
+          const d = new Date(lesson.date)
+          const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+          attendedDates.set(key, lesson)
+        }
+
+        // Calendar grid
+        const year = calendarMonth.getFullYear()
+        const month = calendarMonth.getMonth()
+        const monthLabel = calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+        const firstDay = new Date(year, month, 1).getDay()
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        const today = new Date()
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+        const cells: (number | null)[] = []
+        for (let i = 0; i < firstDay; i++) cells.push(null)
+        for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+        while (cells.length % 7 !== 0) cells.push(null)
+
+        const openCheckinFor = (dayNum: number) => {
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
+          setCheckinDate(dateStr)
+          setCheckinFocus('')
+          setCheckinTime('08:00')
+          setIsCheckinOpen(true)
+        }
+
         return (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-green-500" />
-                Presen&ccedil;a &amp; Check-in
+                Presença & Check-in
               </CardTitle>
               <Dialog open={isCheckinOpen} onOpenChange={setIsCheckinOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="gap-1 text-xs">
+                  <Button size="sm" variant="outline" className="gap-1 text-xs"
+                    onClick={() => { setCheckinDate(todayKey); setCheckinFocus(''); setCheckinTime('08:00') }}>
                     <Plus className="h-3 w-3" />
                     Check-in Manual
                   </Button>
@@ -564,42 +600,27 @@ export default function ClientDetailPage() {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Registrar Check-in Manual</DialogTitle>
-                    <DialogDescription>
-                      Registre uma presen&ccedil;a retroativa para {client.name}
-                    </DialogDescription>
+                    <DialogDescription>Registre uma presença para {client.name}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="space-y-1">
                       <Label htmlFor="checkin-date">Data</Label>
-                      <Input
-                        id="checkin-date"
-                        type="date"
-                        value={checkinDate}
+                      <Input id="checkin-date" type="date" value={checkinDate}
                         onChange={(e) => setCheckinDate(e.target.value)}
-                        max={new Date().toISOString().split('T')[0]}
-                      />
+                        max={new Date().toISOString().split('T')[0]} />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="checkin-time">Hor&aacute;rio</Label>
+                      <Label htmlFor="checkin-time">Horário</Label>
                       <div className="relative">
                         <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="checkin-time"
-                          type="time"
-                          value={checkinTime}
-                          onChange={(e) => setCheckinTime(e.target.value)}
-                          className="pl-8"
-                        />
+                        <Input id="checkin-time" type="time" value={checkinTime}
+                          onChange={(e) => setCheckinTime(e.target.value)} className="pl-8" />
                       </div>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="checkin-focus">Foco do Treino (opcional)</Label>
-                      <Input
-                        id="checkin-focus"
-                        placeholder="Ex: LOWER, PUSH, PULL..."
-                        value={checkinFocus}
-                        onChange={(e) => setCheckinFocus(e.target.value)}
-                      />
+                      <Input id="checkin-focus" placeholder="Ex: LOWER, PUSH, PULL, PERNA..."
+                        value={checkinFocus} onChange={(e) => setCheckinFocus(e.target.value)} />
                     </div>
                   </div>
                   <DialogFooter>
@@ -613,8 +634,9 @@ export default function ClientDetailPage() {
               </Dialog>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Stats row */}
               {stats && (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div className="rounded-xl border p-3 text-center">
                       <div className="text-2xl font-bold text-green-400">{stats.sessionsCompleted}</div>
@@ -651,39 +673,60 @@ export default function ClientDetailPage() {
                   )}
                 </div>
               )}
-              {history.length > 0 && (
-                <div className="space-y-2">
-                  <Separator />
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Últimos check-ins ({history.length})
-                  </p>
-                  <div className="space-y-1 max-h-[250px] overflow-y-auto">
-                    {history.map((lesson: any) => {
-                      const dateStr = new Date(lesson.date).toLocaleDateString('pt-BR', { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
-                      const timeStr = lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''
-                      return (
-                        <div key={lesson.id} className="flex items-center justify-between rounded-lg border p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500" />
-                            <div>
-                              <div className="text-xs font-medium capitalize">{dateStr}</div>
-                              {timeStr && <div className="text-[10px] text-muted-foreground">{timeStr}</div>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {lesson.focus && <Badge variant="outline" className="text-[10px]">{lesson.focus}</Badge>}
-                            {lesson.weekIndex && <span className="text-[10px] text-muted-foreground">Sem.{lesson.weekIndex}</span>}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+
+              {/* Calendar grid */}
+              <div className="space-y-2">
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <button className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                    onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}>◀</button>
+                  <p className="text-xs font-semibold capitalize">{monthLabel}</p>
+                  <button className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                    onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
+                    disabled={year >= today.getFullYear() && month >= today.getMonth()}>▶</button>
                 </div>
-              )}
+
+                <div className="grid grid-cols-7 gap-0.5">
+                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
+                    <div key={d} className="text-center text-[9px] font-semibold text-muted-foreground py-1">{d}</div>
+                  ))}
+                  {cells.map((day, idx) => {
+                    if (day === null) return <div key={`e-${idx}`} className="aspect-square" />
+                    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                    const lesson = attendedDates.get(dateKey)
+                    const isToday = dateKey === todayKey
+                    const isFuture = dateKey > todayKey
+                    const isAttended = !!lesson
+                    return (
+                      <button key={dateKey} disabled={isFuture}
+                        title={isAttended
+                          ? `✓ ${lesson.focus || 'Treino'} · ${lesson.startedAt ? new Date(lesson.startedAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }) : ''}`
+                          : isFuture ? '' : `Registrar presença – ${day}/${month + 1}`}
+                        onClick={() => !isAttended && !isFuture && openCheckinFor(day)}
+                        className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-[11px] font-semibold transition-all
+                          ${isAttended
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/40 cursor-default'
+                            : isFuture ? 'text-muted-foreground/25 cursor-default'
+                            : isToday ? 'border-2 border-amber-400 text-amber-400 hover:bg-amber-500/10 cursor-pointer'
+                            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground cursor-pointer border border-transparent hover:border-muted'}`}>
+                        {isAttended && <span className="text-green-500 text-[8px] leading-none">✓</span>}
+                        <span className="leading-none">{day}</span>
+                        {isAttended && lesson.focus && (
+                          <span className="text-[7px] leading-none mt-0.5 text-green-400/70 truncate w-full text-center px-0.5">{lesson.focus}</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">
+                  🟢 Presente · Toque em um dia vazio para registrar presença
+                </p>
+              </div>
             </CardContent>
           </Card>
         )
       })()}
+
 
       {/* Assessments */}
       <Card>
