@@ -19,14 +19,14 @@ export interface SessionTemplate {
         title: string
         totalTime: string
         exercises: any[]
-    }
+    } | null
     blocks: any[]
     finalProtocol: {
         name: string
         totalTime: string
         structure: string
         exercises?: { name: string; duration: string; rest: string }[]
-    }
+    } | null
 }
 
 export interface WorkoutTemplate {
@@ -240,7 +240,7 @@ export function expandTemplateToSchedule(
             sessions: weekSessions.map((session, idx) => {
                 const prepTime = 12
                 const blocksTime = 45
-                const protocolTime = parseInt(session.finalProtocol.totalTime) || 6
+                const protocolTime = parseInt(session.finalProtocol?.totalTime ?? '6') || 6
                 const totalDuration = prepTime + blocksTime + protocolTime
 
                 return {
