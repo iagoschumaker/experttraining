@@ -135,12 +135,17 @@ function normalizeTemplate(raw: any): WorkoutTemplate {
                 })),
             } : null
 
-            // Final protocol — only use protocoloFinal, never series (series = block sets count)
+            // Final protocol — infer from pillar when empty (old DB records stored empty string)
             const protocolStr = (treino.protocoloFinal || '').trim()
+            const pillarProtocol: Record<string, string> = {
+                PERNA:   'Super Glut Mini Band 3x10 reps',
+                EMPURRA: 'Meta Chest Elas. 2x10 reps',
+                PUXA:    'Bi-Trocantério Banco 3x10 reps',
+            }
             const finalProtocol = {
                 name: 'Protocolo Final',
                 totalTime: '6-8 min',
-                structure: protocolStr || 'A definir com o personal trainer',
+                structure: protocolStr || pillarProtocol[treino.pillar] || 'Consulte o personal trainer',
                 exercises: [] as any[],
             }
 
