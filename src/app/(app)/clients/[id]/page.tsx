@@ -778,11 +778,14 @@ export default function ClientDetailPage() {
                     const lesson = attendedDates.get(dateKey)
                     const isToday = dateKey === todayKey
                     const isFuture = dateKey > todayKey
+                    const phaseLabel = lesson?.workoutName ? ` · ${lesson.workoutName}` : ''
                     return (
                       <button key={dateKey}
                         onClick={() => lesson ? openEditFor(lesson) : !isFuture && openCheckinFor(day)}
                         disabled={isFuture}
-                        title={lesson ? `✓ ${lesson.focus || 'Treino'} — clique para editar` : isFuture ? '' : `Registrar ${day}/${month + 1}`}
+                        title={lesson
+                          ? `✓ ${lesson.focus || 'Treino'}${phaseLabel} — clique para editar`
+                          : isFuture ? '' : `Registrar ${day}/${month + 1}`}
                         className={`relative aspect-square flex flex-col items-center justify-center rounded text-[10px] font-medium transition-all
                           ${lesson ? 'bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30 cursor-pointer'
                             : isFuture ? 'text-muted-foreground/20 cursor-default'
@@ -796,9 +799,41 @@ export default function ClientDetailPage() {
                 </div>
 
                 <p className="text-[9px] text-muted-foreground text-center mt-1">
-                  🟢 Presente · Clique para editar · Dia vazio para registrar
+                  🟢 Presente · Passe o mouse para ver nível/fase · Clique para editar
                 </p>
               </div>
+
+              {/* Phase/Level summary — sessions per workout across full history */}
+              {allHistory.length > 0 && (() => {
+                const byWorkout = new Map<string, { name: string; count: number; isActive: boolean }>()
+                for (const l of allHistory) {
+                  const wid = l.workoutId || '__none__'
+                  const name = l.workoutName || 'Treino'
+                  if (!byWorkout.has(wid)) {
+                    const isActive = allWorkouts.find((w: any) => w.id === wid)?.isActive || false
+                    byWorkout.set(wid, { name, count: 0, isActive })
+                  }
+                  byWorkout.get(wid)!.count++
+                }
+                const sorted = Array.from(byWorkout.values()).sort((a, b) => b.count - a.count)
+                return (
+                  <div className="mt-3">
+                    <Separator className="mb-2" />
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">📊 Sessões por Fase/Nível</p>
+                    <div className="space-y-1">
+                      {sorted.map((row, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1 min-w-0">
+                            {row.isActive && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-green-400" />}
+                            <span className="text-[10px] text-foreground truncate">{row.name}</span>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">{row.count} sess.</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </CardContent>
 
             {/* Edit lesson modal */}
@@ -806,9 +841,14 @@ export default function ClientDetailPage() {
               <DialogContent className="max-w-sm">
                 <DialogHeader>
                   <DialogTitle className="text-sm">Editar Check-in</DialogTitle>
-                  <DialogDescription className="text-xs">
-                    {editLesson?.focus && <span className="font-medium text-foreground">{editLesson.focus} · </span>}
-                    {editDate && new Date(editDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                  <DialogDescription className="text-xs space-y-0.5">
+                    <div>
+                      {editLesson?.focus && <span className="font-medium text-foreground">{editLesson.focus} · </span>}
+                      {editDate && new Date(editDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                    </div>
+                    {editLesson?.workoutName && (
+                      <div className="text-[10px] text-muted-foreground/70">📋 {editLesson.workoutName}</div>
+                    )}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3 py-2">
