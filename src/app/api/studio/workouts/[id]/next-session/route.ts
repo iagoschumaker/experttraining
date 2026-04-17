@@ -135,12 +135,12 @@ function normalizeTemplate(raw: any): WorkoutTemplate {
                 })),
             } : null
 
-            // Final protocol — treat empty string as "use series field or a default"
-            const protocolStr = treino.protocoloFinal || treino.series || ''
+            // Final protocol — only use protocoloFinal, never series (series = block sets count)
+            const protocolStr = (treino.protocoloFinal || '').trim()
             const finalProtocol = {
                 name: 'Protocolo Final',
                 totalTime: '6-8 min',
-                structure: protocolStr || 'Protocolo de finalização — consulte o professor',
+                structure: protocolStr || 'A definir com o personal trainer',
                 exercises: [] as any[],
             }
 

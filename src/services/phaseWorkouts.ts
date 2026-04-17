@@ -163,7 +163,7 @@ register('CONDICIONAMENTO', 'CONDICIONAMENTO_1', 'Fundamento Híbrido I', [
         { name: 'Rigidez Elas. Cima/Baixo (3 Apoios)', reps: '10/10 reps' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   // TREINO 3: PUXA
   {
@@ -182,7 +182,7 @@ register('CONDICIONAMENTO', 'CONDICIONAMENTO_1', 'Fundamento Híbrido I', [
         { name: 'Curl Up', reps: '15\' seg' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -349,7 +349,7 @@ register('INICIANTE', 'FORCA', 'Força Híbrida Iniciante', [
         { name: 'Chopp/Lift K.B/C.B (3 Apoios ou 2 Apoios)', reps: '10/10' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra', series: '3-4x',
@@ -370,7 +370,7 @@ register('INICIANTE', 'FORCA', 'Força Híbrida Iniciante', [
         { name: 'Ab Infra c/ Elas.', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Puxa', series: '3-4x',
@@ -391,7 +391,7 @@ register('INICIANTE', 'FORCA', 'Força Híbrida Iniciante', [
         { name: 'Ab Remador', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -565,7 +565,7 @@ register('INICIANTE', 'METABOLICO', 'Metabólico Iniciante', [
         { name: 'Prancha Dinâmica (Ombro)', reps: '20' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra/Puxa', series: '4x',
@@ -589,7 +589,7 @@ register('INICIANTE', 'METABOLICO', 'Metabólico Iniciante', [
         { name: 'Rigidez Fit Ball +/-', reps: '20' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Pilares/Cárdio', series: '3x',
@@ -607,7 +607,7 @@ register('INICIANTE', 'METABOLICO', 'Metabólico Iniciante', [
         { name: 'Meio Burpee (Box ou Chopp Wood M.B)', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -706,7 +706,7 @@ register('INTERMEDIARIO', 'FORCA', 'Força Híbrida Intermediário', [
         { name: 'Chopp/Lift K.B/C.B (3 Apoios ou 2 Apoios)', reps: '10/10' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra', series: '3-4x',
@@ -727,7 +727,7 @@ register('INTERMEDIARIO', 'FORCA', 'Força Híbrida Intermediário', [
         { name: 'Ab Infra c/ Elas.', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Puxa', series: '3-4x',
@@ -748,7 +748,7 @@ register('INTERMEDIARIO', 'FORCA', 'Força Híbrida Intermediário', [
         { name: 'Ab Remador', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -849,7 +849,7 @@ register('INTERMEDIARIO', 'METABOLICO', 'Metabólico Intermediário', [
         { name: 'Prancha Dinâmica Anilha', reps: '20' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra/Puxa', series: '4x',
@@ -873,7 +873,7 @@ register('INTERMEDIARIO', 'METABOLICO', 'Metabólico Intermediário', [
         { name: 'Prancha Alta c/ Alcance', reps: '20' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Pilares/Cárdio', series: '3x',
@@ -891,7 +891,7 @@ register('INTERMEDIARIO', 'METABOLICO', 'Metabólico Intermediário', [
         { name: 'Meio Burpee c/ M.B ou Livre', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -989,7 +989,7 @@ register('AVANCADO', 'FORCA', 'Força Híbrida Avançada I', [
         { name: 'Push C.B Unil. + Press D.B Unil.', reps: '10/10' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra', series: '3-4x',
@@ -1009,7 +1009,7 @@ register('AVANCADO', 'FORCA', 'Força Híbrida Avançada I', [
         { name: 'Ab Infra Alt. ou Fit Ball (Quadril)', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Puxa', series: '3-4x',
@@ -1028,7 +1028,7 @@ register('AVANCADO', 'FORCA', 'Força Híbrida Avançada I', [
         { name: 'Retrocesso Unil. + Puxa C.B Unil.', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -1153,7 +1153,7 @@ register('AVANCADO', 'METABOLICO', 'Metabólico Avançado I', [
         { name: 'Prancha Alta Anilha', reps: '20' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Pilares/Cárdio', series: '3x',
@@ -1264,7 +1264,7 @@ register('AVANCADO', 'FORCA_2', 'Força Híbrida Avançada II', [
         { name: 'Push C.B Unil. + Press D.B Unil.', reps: '10/10' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra', series: '3-4x',
@@ -1302,7 +1302,7 @@ register('AVANCADO', 'FORCA_2', 'Força Híbrida Avançada II', [
         { name: 'Retrocesso Unil. + Puxa C.B Unil.', reps: '' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Dorsais: Bi-Trocantério Banco 3x10 reps',
   },
 ])
 
@@ -1405,7 +1405,7 @@ register('AVANCADO', 'METABOLICO_2', 'Metabólico Avançado II', [
         { name: 'Rigidez Fit Ball Vai/Volta', reps: '20' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Super Glut Mini Band 3x10 reps',
   },
   {
     pillar: 'EMPURRA', pillarLabel: 'Treino 2: Empurra/Puxa', series: '3-4x',
@@ -1426,7 +1426,7 @@ register('AVANCADO', 'METABOLICO_2', 'Metabólico Avançado II', [
         { name: 'Climbers Slide ou Livre', reps: '15' },
       ]},
     ],
-    protocoloFinal: '',
+    protocoloFinal: 'Protocolo Peito/Ombro: Meta Chest Elas. 2x10 reps',
   },
   {
     pillar: 'PUXA', pillarLabel: 'Treino 3: Pilares/Cárdio', series: '3-4x',
