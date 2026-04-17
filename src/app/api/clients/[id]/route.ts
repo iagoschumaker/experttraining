@@ -116,12 +116,16 @@ export async function GET(
         },
         workouts: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
+          take: 10,
           select: {
             id: true,
             name: true,
             isActive: true,
             createdAt: true,
+            startDate: true,
+            sessionsPerWeek: true,
+            sessionsCompleted: true,
+            targetWeeks: true,
           },
         },
       },
@@ -141,7 +145,7 @@ export async function GET(
     let attendanceStats: any = null
     let checkInHistory: any[] = []
 
-    // Find active workout for this client
+    // Find active workout for this client (includes templateJson for pillar extraction)
     const activeWorkout = await prisma.workout.findFirst({
       where: { clientId: client.id, isActive: true },
       select: {
@@ -151,6 +155,7 @@ export async function GET(
         targetWeeks: true,
         sessionsCompleted: true,
         createdAt: true,
+        templateJson: true,
       },
     })
 
@@ -158,7 +163,6 @@ export async function GET(
       const totalExpected = (activeWorkout.sessionsPerWeek || 3) * (activeWorkout.targetWeeks || 8)
       const completed = activeWorkout.sessionsCompleted || 0
 
-      // Compute expected sessions by now
       const weeksSinceStart = Math.max(1, Math.ceil(
         (Date.now() - new Date(activeWorkout.createdAt).getTime()) / (7 * 24 * 60 * 60 * 1000)
       ))
@@ -176,28 +180,56 @@ export async function GET(
         attendanceRate: Math.min(1, rate),
         attendanceStatus: rate >= 0.85 ? 'ON_TRACK' : rate >= 0.60 ? 'BELOW_TARGET' : 'CRITICAL',
       }
+    }
 
-      // Load check-in history (lessons for this client's workouts)
-      const lessons = await prisma.lesson.findMany({
-        where: { workoutId: activeWorkout.id },
-        orderBy: { date: 'desc' },
-        take: 30,
-        select: {
-          id: true,
-          date: true,
-          startedAt: true,
-          endedAt: true,
-          focus: true,
-          sessionIndex: true,
-          weekIndex: true,
-        },
-      })
-      checkInHistory = lessons
+    // Load check-in history for ALL client workouts (not just active)
+    const allWorkoutIds = (client as any).workouts.map((w: any) => w.id)
+    const workoutNameMap: Record<string, string> = {}
+    for (const w of (client as any).workouts) {
+      workoutNameMap[w.id] = w.name || 'Treino'
+    }
+
+    const lessons = allWorkoutIds.length > 0
+      ? await prisma.lesson.findMany({
+          where: { workoutId: { in: allWorkoutIds }, status: 'COMPLETED' },
+          orderBy: { date: 'desc' },
+          take: 200,
+          select: {
+            id: true,
+            date: true,
+            startedAt: true,
+            endedAt: true,
+            focus: true,
+            sessionIndex: true,
+            weekIndex: true,
+            workoutId: true,
+          },
+        })
+      : []
+
+    checkInHistory = lessons.map((l: any) => ({
+      ...l,
+      workoutName: l.workoutId ? workoutNameMap[l.workoutId] || 'Treino' : null,
+    }))
+
+    // Extract available pillars from active workout template
+    let availablePillars: string[] = []
+    if (activeWorkout?.templateJson) {
+      const tj = activeWorkout.templateJson as any
+      if (Array.isArray(tj.treinos)) {
+        availablePillars = tj.treinos.map((t: any) => t.pillarLabel).filter(Boolean)
+      } else if (Array.isArray(tj.sessions)) {
+        const seen = new Set<string>()
+        for (const s of tj.sessions) {
+          const lbl = s.pillarLabel
+          if (lbl && !seen.has(lbl)) { seen.add(lbl); availablePillars.push(lbl) }
+        }
+      }
     }
 
     return NextResponse.json({
       success: true,
-      data: { ...client, attendanceStats, checkInHistory },
+      data: { ...client, attendanceStats, checkInHistory, availablePillars },
     })
   } catch (error) {
     console.error('Get client error:', error)
