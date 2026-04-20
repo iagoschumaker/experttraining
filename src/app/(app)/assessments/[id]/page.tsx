@@ -94,6 +94,8 @@ interface EvolutionData {
     weight: MetricDelta
     height: MetricDelta
     bodyFat: MetricDelta
+    compMethod: 'pollock' | 'inbody' | null
+    prevCompMethod: 'pollock' | 'inbody' | null
     measurements: {
       chest: MetricDelta
       waist: MetricDelta
@@ -102,6 +104,21 @@ interface EvolutionData {
       thigh: MetricDelta
       calf: MetricDelta
     }
+    inbody: {
+      fatPct: MetricDelta
+      fatMassKg: MetricDelta
+      leanMassKg: MetricDelta
+      muscleMassKg: MetricDelta
+      totalWaterL: MetricDelta
+      intracellularWaterL: MetricDelta
+      extracellularWaterL: MetricDelta
+      bmi: MetricDelta
+      bmr: MetricDelta
+      visceralFatLevel: MetricDelta
+      ecwRatio: MetricDelta
+      proteinKg: MetricDelta
+      mineralsKg: MetricDelta
+    } | null
   }
   level: {
     previousLevel: number | null
