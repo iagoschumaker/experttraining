@@ -21,6 +21,22 @@ interface BodyMetrics {
     calf?: number
   }
   bodyFat?: number
+  compMethod?: 'pollock' | 'inbody'
+  inbody?: {
+    fatPct?: number
+    fatMassKg?: number
+    leanMassKg?: number
+    muscleMassKg?: number
+    totalWaterL?: number
+    intracellularWaterL?: number
+    extracellularWaterL?: number
+    bmi?: number
+    bmr?: number
+    visceralFatLevel?: number
+    ecwRatio?: number
+    proteinKg?: number
+    mineralsKg?: number
+  }
   notes?: string
 }
 
@@ -179,32 +195,31 @@ export async function GET(
       weight: calculateDelta(currentMetrics?.weight, previousMetrics?.weight),
       height: calculateDelta(currentMetrics?.height, previousMetrics?.height),
       bodyFat: calculateDelta(currentMetrics?.bodyFat, previousMetrics?.bodyFat),
+      compMethod: currentMetrics?.compMethod ?? null,
+      prevCompMethod: previousMetrics?.compMethod ?? null,
       measurements: {
-        chest: calculateDelta(
-          currentMetrics?.measurements?.chest,
-          previousMetrics?.measurements?.chest
-        ),
-        waist: calculateDelta(
-          currentMetrics?.measurements?.waist,
-          previousMetrics?.measurements?.waist
-        ),
-        hip: calculateDelta(
-          currentMetrics?.measurements?.hip,
-          previousMetrics?.measurements?.hip
-        ),
-        arm: calculateDelta(
-          currentMetrics?.measurements?.arm,
-          previousMetrics?.measurements?.arm
-        ),
-        thigh: calculateDelta(
-          currentMetrics?.measurements?.thigh,
-          previousMetrics?.measurements?.thigh
-        ),
-        calf: calculateDelta(
-          currentMetrics?.measurements?.calf,
-          previousMetrics?.measurements?.calf
-        ),
+        chest: calculateDelta(currentMetrics?.measurements?.chest, previousMetrics?.measurements?.chest),
+        waist: calculateDelta(currentMetrics?.measurements?.waist, previousMetrics?.measurements?.waist),
+        hip: calculateDelta(currentMetrics?.measurements?.hip, previousMetrics?.measurements?.hip),
+        arm: calculateDelta(currentMetrics?.measurements?.arm, previousMetrics?.measurements?.arm),
+        thigh: calculateDelta(currentMetrics?.measurements?.thigh, previousMetrics?.measurements?.thigh),
+        calf: calculateDelta(currentMetrics?.measurements?.calf, previousMetrics?.measurements?.calf),
       },
+      inbody: currentMetrics?.inbody || previousMetrics?.inbody ? {
+        fatPct: calculateDelta(currentMetrics?.inbody?.fatPct, previousMetrics?.inbody?.fatPct),
+        fatMassKg: calculateDelta(currentMetrics?.inbody?.fatMassKg, previousMetrics?.inbody?.fatMassKg),
+        leanMassKg: calculateDelta(currentMetrics?.inbody?.leanMassKg, previousMetrics?.inbody?.leanMassKg),
+        muscleMassKg: calculateDelta(currentMetrics?.inbody?.muscleMassKg, previousMetrics?.inbody?.muscleMassKg),
+        totalWaterL: calculateDelta(currentMetrics?.inbody?.totalWaterL, previousMetrics?.inbody?.totalWaterL),
+        intracellularWaterL: calculateDelta(currentMetrics?.inbody?.intracellularWaterL, previousMetrics?.inbody?.intracellularWaterL),
+        extracellularWaterL: calculateDelta(currentMetrics?.inbody?.extracellularWaterL, previousMetrics?.inbody?.extracellularWaterL),
+        bmi: calculateDelta(currentMetrics?.inbody?.bmi, previousMetrics?.inbody?.bmi),
+        bmr: calculateDelta(currentMetrics?.inbody?.bmr, previousMetrics?.inbody?.bmr),
+        visceralFatLevel: calculateDelta(currentMetrics?.inbody?.visceralFatLevel, previousMetrics?.inbody?.visceralFatLevel),
+        ecwRatio: calculateDelta(currentMetrics?.inbody?.ecwRatio, previousMetrics?.inbody?.ecwRatio),
+        proteinKg: calculateDelta(currentMetrics?.inbody?.proteinKg, previousMetrics?.inbody?.proteinKg),
+        mineralsKg: calculateDelta(currentMetrics?.inbody?.mineralsKg, previousMetrics?.inbody?.mineralsKg),
+      } : null,
     }
 
     // =========================================================================
@@ -256,6 +271,15 @@ export async function GET(
     }
     if (bodyEvolution.measurements.waist.trend === 'down') {
       insights.push('Redução na circunferência da cintura (positivo para saúde)')
+    }
+    if (bodyEvolution.bodyFat.trend === 'down' && bodyEvolution.bodyFat.delta && bodyEvolution.bodyFat.delta < -1.5) {
+      insights.push(`Redução significativa de gordura corporal: ${Math.abs(bodyEvolution.bodyFat.delta).toFixed(1)}%`)
+    }
+    if (bodyEvolution.inbody?.muscleMassKg.trend === 'up') {
+      insights.push('Aumento de massa muscular esquelética (InBody)')
+    }
+    if (bodyEvolution.inbody?.visceralFatLevel.trend === 'down') {
+      insights.push('Redução de gordura visceral (InBody)')
     }
     if (levelEvolution.changed && currentLevel && previousLevel) {
       if (currentLevel > previousLevel) {

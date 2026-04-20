@@ -64,7 +64,8 @@ interface AssessmentInput {
 interface BodyMetrics {
   weight?: number
   height?: number
-  bodyFat?: number
+  bodyFat?: number          // % gordura principal (vem do método selecionado)
+  compMethod?: 'pollock' | 'inbody'  // método que definiu bodyFat
   measurements?: {
     chest?: number
     waist?: number
@@ -79,7 +80,7 @@ interface BodyMetrics {
     calf_right?: number
     calf_left?: number
   }
-  skinfolds?: {
+  skinfolds?: {             // Pollock
     chest?: number
     abdomen?: number
     thigh?: number
@@ -87,6 +88,21 @@ interface BodyMetrics {
     suprailiac?: number
     subscapular?: number
     midaxillary?: number
+  }
+  inbody?: {                // InBody H20
+    fatPct?: number         // % Gordura
+    fatMassKg?: number      // Massa Gorda (kg)
+    leanMassKg?: number     // Massa Magra / Livre de Gordura (kg)
+    muscleMassKg?: number   // Massa Muscular Esquelética (kg)
+    totalWaterL?: number    // Água Corporal Total (L)
+    intracellularWaterL?: number
+    extracellularWaterL?: number
+    bmi?: number            // IMC (calculado pelo aparelho)
+    bmr?: number            // Taxa Metabólica Basal (kcal)
+    visceralFatLevel?: number  // Nível Gordura Visceral (1-20)
+    ecwRatio?: number       // Razão Água Extracelular/Total
+    proteinKg?: number      // Proteína (kg)
+    mineralsKg?: number     // Minerais (kg)
   }
   notes?: string
 }
@@ -221,10 +237,14 @@ export default function AssessmentInputPage() {
     weight: undefined,
     height: undefined,
     bodyFat: undefined,
+    compMethod: undefined,
     measurements: {},
     skinfolds: {},
+    inbody: {},
     notes: '',
   })
+  // Toggle: which body comp method the trainer is using right now
+  const [compMethod, setCompMethod] = useState<'none' | 'pollock' | 'inbody'>('none')
 
   // Fetch assessment
   useEffect(() => {
@@ -238,9 +258,16 @@ export default function AssessmentInputPage() {
           if (data.data.inputJson) {
             setFormData(data.data.inputJson)
           }
-          // Phase history no longer needed in assessment (moved to generation)
+          // Restore bodyMetrics from saved data
+          if (data.data.bodyMetricsJson && Object.keys(data.data.bodyMetricsJson).length > 0) {
+            setBodyMetrics(data.data.bodyMetricsJson)
+            // Restore the compMethod toggle state
+            const saved = data.data.bodyMetricsJson
+            if (saved.compMethod) setCompMethod(saved.compMethod)
+            else if (saved.inbody && Object.values(saved.inbody).some(Boolean)) setCompMethod('inbody')
+            else if (saved.skinfolds && Object.values(saved.skinfolds).some(Boolean)) setCompMethod('pollock')
+          }
           if (data.data.createdAt) {
-            // Use local date components to avoid UTC shift
             const d = new Date(data.data.createdAt)
             const yyyy = d.getFullYear()
             const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -344,38 +371,65 @@ export default function AssessmentInputPage() {
       const cleanBodyMetrics: BodyMetrics = {}
       if (bodyMetrics.weight) cleanBodyMetrics.weight = bodyMetrics.weight
       if (bodyMetrics.height) cleanBodyMetrics.height = bodyMetrics.height
-      if (bodyMetrics.bodyFat) cleanBodyMetrics.bodyFat = bodyMetrics.bodyFat
       if (bodyMetrics.notes) cleanBodyMetrics.notes = bodyMetrics.notes
+
+      // Handle body composition method
+      if (compMethod === 'inbody' && bodyMetrics.inbody) {
+        const inbody: BodyMetrics['inbody'] = {}
+        const ib = bodyMetrics.inbody
+        if (ib.fatPct)               inbody.fatPct = ib.fatPct
+        if (ib.fatMassKg)            inbody.fatMassKg = ib.fatMassKg
+        if (ib.leanMassKg)           inbody.leanMassKg = ib.leanMassKg
+        if (ib.muscleMassKg)         inbody.muscleMassKg = ib.muscleMassKg
+        if (ib.totalWaterL)          inbody.totalWaterL = ib.totalWaterL
+        if (ib.intracellularWaterL)  inbody.intracellularWaterL = ib.intracellularWaterL
+        if (ib.extracellularWaterL)  inbody.extracellularWaterL = ib.extracellularWaterL
+        if (ib.bmi)                  inbody.bmi = ib.bmi
+        if (ib.bmr)                  inbody.bmr = ib.bmr
+        if (ib.visceralFatLevel)     inbody.visceralFatLevel = ib.visceralFatLevel
+        if (ib.ecwRatio)             inbody.ecwRatio = ib.ecwRatio
+        if (ib.proteinKg)            inbody.proteinKg = ib.proteinKg
+        if (ib.mineralsKg)           inbody.mineralsKg = ib.mineralsKg
+        if (Object.keys(inbody).length > 0) {
+          cleanBodyMetrics.inbody = inbody
+          cleanBodyMetrics.compMethod = 'inbody'
+          // Use InBody fat% as the primary bodyFat
+          if (ib.fatPct) cleanBodyMetrics.bodyFat = ib.fatPct
+        }
+      } else if (compMethod === 'pollock') {
+        // bodyFat from manual input (will be overridden by server-side Pollock if skinfolds present)
+        if (bodyMetrics.bodyFat) cleanBodyMetrics.bodyFat = bodyMetrics.bodyFat
+        cleanBodyMetrics.compMethod = 'pollock'
+      } else {
+        if (bodyMetrics.bodyFat) cleanBodyMetrics.bodyFat = bodyMetrics.bodyFat
+      }
+
       if (bodyMetrics.measurements) {
         const measurements: BodyMetrics['measurements'] = {}
-        if (bodyMetrics.measurements.chest) measurements.chest = bodyMetrics.measurements.chest
-        if (bodyMetrics.measurements.waist) measurements.waist = bodyMetrics.measurements.waist
-        if (bodyMetrics.measurements.abdomen) measurements.abdomen = bodyMetrics.measurements.abdomen
-        if (bodyMetrics.measurements.hip) measurements.hip = bodyMetrics.measurements.hip
+        if (bodyMetrics.measurements.chest)         measurements.chest = bodyMetrics.measurements.chest
+        if (bodyMetrics.measurements.waist)         measurements.waist = bodyMetrics.measurements.waist
+        if (bodyMetrics.measurements.abdomen)       measurements.abdomen = bodyMetrics.measurements.abdomen
+        if (bodyMetrics.measurements.hip)           measurements.hip = bodyMetrics.measurements.hip
         if (bodyMetrics.measurements.forearm_right) measurements.forearm_right = bodyMetrics.measurements.forearm_right
-        if (bodyMetrics.measurements.forearm_left) measurements.forearm_left = bodyMetrics.measurements.forearm_left
-        if (bodyMetrics.measurements.arm_right) measurements.arm_right = bodyMetrics.measurements.arm_right
-        if (bodyMetrics.measurements.arm_left) measurements.arm_left = bodyMetrics.measurements.arm_left
-        if (bodyMetrics.measurements.thigh_right) measurements.thigh_right = bodyMetrics.measurements.thigh_right
-        if (bodyMetrics.measurements.thigh_left) measurements.thigh_left = bodyMetrics.measurements.thigh_left
-        if (bodyMetrics.measurements.calf_right) measurements.calf_right = bodyMetrics.measurements.calf_right
-        if (bodyMetrics.measurements.calf_left) measurements.calf_left = bodyMetrics.measurements.calf_left
-        if (Object.keys(measurements).length > 0) {
-          cleanBodyMetrics.measurements = measurements
-        }
+        if (bodyMetrics.measurements.forearm_left)  measurements.forearm_left = bodyMetrics.measurements.forearm_left
+        if (bodyMetrics.measurements.arm_right)     measurements.arm_right = bodyMetrics.measurements.arm_right
+        if (bodyMetrics.measurements.arm_left)      measurements.arm_left = bodyMetrics.measurements.arm_left
+        if (bodyMetrics.measurements.thigh_right)   measurements.thigh_right = bodyMetrics.measurements.thigh_right
+        if (bodyMetrics.measurements.thigh_left)    measurements.thigh_left = bodyMetrics.measurements.thigh_left
+        if (bodyMetrics.measurements.calf_right)    measurements.calf_right = bodyMetrics.measurements.calf_right
+        if (bodyMetrics.measurements.calf_left)     measurements.calf_left = bodyMetrics.measurements.calf_left
+        if (Object.keys(measurements).length > 0) cleanBodyMetrics.measurements = measurements
       }
-      if (bodyMetrics.skinfolds) {
+      if (compMethod === 'pollock' && bodyMetrics.skinfolds) {
         const skinfolds: BodyMetrics['skinfolds'] = {}
-        if (bodyMetrics.skinfolds.chest) skinfolds.chest = bodyMetrics.skinfolds.chest
-        if (bodyMetrics.skinfolds.abdomen) skinfolds.abdomen = bodyMetrics.skinfolds.abdomen
-        if (bodyMetrics.skinfolds.thigh) skinfolds.thigh = bodyMetrics.skinfolds.thigh
-        if (bodyMetrics.skinfolds.triceps) skinfolds.triceps = bodyMetrics.skinfolds.triceps
+        if (bodyMetrics.skinfolds.chest)      skinfolds.chest = bodyMetrics.skinfolds.chest
+        if (bodyMetrics.skinfolds.abdomen)    skinfolds.abdomen = bodyMetrics.skinfolds.abdomen
+        if (bodyMetrics.skinfolds.thigh)      skinfolds.thigh = bodyMetrics.skinfolds.thigh
+        if (bodyMetrics.skinfolds.triceps)    skinfolds.triceps = bodyMetrics.skinfolds.triceps
         if (bodyMetrics.skinfolds.suprailiac) skinfolds.suprailiac = bodyMetrics.skinfolds.suprailiac
         if (bodyMetrics.skinfolds.subscapular) skinfolds.subscapular = bodyMetrics.skinfolds.subscapular
         if (bodyMetrics.skinfolds.midaxillary) skinfolds.midaxillary = bodyMetrics.skinfolds.midaxillary
-        if (Object.keys(skinfolds).length > 0) {
-          cleanBodyMetrics.skinfolds = skinfolds
-        }
+        if (Object.keys(skinfolds).length > 0) cleanBodyMetrics.skinfolds = skinfolds
       }
 
       await fetch(`/api/assessments/${assessmentId}`, {
@@ -694,8 +748,8 @@ export default function AssessmentInputPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Basic metrics */}
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* Basic metrics — Peso e Altura always visible */}
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="weight">Peso (kg)</Label>
                 <Input
@@ -724,310 +778,290 @@ export default function AssessmentInputPage() {
                   })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="bodyFat">% Gordura Corporal</Label>
-                <Input
-                  id="bodyFat"
-                  type="number"
-                  step="0.1"
-                  placeholder="Ex: 18.5"
-                  value={bodyMetrics.bodyFat || ''}
-                  onChange={(e) => setBodyMetrics({
-                    ...bodyMetrics,
-                    bodyFat: e.target.value ? parseFloat(e.target.value) : undefined
-                  })}
-                />
-              </div>
             </div>
 
-            {/* Circumference measurements */}
+            {/* IMC automático quando peso+altura preenchidos */}
+            {bodyMetrics.weight && bodyMetrics.height && (
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">IMC calculado:</span>
+                <span className="text-lg font-bold text-amber-500">
+                  {(bodyMetrics.weight / Math.pow(bodyMetrics.height / 100, 2)).toFixed(1)} kg/m²
+                </span>
+              </div>
+            )}
+
+            {/* ================================================================
+                MÉTODO DE COMPOSIÇÃO CORPORAL
+            ================================================================ */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-semibold block mb-2">Método de Avaliação de Composição Corporal</Label>
+                <p className="text-xs text-muted-foreground mb-3">Selecione o método disponível para calcular o percentual de gordura</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { value: 'none', label: 'Nenhum', desc: 'Sem avaliação de composição', icon: '—' },
+                    { value: 'pollock', label: 'Pollock', desc: 'Dobras cutâneas (adipômetro)', icon: '📐' },
+                    { value: 'inbody', label: 'InBody H20', desc: 'Bioimpedância elétrica', icon: '⚡' },
+                  ] as const).map((m) => (
+                    <button key={m.value} type="button"
+                      onClick={() => setCompMethod(m.value)}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        compMethod === m.value
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border hover:border-primary/50 text-muted-foreground hover:text-foreground'
+                      }`}>
+                      <div className="text-lg mb-1">{m.icon}</div>
+                      <div className="font-semibold text-sm">{m.label}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{m.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ---- POLLOCK: Dobras Cutâneas ---- */}
+              {compMethod === 'pollock' && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-500 font-semibold text-sm">📐 Dobras Cutâneas (mm) — Método Pollock</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {assessment?.client.gender === 'M'
+                      ? 'Pollock 3: Peito + Abdômen + Coxa | Pollock 7: + Tríceps + Subescapular + Suprailíaca + Axilar Médio'
+                      : 'Pollock 3: Tríceps + Suprailíaca + Coxa | Pollock 7: + Peito + Abdômen + Subescapular + Axilar Médio'}
+                  </p>
+                  <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                    {[
+                      { key: 'chest', label: 'Peito' },
+                      { key: 'abdomen', label: 'Abdômen' },
+                      { key: 'thigh', label: 'Coxa' },
+                      { key: 'triceps', label: 'Tríceps' },
+                      { key: 'suprailiac', label: 'Suprailíaca' },
+                      { key: 'subscapular', label: 'Subescapular' },
+                      { key: 'midaxillary', label: 'Axilar Médio' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="space-y-1.5">
+                        <Label htmlFor={`sf_${key}`} className="text-xs">{label}</Label>
+                        <Input id={`sf_${key}`} type="number" step="0.1" placeholder="mm"
+                          value={(bodyMetrics.skinfolds as any)?.[key] || ''}
+                          onChange={(e) => setBodyMetrics({
+                            ...bodyMetrics,
+                            skinfolds: { ...bodyMetrics.skinfolds, [key]: e.target.value ? parseFloat(e.target.value) : undefined }
+                          })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Live Pollock result */}
+                  {(() => {
+                    const sf = bodyMetrics.skinfolds ?? {}
+                    const weight = bodyMetrics.weight ?? Number(assessment?.client.weight) ?? null
+                    const gender = assessment?.client.gender
+                    const birthDate = assessment?.client.birthDate
+                    if (!weight || !gender || !birthDate || (gender !== 'M' && gender !== 'F')) return null
+                    const age = ageFromBirthDate(birthDate)
+                    if (age <= 0) return null
+                    const result = computePollock(sf as SkinfoldsInput, age, weight, gender as 'M' | 'F')
+                    if (!result) return null
+                    const methodNames: Record<string, string> = {
+                      '3pt_male': 'Pollock 3 Dobras (♂)', '3pt_female': 'Pollock 3 Dobras (♀)',
+                      '7pt_male': 'Pollock 7 Dobras (♂)', '7pt_female': 'Pollock 7 Dobras (♀)',
+                    }
+                    return (
+                      <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
+                          <Calculator className="h-4 w-4" />
+                          {methodNames[result.method]} — Resultado Automático
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="text-center bg-background rounded-lg p-3">
+                            <div className="text-2xl font-bold text-emerald-500">{result.bodyFatPercent.toFixed(1)}%</div>
+                            <div className="text-xs text-muted-foreground">Gordura Corporal</div>
+                          </div>
+                          <div className="text-center bg-background rounded-lg p-3">
+                            <div className="text-2xl font-bold text-red-400">{result.fatKg.toFixed(1)} kg</div>
+                            <div className="text-xs text-muted-foreground">Massa Gorda</div>
+                          </div>
+                          <div className="text-center bg-background rounded-lg p-3">
+                            <div className="text-2xl font-bold text-cyan-400">{result.leanKg.toFixed(1)} kg</div>
+                            <div className="text-xs text-muted-foreground">Massa Magra</div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Soma: {result.sumSkinfolds.toFixed(1)} mm · Idade: {age} anos · Peso: {weight} kg
+                        </p>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* ---- INBODY H20 ---- */}
+              {compMethod === 'inbody' && (
+                <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-400 font-semibold text-sm">⚡ InBody H20 — Bioimpedância</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Insira os valores exibidos no relatório do aparelho InBody H20</p>
+
+                  {/* Bloco 1: Composição Corporal Principal */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Composição Corporal</p>
+                    <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                      {[
+                        { key: 'fatPct', label: '% Gordura', unit: '%', step: '0.1', placeholder: 'Ex: 22.5' },
+                        { key: 'fatMassKg', label: 'Massa Gorda', unit: 'kg', step: '0.1', placeholder: 'Ex: 18.2' },
+                        { key: 'leanMassKg', label: 'Massa Magra', unit: 'kg', step: '0.1', placeholder: 'Ex: 58.3' },
+                        { key: 'muscleMassKg', label: 'Massa Muscular Esq.', unit: 'kg', step: '0.1', placeholder: 'Ex: 28.4' },
+                      ].map(({ key, label, unit, step, placeholder }) => (
+                        <div key={key} className="space-y-1.5">
+                          <Label htmlFor={`ib_${key}`} className="text-xs">
+                            {label} <span className="text-muted-foreground">({unit})</span>
+                          </Label>
+                          <Input id={`ib_${key}`} type="number" step={step} placeholder={placeholder}
+                            value={(bodyMetrics.inbody as any)?.[key] || ''}
+                            onChange={(e) => setBodyMetrics({
+                              ...bodyMetrics,
+                              inbody: { ...bodyMetrics.inbody, [key]: e.target.value ? parseFloat(e.target.value) : undefined }
+                            })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bloco 2: Água Corporal */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Hidratação / Água Corporal</p>
+                    <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                      {[
+                        { key: 'totalWaterL', label: 'Água Total', unit: 'L', placeholder: 'Ex: 38.5' },
+                        { key: 'intracellularWaterL', label: 'Intracelular', unit: 'L', placeholder: 'Ex: 24.1' },
+                        { key: 'extracellularWaterL', label: 'Extracelular', unit: 'L', placeholder: 'Ex: 14.4' },
+                        { key: 'ecwRatio', label: 'Razão ECW/TBW', unit: '', step: '0.001', placeholder: 'Ex: 0.374' },
+                      ].map(({ key, label, unit, step, placeholder }) => (
+                        <div key={key} className="space-y-1.5">
+                          <Label htmlFor={`ib_${key}`} className="text-xs">
+                            {label}{unit ? <span className="text-muted-foreground"> ({unit})</span> : null}
+                          </Label>
+                          <Input id={`ib_${key}`} type="number" step={step || '0.1'} placeholder={placeholder}
+                            value={(bodyMetrics.inbody as any)?.[key] || ''}
+                            onChange={(e) => setBodyMetrics({
+                              ...bodyMetrics,
+                              inbody: { ...bodyMetrics.inbody, [key]: e.target.value ? parseFloat(e.target.value) : undefined }
+                            })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bloco 3: Metabolismo & Outros */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Metabolismo & Outros</p>
+                    <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                      {[
+                        { key: 'bmi', label: 'IMC (aparelho)', unit: 'kg/m²', step: '0.1', placeholder: 'Ex: 23.4' },
+                        { key: 'bmr', label: 'TMB', unit: 'kcal', step: '1', placeholder: 'Ex: 1520' },
+                        { key: 'visceralFatLevel', label: 'Gordura Visceral', unit: 'nível', step: '1', placeholder: 'Ex: 8' },
+                        { key: 'proteinKg', label: 'Proteína', unit: 'kg', step: '0.1', placeholder: 'Ex: 10.2' },
+                        { key: 'mineralsKg', label: 'Minerais', unit: 'kg', step: '0.01', placeholder: 'Ex: 3.62' },
+                      ].map(({ key, label, unit, step, placeholder }) => (
+                        <div key={key} className="space-y-1.5">
+                          <Label htmlFor={`ib_${key}`} className="text-xs">
+                            {label} <span className="text-muted-foreground">({unit})</span>
+                          </Label>
+                          <Input id={`ib_${key}`} type="number" step={step} placeholder={placeholder}
+                            value={(bodyMetrics.inbody as any)?.[key] || ''}
+                            onChange={(e) => setBodyMetrics({
+                              ...bodyMetrics,
+                              inbody: { ...bodyMetrics.inbody, [key]: e.target.value ? parseFloat(e.target.value) : undefined }
+                            })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Resultado InBody visual */}
+                  {bodyMetrics.inbody?.fatPct && (
+                    <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-blue-400 font-semibold text-sm">
+                        <span>⚡</span> InBody H20 — Resumo
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { val: `${bodyMetrics.inbody.fatPct?.toFixed(1)}%`, label: '% Gordura', color: 'text-red-400' },
+                          { val: bodyMetrics.inbody.fatMassKg ? `${bodyMetrics.inbody.fatMassKg.toFixed(1)} kg` : '—', label: 'Massa Gorda', color: 'text-red-300' },
+                          { val: bodyMetrics.inbody.leanMassKg ? `${bodyMetrics.inbody.leanMassKg.toFixed(1)} kg` : '—', label: 'Massa Magra', color: 'text-cyan-400' },
+                          { val: bodyMetrics.inbody.muscleMassKg ? `${bodyMetrics.inbody.muscleMassKg.toFixed(1)} kg` : '—', label: 'Musc. Esq.', color: 'text-blue-400' },
+                        ].map(({ val, label, color }) => (
+                          <div key={label} className="text-center bg-background rounded-lg p-3">
+                            <div className={`text-xl font-bold ${color}`}>{val}</div>
+                            <div className="text-xs text-muted-foreground">{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {(bodyMetrics.inbody.totalWaterL || bodyMetrics.inbody.bmr || bodyMetrics.inbody.visceralFatLevel) && (
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          {bodyMetrics.inbody.totalWaterL && (
+                            <div className="text-center text-xs">
+                              <span className="font-bold text-sky-400">{bodyMetrics.inbody.totalWaterL.toFixed(1)} L</span>
+                              <span className="block text-muted-foreground">Água Total</span>
+                            </div>
+                          )}
+                          {bodyMetrics.inbody.bmr && (
+                            <div className="text-center text-xs">
+                              <span className="font-bold text-amber-400">{bodyMetrics.inbody.bmr} kcal</span>
+                              <span className="block text-muted-foreground">TMB</span>
+                            </div>
+                          )}
+                          {bodyMetrics.inbody.visceralFatLevel && (
+                            <div className="text-center text-xs">
+                              <span className={`font-bold ${bodyMetrics.inbody.visceralFatLevel >= 13 ? 'text-red-400' : bodyMetrics.inbody.visceralFatLevel >= 9 ? 'text-yellow-400' : 'text-green-400'}`}>
+                                Nível {bodyMetrics.inbody.visceralFatLevel}
+                              </span>
+                              <span className="block text-muted-foreground">Gord. Visceral</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Circumference measurements — always visible */}
             <div>
               <Label className="mb-3 block text-base font-medium">Circunferências (cm)</Label>
               <div className="grid gap-4 md:grid-cols-3">
-                {/* Peitoral */}
-                <div className="space-y-2">
-                  <Label htmlFor="chest" className="text-sm">Peitoral</Label>
-                  <Input
-                    id="chest"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 100"
-                    value={bodyMetrics.measurements?.chest || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, chest: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Cintura */}
-                <div className="space-y-2">
-                  <Label htmlFor="waist" className="text-sm">Cintura</Label>
-                  <Input
-                    id="waist"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 80"
-                    value={bodyMetrics.measurements?.waist || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, waist: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Abdômen */}
-                <div className="space-y-2">
-                  <Label htmlFor="abdomen" className="text-sm">Abdômen</Label>
-                  <Input
-                    id="abdomen"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 85"
-                    value={bodyMetrics.measurements?.abdomen || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, abdomen: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Quadril */}
-                <div className="space-y-2">
-                  <Label htmlFor="hip" className="text-sm">Quadril</Label>
-                  <Input
-                    id="hip"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 95"
-                    value={bodyMetrics.measurements?.hip || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, hip: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Antebraço Direito */}
-                <div className="space-y-2">
-                  <Label htmlFor="forearm_right" className="text-sm">Antebraço Direito</Label>
-                  <Input
-                    id="forearm_right"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 30"
-                    value={bodyMetrics.measurements?.forearm_right || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, forearm_right: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Antebraço Esquerdo */}
-                <div className="space-y-2">
-                  <Label htmlFor="forearm_left" className="text-sm">Antebraço Esquerdo</Label>
-                  <Input
-                    id="forearm_left"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 29"
-                    value={bodyMetrics.measurements?.forearm_left || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, forearm_left: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Braço Direito */}
-                <div className="space-y-2">
-                  <Label htmlFor="arm_right" className="text-sm">Braço Direito</Label>
-                  <Input
-                    id="arm_right"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 36"
-                    value={bodyMetrics.measurements?.arm_right || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, arm_right: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Braço Esquerdo */}
-                <div className="space-y-2">
-                  <Label htmlFor="arm_left" className="text-sm">Braço Esquerdo</Label>
-                  <Input
-                    id="arm_left"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 35"
-                    value={bodyMetrics.measurements?.arm_left || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, arm_left: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Coxa Direita */}
-                <div className="space-y-2">
-                  <Label htmlFor="thigh_right" className="text-sm">Coxa Direita</Label>
-                  <Input
-                    id="thigh_right"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 58"
-                    value={bodyMetrics.measurements?.thigh_right || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, thigh_right: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Coxa Esquerda */}
-                <div className="space-y-2">
-                  <Label htmlFor="thigh_left" className="text-sm">Coxa Esquerda</Label>
-                  <Input
-                    id="thigh_left"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 57"
-                    value={bodyMetrics.measurements?.thigh_left || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, thigh_left: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Panturrilha Direita */}
-                <div className="space-y-2">
-                  <Label htmlFor="calf_right" className="text-sm">Panturrilha Direita</Label>
-                  <Input
-                    id="calf_right"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 38"
-                    value={bodyMetrics.measurements?.calf_right || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, calf_right: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-                {/* Panturrilha Esquerda */}
-                <div className="space-y-2">
-                  <Label htmlFor="calf_left" className="text-sm">Panturrilha Esquerda</Label>
-                  <Input
-                    id="calf_left"
-                    type="number"
-                    step="0.1"
-                    placeholder="Ex: 37"
-                    value={bodyMetrics.measurements?.calf_left || ''}
-                    onChange={(e) => setBodyMetrics({
-                      ...bodyMetrics,
-                      measurements: { ...bodyMetrics.measurements, calf_left: e.target.value ? parseFloat(e.target.value) : undefined }
-                    })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Skinfolds */}
-            <div>
-              <Label className="mb-1 block text-base font-medium">Dobras Cutâneas (mm)</Label>
-              <p className="text-xs text-muted-foreground mb-3">
-                {assessment.client.gender === 'M'
-                  ? 'Pollock 3: Peito + Abdômen + Coxa | Pollock 7: + Tríceps + Subescapular + Suprailíaca + Axilar Médio'
-                  : 'Pollock 3: Tríceps + Suprailíaca + Coxa | Pollock 7: + Peito + Abdômen + Subescapular + Axilar Médio'}
-              </p>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sf_chest" className="text-sm">Peito</Label>
-                  <Input id="sf_chest" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.chest || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, chest: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sf_abdomen" className="text-sm">Abdômen</Label>
-                  <Input id="sf_abdomen" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.abdomen || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, abdomen: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sf_thigh" className="text-sm">Coxa</Label>
-                  <Input id="sf_thigh" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.thigh || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, thigh: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sf_triceps" className="text-sm">Tríceps</Label>
-                  <Input id="sf_triceps" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.triceps || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, triceps: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sf_suprailiac" className="text-sm">Suprailíaca</Label>
-                  <Input id="sf_suprailiac" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.suprailiac || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, suprailiac: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sf_subscapular" className="text-sm">Subescapular</Label>
-                  <Input id="sf_subscapular" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.subscapular || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, subscapular: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sf_midaxillary" className="text-sm">Axilar Médio</Label>
-                  <Input id="sf_midaxillary" type="number" step="0.1" placeholder="mm"
-                    value={bodyMetrics.skinfolds?.midaxillary || ''}
-                    onChange={(e) => setBodyMetrics({ ...bodyMetrics, skinfolds: { ...bodyMetrics.skinfolds, midaxillary: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                  />
-                </div>
-              </div>
-
-              {/* Live Pollock calculation */}
-              {(() => {
-                const sf = bodyMetrics.skinfolds ?? {}
-                const weight = bodyMetrics.weight ?? Number(assessment.client.weight) ?? null
-                const gender = assessment.client.gender
-                const birthDate = assessment.client.birthDate
-                if (!weight || !gender || !birthDate || (gender !== 'M' && gender !== 'F')) return null
-                const age = ageFromBirthDate(birthDate)
-                if (age <= 0) return null
-                const result = computePollock(sf as SkinfoldsInput, age, weight, gender as 'M' | 'F')
-                if (!result) return null
-                const methodNames: Record<string, string> = {
-                  '3pt_male': 'Pollock 3 Dobras (♂)',
-                  '3pt_female': 'Pollock 3 Dobras (♀)',
-                  '7pt_male': 'Pollock 7 Dobras (♂)',
-                  '7pt_female': 'Pollock 7 Dobras (♀)',
-                }
-                return (
-                  <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
-                      <Calculator className="h-4 w-4" />
-                      {methodNames[result.method]} — Resultado Automático
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center bg-background rounded-lg p-3">
-                        <div className="text-2xl font-bold text-emerald-500">{result.bodyFatPercent.toFixed(1)}%</div>
-                        <div className="text-xs text-muted-foreground">Gordura Corporal</div>
-                      </div>
-                      <div className="text-center bg-background rounded-lg p-3">
-                        <div className="text-2xl font-bold text-red-400">{result.fatKg.toFixed(1)} kg</div>
-                        <div className="text-xs text-muted-foreground">Massa Gorda</div>
-                      </div>
-                      <div className="text-center bg-background rounded-lg p-3">
-                        <div className="text-2xl font-bold text-cyan-400">{result.leanKg.toFixed(1)} kg</div>
-                        <div className="text-xs text-muted-foreground">Massa Magra</div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Soma das dobras: {result.sumSkinfolds.toFixed(1)} mm • Idade: {age} anos • Peso: {weight} kg</p>
+                {[
+                  { id: 'chest', label: 'Peitoral', key: 'chest' },
+                  { id: 'waist', label: 'Cintura', key: 'waist' },
+                  { id: 'abdomen', label: 'Abdômen', key: 'abdomen' },
+                  { id: 'hip', label: 'Quadril', key: 'hip' },
+                  { id: 'arm_right', label: 'Bíceps Direito', key: 'arm_right' },
+                  { id: 'arm_left', label: 'Bíceps Esquerdo', key: 'arm_left' },
+                  { id: 'forearm_right', label: 'Antebraço Direito', key: 'forearm_right' },
+                  { id: 'forearm_left', label: 'Antebraço Esquerdo', key: 'forearm_left' },
+                  { id: 'thigh_right', label: 'Coxa Direita', key: 'thigh_right' },
+                  { id: 'thigh_left', label: 'Coxa Esquerda', key: 'thigh_left' },
+                  { id: 'calf_right', label: 'Panturrilha Direita', key: 'calf_right' },
+                  { id: 'calf_left', label: 'Panturrilha Esquerda', key: 'calf_left' },
+                ].map(({ id, label, key }) => (
+                  <div key={id} className="space-y-2">
+                    <Label htmlFor={id} className="text-sm">{label}</Label>
+                    <Input id={id} type="number" step="0.1" placeholder="cm"
+                      value={(bodyMetrics.measurements as any)?.[key] || ''}
+                      onChange={(e) => setBodyMetrics({
+                        ...bodyMetrics,
+                        measurements: { ...bodyMetrics.measurements, [key]: e.target.value ? parseFloat(e.target.value) : undefined }
+                      })}
+                    />
                   </div>
-                )
-              })()}
+                ))}
+              </div>
             </div>
 
             {/* Notes */}
@@ -1037,27 +1071,13 @@ export default function AssessmentInputPage() {
                 id="metricsNotes"
                 placeholder="Observações sobre as medidas..."
                 value={bodyMetrics.notes || ''}
-                onChange={(e) => setBodyMetrics({
-                  ...bodyMetrics,
-                  notes: e.target.value
-                })}
+                onChange={(e) => setBodyMetrics({ ...bodyMetrics, notes: e.target.value })}
               />
             </div>
-
-            {/* BMI Calculation (if height and weight provided) */}
-            {bodyMetrics.weight && bodyMetrics.height && (
-              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-foreground">IMC Calculado:</span>
-                  <span className="text-lg font-bold text-foreground">
-                    {(bodyMetrics.weight / Math.pow(bodyMetrics.height / 100, 2)).toFixed(1)} kg/m²
-                  </span>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
+
 
       {/* Step 5: Level, Objective, Phase and Process */}
       {step === 5 && (

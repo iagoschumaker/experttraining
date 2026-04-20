@@ -325,11 +325,20 @@ export default function AssessmentResultPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Body metrics evolution */}
+                {/* Weight + BodyFat + Height */}
                 <div>
                   <h4 className="mb-3 font-medium flex items-center gap-2">
                     <Scale className="h-4 w-4" />
                     Métricas Corporais
+                    {evolution.body.compMethod && (
+                      <span className={`ml-auto text-xs font-normal px-2 py-0.5 rounded-full border ${
+                        evolution.body.compMethod === 'inbody'
+                          ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      }`}>
+                        {evolution.body.compMethod === 'inbody' ? '⚡ InBody H20' : '📐 Pollock'}
+                      </span>
+                    )}
                   </h4>
                   <div className="grid gap-4 md:grid-cols-3">
                     {evolution.body.weight.current !== null && (
@@ -369,6 +378,42 @@ export default function AssessmentResultPage() {
                     )}
                   </div>
                 </div>
+
+                {/* InBody H20 Evolution */}
+                {evolution.body.inbody && (
+                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-3">
+                    <h4 className="font-medium text-sm text-blue-400 flex items-center gap-2">
+                      ⚡ InBody H20 — Evolução
+                    </h4>
+                    <div className="grid gap-3 md:grid-cols-4">
+                      {[
+                        { key: 'fatPct', label: '% Gordura', unit: '%', goodDown: true },
+                        { key: 'fatMassKg', label: 'Massa Gorda', unit: 'kg', goodDown: true },
+                        { key: 'leanMassKg', label: 'Massa Magra', unit: 'kg', goodDown: false },
+                        { key: 'muscleMassKg', label: 'Musc. Esq.', unit: 'kg', goodDown: false },
+                        { key: 'totalWaterL', label: 'Água Total', unit: 'L', goodDown: false },
+                        { key: 'bmr', label: 'TMB', unit: 'kcal', goodDown: false },
+                        { key: 'visceralFatLevel', label: 'Gord. Visceral', unit: '', goodDown: true },
+                        { key: 'bmi', label: 'IMC', unit: 'kg/m²', goodDown: false },
+                      ].map(({ key, label, unit, goodDown }) => {
+                        const m = (evolution.body.inbody as any)?.[key]
+                        if (!m || m.current === null) return null
+                        return (
+                          <div key={key} className="rounded-lg border bg-background p-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">{label}</span>
+                              {renderTrend(m)}
+                            </div>
+                            <div className="mt-1 flex items-baseline gap-2">
+                              <span className="text-lg font-bold">{m.current}{unit}</span>
+                              {renderDelta(m, unit)}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Measurements evolution */}
                 {(evolution.body.measurements.waist.current !== null ||
@@ -434,6 +479,15 @@ export default function AssessmentResultPage() {
                 <CardTitle className="flex items-center gap-2">
                   <Scale className="h-5 w-5" />
                   Medidas Corporais
+                  {assessment.bodyMetricsJson.compMethod && (
+                    <span className={`ml-auto text-xs font-normal px-2 py-0.5 rounded-full border ${
+                      assessment.bodyMetricsJson.compMethod === 'inbody'
+                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    }`}>
+                      {assessment.bodyMetricsJson.compMethod === 'inbody' ? '⚡ InBody H20' : '📐 Pollock'}
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -467,6 +521,90 @@ export default function AssessmentResultPage() {
                   )}
                 </div>
 
+                {/* InBody H20 full display */}
+                {assessment.bodyMetricsJson.inbody && Object.values(assessment.bodyMetricsJson.inbody).some(Boolean) && (
+                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-4">
+                    <h4 className="font-semibold text-sm text-blue-400">⚡ InBody H20 — Composição Corporal</h4>
+
+                    {/* Main composition */}
+                    <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                      {[
+                        { key: 'fatPct', label: '% Gordura', unit: '%', color: 'text-red-400' },
+                        { key: 'fatMassKg', label: 'Massa Gorda', unit: 'kg', color: 'text-red-300' },
+                        { key: 'leanMassKg', label: 'Massa Magra', unit: 'kg', color: 'text-cyan-400' },
+                        { key: 'muscleMassKg', label: 'Musc. Esq.', unit: 'kg', color: 'text-blue-400' },
+                      ].map(({ key, label, unit, color }) => {
+                        const val = assessment.bodyMetricsJson.inbody?.[key]
+                        if (!val) return null
+                        return (
+                          <div key={key} className="rounded-lg border bg-background p-3 text-center">
+                            <div className={`text-xl font-bold ${color}`}>{val}{unit}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Water */}
+                    {(assessment.bodyMetricsJson.inbody.totalWaterL || assessment.bodyMetricsJson.inbody.intracellularWaterL) && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Água Corporal</p>
+                        <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
+                          {[
+                            { key: 'totalWaterL', label: 'Total', unit: 'L', color: 'text-sky-400' },
+                            { key: 'intracellularWaterL', label: 'Intracelular', unit: 'L', color: 'text-sky-300' },
+                            { key: 'extracellularWaterL', label: 'Extracelular', unit: 'L', color: 'text-sky-200' },
+                            { key: 'ecwRatio', label: 'ECW/TBW', unit: '', color: 'text-sky-100' },
+                          ].map(({ key, label, unit, color }) => {
+                            const val = assessment.bodyMetricsJson.inbody?.[key]
+                            if (!val) return null
+                            return (
+                              <div key={key} className="rounded-lg border bg-background p-2.5 text-center">
+                                <div className={`text-lg font-bold ${color}`}>{key === 'ecwRatio' ? val.toFixed(3) : val}{unit}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Metabolism */}
+                    {(assessment.bodyMetricsJson.inbody.bmr || assessment.bodyMetricsJson.inbody.visceralFatLevel || assessment.bodyMetricsJson.inbody.proteinKg) && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Metabolismo & Outros</p>
+                        <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
+                          {[
+                            { key: 'bmi', label: 'IMC (InBody)', unit: 'kg/m²', color: 'text-amber-400' },
+                            { key: 'bmr', label: 'TMB', unit: 'kcal', color: 'text-orange-400' },
+                            { key: 'proteinKg', label: 'Protéína', unit: 'kg', color: 'text-violet-400' },
+                            { key: 'mineralsKg', label: 'Minerais', unit: 'kg', color: 'text-lime-400' },
+                          ].map(({ key, label, unit, color }) => {
+                            const val = assessment.bodyMetricsJson.inbody?.[key]
+                            if (!val) return null
+                            return (
+                              <div key={key} className="rounded-lg border bg-background p-2.5 text-center">
+                                <div className={`text-lg font-bold ${color}`}>{val}{unit}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+                              </div>
+                            )
+                          })}
+                          {assessment.bodyMetricsJson.inbody.visceralFatLevel && (() => {
+                            const v = assessment.bodyMetricsJson.inbody.visceralFatLevel
+                            return (
+                              <div className="rounded-lg border bg-background p-2.5 text-center">
+                                <div className={`text-lg font-bold ${
+                                  v >= 13 ? 'text-red-400' : v >= 9 ? 'text-yellow-400' : 'text-green-400'
+                                }`}>Nível {v}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">Gord. Visceral</div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Circumferences */}
                 {assessment.bodyMetricsJson.measurements && Object.keys(assessment.bodyMetricsJson.measurements).length > 0 && (() => {
                   const m = assessment.bodyMetricsJson.measurements
