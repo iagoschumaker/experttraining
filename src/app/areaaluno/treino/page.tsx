@@ -133,7 +133,7 @@ export default function TreinoAlunoPage() {
             <span class="time">${prep.totalTime || '12 min'}</span>
           </div>
           <div class="prep-content">
-            ${prep.exercises.slice(0, 4).map((ex: any) =>
+            ${prep.exercises.map((ex: any) =>
         `<div class="prep-item">
                 <span>${ex.name}</span>
                 <span>${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.duration || ''}</span>
@@ -574,7 +574,7 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
                                     </span>
                                   </div>
                                   <div className="space-y-0.5">
-                                    {session.preparation.exercises?.slice(0, 4).map((ex: any, idx: number) => (
+                                    {session.preparation.exercises?.map((ex: any, idx: number) => (
                                       <div key={idx} className="flex items-center justify-between text-[10px] text-zinc-400">
                                         <span className="truncate flex-1">{ex.name}</span>
                                         <span className="shrink-0 ml-1 font-mono">
@@ -582,11 +582,6 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
                                         </span>
                                       </div>
                                     ))}
-                                    {session.preparation.exercises?.length > 4 && (
-                                      <span className="text-[9px] text-zinc-500">
-                                        +{session.preparation.exercises.length - 4} mais
-                                      </span>
-                                    )}
                                   </div>
                                 </div>
                               )}
