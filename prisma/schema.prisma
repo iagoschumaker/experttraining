@@ -33,6 +33,7 @@ model Studio {
   status          StudioStatus  @default(ACTIVE)
   planId          String?       @map("plan_id")
   logoUrl         String?       @map("logo_url")
+  modules         String[]      @default(["TREINO"])
   settings        Json?         @default("{}")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
@@ -43,14 +44,18 @@ model Studio {
   lastPaymentDate DateTime?     @map("last_payment_date")
   paymentDueDate  DateTime?     @map("payment_due_date")
   paymentNotes    String?       @map("payment_notes")
-  auditLogs         AuditLog[]
-  clients           Client[]
-  lessons           Lesson[]
-  plan              Plan?              @relation(fields: [planId], references: [id])
-  subscriptions     Subscription?
-  users             UserStudio[]
-  workouts          Workout[]
-  trainingSessions  TrainingSession[]
+  auditLogs            AuditLog[]
+  clients              Client[]
+  lessons              Lesson[]
+  plan                 Plan?              @relation(fields: [planId], references: [id])
+  subscriptions        Subscription?
+  users                UserStudio[]
+  workouts             Workout[]
+  trainingSessions     TrainingSession[]
+  units                StudioUnit[]
+  financialCategories  FinancialCategory[]
+  financialEntries     FinancialEntry[]
+  clientSubscriptions  ClientSubscription[]
 
   @@index([isPaid])
   @@index([paymentDueDate])
@@ -241,11 +246,13 @@ model Client {
   sfSuprailiac  Decimal?       @map("sf_suprailiac") @db.Decimal(5, 2)
   sfSubscapular Decimal?       @map("sf_subscapular") @db.Decimal(5, 2)
   sfMidaxillary Decimal?       @map("sf_midaxillary") @db.Decimal(5, 2)
-  assessments   Assessment[]
-  studio        Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  trainer       User?          @relation("ClientTrainer", fields: [trainerId], references: [id])
-  lessonClients LessonClient[]
-  workouts      Workout[]
+  assessments        Assessment[]
+  studio             Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  trainer            User?          @relation("ClientTrainer", fields: [trainerId], references: [id])
+  lessonClients      LessonClient[]
+  workouts           Workout[]
+  financialEntries   FinancialEntry[]
+  clientSubscriptions ClientSubscription[]
 
   @@index([studioId])
   @@index([trainerId])
@@ -618,4 +625,173 @@ enum ClientObjective {
   PERFORMANCE
   REABILITACAO
   GESTANTE
+}
+
+// ============================================================================
+// MÓDULO FINANCEIRO — Models e Enums
+// ============================================================================
+
+enum FinancialCategoryType {
+  RECEITA
+  CUSTO
+  DESPESA
+}
+
+enum FinancialEntryType {
+  RECEITA
+  DESPESA
+}
+
+enum FinancialEntryStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELED
+  PARTIAL
+}
+
+enum PaymentMethod {
+  DINHEIRO
+  PIX
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+  CHEQUE
+  TRANSFERENCIA
+  BOLETO
+  PARCELADO
+  OUTRO
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum ClientSubStatus {
+  ACTIVE
+  EXPIRED
+  CANCELED
+  SUSPENDED
+}
+
+// ─── UNIDADES DO STUDIO ───
+model StudioUnit {
+  id        String   @id @default(cuid())
+  studioId  String   @map("studio_id")
+  name      String
+  isMain    Boolean  @default(false) @map("is_main")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  entries   FinancialEntry[]
+
+  @@index([studioId])
+  @@map("studio_units")
+}
+
+// ─── PLANO DE CONTAS (hierárquico) ───
+model FinancialCategory {
+  id        String                @id @default(cuid())
+  studioId  String?               @map("studio_id")
+  parentId  String?               @map("parent_id")
+  code      String
+  name      String
+  type      FinancialCategoryType
+  isSystem  Boolean  @default(false) @map("is_system")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  parent    FinancialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  FinancialCategory[] @relation("CategoryTree")
+  studio    Studio?             @relation(fields: [studioId], references: [id])
+  entries   FinancialEntry[]
+
+  @@unique([studioId, code])
+  @@map("financial_categories")
+}
+
+// ─── LANÇAMENTO FINANCEIRO ───
+model FinancialEntry {
+  id                String               @id @default(cuid())
+  studioId          String               @map("studio_id")
+  unitId            String?              @map("unit_id")
+  categoryId        String               @map("category_id")
+  clientId          String?              @map("client_id")
+  type              FinancialEntryType
+  description       String
+  amount            Decimal              @db.Decimal(10, 2)
+  date              DateTime             @db.Date
+  dueDate           DateTime?            @map("due_date") @db.Date
+  paidAt            DateTime?            @map("paid_at")
+  status            FinancialEntryStatus @default(PENDING)
+  paymentMethod     PaymentMethod?       @map("payment_method")
+  recurrenceId      String?              @map("recurrence_id")
+  installment       Int?
+  totalInstallments Int?                 @map("total_installments")
+  notes             String?
+  createdById       String               @map("created_by_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  studio    Studio              @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  unit      StudioUnit?         @relation(fields: [unitId], references: [id])
+  category  FinancialCategory   @relation(fields: [categoryId], references: [id])
+  client    Client?             @relation(fields: [clientId], references: [id])
+
+  @@index([studioId, date])
+  @@index([studioId, status])
+  @@index([studioId, categoryId])
+  @@index([clientId])
+  @@index([dueDate])
+  @@map("financial_entries")
+}
+
+// ─── PLANOS DE ALUNO (templates criados pelo SuperAdmin) ───
+model ClientPlan {
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  billingCycle  BillingCycle @map("billing_cycle")
+  durationDays  Int          @map("duration_days")
+  isActive      Boolean      @default(true) @map("is_active")
+  isTrial       Boolean      @default(false) @map("is_trial")
+  trialDays     Int?         @map("trial_days")
+  features      Json         @default("[]")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  subscriptions ClientSubscription[]
+
+  @@map("client_plans")
+}
+
+// ─── ASSINATURA DO ALUNO ───
+model ClientSubscription {
+  id            String         @id @default(cuid())
+  clientId      String         @map("client_id")
+  studioId      String         @map("studio_id")
+  planId        String         @map("plan_id")
+  status        ClientSubStatus @default(ACTIVE)
+  startDate     DateTime       @map("start_date")
+  endDate       DateTime       @map("end_date")
+  price         Decimal        @db.Decimal(10, 2)
+  autoRenew     Boolean        @default(true) @map("auto_renew")
+  canceledAt    DateTime?      @map("canceled_at")
+  cancelReason  String?        @map("cancel_reason")
+  notes         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  studio        Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  plan          ClientPlan     @relation(fields: [planId], references: [id])
+
+  @@index([clientId])
+  @@index([studioId])
+  @@index([status])
+  @@index([endDate])
+  @@map("client_subscriptions")
 }
