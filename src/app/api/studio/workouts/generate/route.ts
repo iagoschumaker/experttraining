@@ -321,11 +321,11 @@ export async function POST(request: NextRequest) {
         prisma.client.update({
           where: { id: assessment.clientId },
           data: {
-            currentPhase: phase as any,
-            objective: 'GESTANTE' as any,
+            currentPhase: phase,
+            objective: 'GESTANTE',
             gestationalWeek: gestationalWeek || null,
             trainingDaysPerWeek: gestanteFreq,
-          },
+          } as any,
         }),
       ])
 
