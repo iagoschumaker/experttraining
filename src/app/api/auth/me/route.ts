@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - ME API
 // ============================================================================
 // GET /api/auth/me
@@ -84,10 +84,17 @@ export async function GET(request: NextRequest) {
     // Get current studio context if exists
     let currentStudio = null
     if (hasStudioContext(payload)) {
+      // Buscar módulos do studio
+      const studioData = await prisma.studio.findUnique({
+        where: { id: payload.studioId },
+        select: { modules: true },
+      })
+
       currentStudio = {
         studioId: payload.studioId,
         studioName: payload.studioName,
         role: payload.role,
+        modules: studioData?.modules || ['TREINO'],
       }
     }
 

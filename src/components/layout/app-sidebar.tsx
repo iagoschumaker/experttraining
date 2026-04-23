@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -14,7 +14,13 @@ import {
   Menu,
   Calendar,
   Settings,
-  UserCheck
+  UserCheck,
+  DollarSign,
+  FileText,
+  TrendingDown,
+  TrendingUp,
+  BarChart2,
+  FolderTree,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -24,6 +30,7 @@ interface SidebarLink {
   label: string
   icon: React.ReactNode
   requiresAdmin?: boolean
+  module?: 'TREINO' | 'FINANCEIRO'  // Módulo necessário
 }
 
 const sidebarLinks: SidebarLink[] = [
@@ -32,10 +39,12 @@ const sidebarLinks: SidebarLink[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
   },
+  // ─── MÓDULO TREINO ───
   {
     href: '/presenca',
     label: 'Presença',
     icon: <UserCheck className="w-5 h-5" />,
+    module: 'TREINO',
   },
   {
     href: '/clients',
@@ -46,20 +55,53 @@ const sidebarLinks: SidebarLink[] = [
     href: '/assessments',
     label: 'Avaliações',
     icon: <ClipboardList className="w-5 h-5" />,
+    module: 'TREINO',
   },
-  // REMOVED: Resultados tab
   {
     href: '/workouts',
     label: 'Treinos',
     icon: <Dumbbell className="w-5 h-5" />,
+    module: 'TREINO',
   },
-  // DEPRECATED: Aulas removidas do Método EXPERT PRO TRAINING
-  // O sistema agora é controlado por Avaliações e Cronogramas
-  // {
-  //   href: '/lessons',
-  //   label: 'Aulas',
-  //   icon: <Calendar className="w-5 h-5" />,
-  // },
+  // ─── MÓDULO FINANCEIRO ───
+  {
+    href: '/financeiro',
+    label: 'Financeiro',
+    icon: <DollarSign className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/lancamentos',
+    label: 'Lançamentos',
+    icon: <FileText className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/contas-pagar',
+    label: 'Contas a Pagar',
+    icon: <TrendingDown className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/contas-receber',
+    label: 'Contas a Receber',
+    icon: <TrendingUp className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/dre',
+    label: 'DRE',
+    icon: <BarChart2 className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/categorias',
+    label: 'Plano de Contas',
+    icon: <FolderTree className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+    requiresAdmin: true,
+  },
+  // ─── SEMPRE VISÍVEL ───
   {
     href: '/team',
     label: 'Equipe',
@@ -78,11 +120,12 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [internalMobileOpen, setInternalMobileOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [studioModules, setStudioModules] = useState<string[]>(['TREINO'])
 
   const isMobileOpen = externalMobileOpen ?? internalMobileOpen
   const setIsMobileOpen = onMobileOpenChange ?? setInternalMobileOpen
 
-  // Buscar role do usuário
+  // Buscar role do usuário e módulos do studio
   useEffect(() => {
     async function fetchUserRole() {
       try {
@@ -91,6 +134,10 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
 
         if (data.success && data.data.currentStudio) {
           setUserRole(data.data.currentStudio.role)
+          // Buscar módulos do studio
+          if (data.data.currentStudio.modules) {
+            setStudioModules(data.data.currentStudio.modules)
+          }
         }
       } catch (err) {
         console.error('Error fetching user role:', err)
@@ -99,6 +146,20 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
 
     fetchUserRole()
   }, [])
+
+  // Filtrar links por role e módulo
+  const visibleLinks = sidebarLinks.filter(link => {
+    // Filtrar por role admin
+    if (link.requiresAdmin && userRole !== 'STUDIO_ADMIN') return false
+    // Filtrar por módulo
+    if (link.module && !studioModules.includes(link.module)) return false
+    return true
+  })
+
+  // Separar links por seção para visual
+  const mainLinks = visibleLinks.filter(l => !l.module || l.module === 'TREINO')
+  const financialLinks = visibleLinks.filter(l => l.module === 'FINANCEIRO')
+  const hasFinancial = financialLinks.length > 0
 
   return (
     <>
@@ -155,32 +216,70 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
         </div>
 
         {/* Navigation */}
-        <nav className="p-2 space-y-1">
-          {sidebarLinks
-            .filter(link => !link.requiresAdmin || userRole === 'STUDIO_ADMIN')
-            .map((link) => {
-              const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+        <nav className="p-2 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
+          {/* Main links (Dashboard, Treino) */}
+          {mainLinks.map((link) => {
+            const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
+                  isActive
+                    ? 'bg-amber-500 text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
+                )}
+                style={{ transition: 'none' }}
+                title={isCollapsed ? link.label : undefined}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                {link.icon}
+                {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
+              </Link>
+            )
+          })}
 
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
-                    isActive
-                      ? 'bg-amber-500 text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                    isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
-                  )}
-                  style={{ transition: 'none' }}
-                  title={isCollapsed ? link.label : undefined}
-                  onClick={() => setIsMobileOpen(false)}
-                >
-                  {link.icon}
-                  {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
-                </Link>
-              )
-            })}
+          {/* Separator + Financial links */}
+          {hasFinancial && (
+            <>
+              {(!isCollapsed || isMobileOpen) && (
+                <div className="pt-3 pb-1 px-3">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Financeiro
+                  </span>
+                </div>
+              )}
+              {isCollapsed && !isMobileOpen && (
+                <div className="border-t border-border my-2" />
+              )}
+              {financialLinks.map((link) => {
+                const isActive = link.href === '/financeiro'
+                  ? pathname === '/financeiro'
+                  : pathname === link.href || pathname.startsWith(link.href + '/')
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full',
+                      isActive
+                        ? 'bg-emerald-600 text-white'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      isCollapsed && !isMobileOpen && 'md:justify-center md:px-2'
+                    )}
+                    style={{ transition: 'none' }}
+                    title={isCollapsed ? link.label : undefined}
+                    onClick={() => setIsMobileOpen(false)}
+                  >
+                    {link.icon}
+                    {(!isCollapsed || isMobileOpen) && <span className="font-medium">{link.label}</span>}
+                  </Link>
+                )
+              })}
+            </>
+          )}
 
           {/* Settings */}
           {userRole === 'STUDIO_ADMIN' && (
