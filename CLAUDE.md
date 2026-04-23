@@ -113,18 +113,51 @@ enum AssessmentStatus { PENDING, IN_PROGRESS, COMPLETED, ARCHIVED }
 
 ---
 
+
 ## 5. Motor de Fases (Método Expert Training)
 
 ### Regra Principal
 
-Cada fase dura **6 semanas**. Exercícios são **fixos** durante toda a fase. Progressão é feita via carga/reps semanais.
+Cada fase dura **6 semanas**. Exercícios são **fixos** durante toda a fase. Progressão é feita via carga/reps semanais (S1-S6).
+
+### Conceito "Treino Híbrido"
+
+O nome "Híbrido" significa que **cada sessão combina VÁRIOS padrões de movimento**:
+- No **Treino PERNA**, existem complementares de PUSH (flexão) e PULL (TRX remada) + Core
+- No **Treino EMPURRA**, existem complementares de LOWER (agachamento goblet, avanço) + Core
+- No **Treino PUXA**, existem complementares de PUSH (press elas.) e LOWER (afundo) + Core
+
+Isso é **intencional** — o método mescla para que cada sessão trabalhe o corpo todo, com foco principal em um pilar.
+
+### Estrutura padrão de cada treino
+
+Cada treino tem: **Preparação + 3 Blocos + Protocolo Final**
+- **Bloco I:** Exercício principal do pilar (com progressão semanal) + complementar + core
+- **Bloco II:** Exercício secundário do pilar + complementar de outro pilar + core
+- **Bloco III:** Exercício terciário do pilar + complementar integrado + core
+
+**Exceções:** Metabólico tem 2 blocos grandes (5-7 exercícios cada, circuito). Treino 3 do Metabólico é "PILARES/CÁRDIO" com 1 super-bloco intervalado 30"/10".
+
+### Progressão semanal (weeklyReps / weeklyLoad)
+
+Somente o exercício principal do Bloco I tem progressão definida:
+- **Hipertrofia:** Reps 12→12→10→10→8→8, Carga 60%→80% (Inic.) ou 70%→85% (Inter./Avanç.)
+- **Força:** Reps 5+5 fixo, Carga 85% fixo
+- **Condicionamento 2:** Reps 10→10→10→8→8→8, Carga 30%→35%
+
+Exercícios complementares e core mantêm reps fixas durante as 6 semanas.
+
+### Rotação de pilares
+
+3x/semana → PERNA, EMPURRA, PUXA (repete). 4x/semana → PERNA, EMPURRA, PUXA, PERNA; EMPURRA, PUXA, PERNA, EMPURRA...
+`lastPillarIndex` garante continuidade entre fases.
 
 ### Fases por Objetivo
 
-| Objetivo | Fases disponíveis (após Condicionamento) |
+| Objetivo | Fases disponíveis (após Condicionamento 1 e 2) |
 |---|---|
 | Emagrecimento | Hipertrofia → Força → Resistência → Metabólico |
-| Hipertrofia | Hipertrofia → Força → Hipertrofia II |
+| Hipertrofia | Hipertrofia → Força → Hipertrofia II (só Avançado) |
 | Performance | Hipertrofia → Força → Potência → Resistência |
 | Reabilitação | Hipertrofia → Força |
 | Gestante | Gestante T1 → T2 → T3-A → T3-B |
@@ -133,20 +166,57 @@ Cada fase dura **6 semanas**. Exercícios são **fixos** durante toda a fase. Pr
 
 | Nível | Fases existentes no catálogo |
 |---|---|
-| Iniciante | Condicionamento 1/2, Hipertrofia, Força, Potência, Resistência, Metabólico |
-| Intermediário | Condicionamento 1/2, Hipertrofia, Força, Resistência, Metabólico |
-| Avançado | Todas + versões "II" (Hipertrofia 2, Força 2, Resistência 2, Metabólico 2) |
+| Condicionamento (todos passam) | Fundamento Híbrido I (4x), Condicionamento Híbrido (3x) |
+| Iniciante | Hipertrofia (3x), Força (3-4x), Potência (3-4x), Resistência (3-4x), Metabólico (4x) |
+| Intermediário | Hipertrofia (3x), Força (3-4x), Resistência (3-4x), Metabólico (4x) — **SEM Potência** |
+| Avançado | Hipertrofia I+II, Força I+II, Resistência I+II, Metabólico I+II — **8 fases** |
 
 **TODOS os clientes** começam pelo Condicionamento 1 → Condicionamento 2, independente do objetivo.
+
+### Catálogo completo: 19 templates
+
+| # | Chave | Nome | Séries |
+|---|---|---|---|
+| 1 | CONDICIONAMENTO_1 | Fundamento Híbrido I | 4x |
+| 2 | CONDICIONAMENTO_2 | Condicionamento Híbrido | 3x |
+| 3 | INICIANTE_HIPERTROFIA | Hipertrofia Híbrida Iniciante | 3x |
+| 4 | INICIANTE_FORCA | Força Híbrida Iniciante | 3-4x |
+| 5 | INICIANTE_POTENCIA | Potência Híbrida Iniciante | 3-4x |
+| 6 | INICIANTE_RESISTENCIA | Resistência Fadiga Iniciante | 3-4x |
+| 7 | INICIANTE_METABOLICO | Metabólico Iniciante | 4x |
+| 8 | INTERMEDIARIO_HIPERTROFIA | Hipertrofia Híbrida Intermediário | 3x |
+| 9 | INTERMEDIARIO_FORCA | Força Híbrida Intermediário | 3-4x |
+| 10 | INTERMEDIARIO_RESISTENCIA | Resistência Fadiga Intermediário | 3-4x |
+| 11 | INTERMEDIARIO_METABOLICO | Metabólico Intermediário | 4x |
+| 12 | AVANCADO_HIPERTROFIA | Hipertrofia Híbrida Avançada I | 3x |
+| 13 | AVANCADO_FORCA | Força Híbrida Avançada I | 3-4x |
+| 14 | AVANCADO_RESISTENCIA | Resistência Fadiga Avançada I | 3-4x |
+| 15 | AVANCADO_METABOLICO | Metabólico Avançado I | 4x |
+| 16 | AVANCADO_HIPERTROFIA_2 | Hipertrofia Híbrida Avançada II | 3x |
+| 17 | AVANCADO_FORCA_2 | Força Híbrida Avançada II | 3-4x |
+| 18 | AVANCADO_RESISTENCIA_2 | Resistência Fadiga Avançada II | 3-4x |
+| 19 | AVANCADO_METABOLICO_2 | Metabólico Avançado II | 3-4x |
+
+### Protocolos Finais (15 variações)
+
+Super Glut Mini Band · Meta Chest Elas. · Bi-Trocantério Banco · Perdigueiro · Protocolos 2-3x · HIIT Air Bike · HIIT Esteira · Leg Cranks M.B · Matrix D.B Empurra · Meta Back · Meta Chest 1.0 · Triple Threat Fit Ball · Mini Band Coxa Abdução · Super Legs · Super Legs + Meta Chest 2.0 + Meta Back
+
+### Preparação do Movimento (3 variações, iguais para todas as fases)
+
+| Preparação | Foco | Exercícios |
+|---|---|---|
+| **I** (Perna) | Mobilidade quadril + ativação glúteos | 90/90, Flex. Posterior Band, Flexão Quadril, Mini Band, Siri Lateral+Frontal |
+| **II** (Empurra) | Mobilidade torácica + ativação manguito | Anjo Parede, Gato, Torácica, Manguito Elas., Press Elas. |
+| **III** (Puxa) | Mobilidade rotação + ativação posterior | Semi Ajoelhado c/ Rotação, Flexão Quadril, Protocolo Elas./Super Band, Manguito 90/90 |
 
 ### Arquivos do Motor
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `src/services/trainingPhases.ts` | Regras de fase: `getAvailablePhases()`, `getNextPhase()`, `isPhaseValid()`, `isPhaseComplete()` |
-| `src/services/phaseWorkouts.ts` | **CATÁLOGO COMPLETO** — 19 templates com exercícios, blocos e progressão (~1500 linhas). Chave: `{LEVEL}_{PHASE}` |
-| `src/services/phaseWorkoutsGestante.ts` | Templates gestante (T1-T3B) com exercícios específicos por trimestre |
-| `src/services/workoutTemplate.ts` | Helpers para gerar o scheduleJson do treino |
+| `src/services/trainingPhases.ts` | Regras: `getAvailablePhases()`, `getNextPhase()`, `isPhaseValid()`, `isPhaseComplete()` |
+| `src/services/phaseWorkouts.ts` | **CATÁLOGO COMPLETO** — 19 templates (~1500 linhas). Chave: `{LEVEL}_{PHASE}` |
+| `src/services/phaseWorkoutsGestante.ts` | Templates gestante (T1-T3B) |
+| `src/services/workoutTemplate.ts` | Helpers para gerar scheduleJson |
 
 ### Constantes
 
@@ -155,7 +225,6 @@ PHASE_DURATION_WEEKS = 6
 DEFAULT_SESSIONS_PER_WEEK = 3
 PHASE_CATALOG = Record<string, PhaseWorkoutTemplate>  // Chave: "INICIANTE_HIPERTROFIA"
 ```
-
 ---
 
 ## 6. Avaliação Física (Assessment)
