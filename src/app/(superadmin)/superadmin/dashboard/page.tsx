@@ -104,8 +104,8 @@ export default function SuperAdminDashboardPage() {
           <StatsCard
             key={index}
             title={stat.title}
-            value={stat.isString ? String(stat.value) : stat.value}
-            subtitle={stat.total !== undefined && !stat.isString ? `/ ${stat.total}` : undefined}
+            value={stat.value}
+            subtitle={stat.total !== undefined ? `/ ${stat.total}` : undefined}
             icon={stat.icon}
             iconColor={stat.color}
             iconBgColor={stat.bgColor}

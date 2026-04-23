@@ -155,11 +155,11 @@ export async function GET(
       }))
 
     // Unique completed phases
-    const completedPhases = [...new Set(
+    const completedPhases = Array.from(new Set(
       phaseHistory
         .filter(p => !p.isActive && p.progress >= 85)
         .map(p => p.phase)
-    )]
+    ))
 
     return NextResponse.json({
       success: true,

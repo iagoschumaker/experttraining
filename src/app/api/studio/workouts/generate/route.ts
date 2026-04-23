@@ -322,7 +322,7 @@ export async function POST(request: NextRequest) {
           where: { id: assessment.clientId },
           data: {
             currentPhase: phase as any,
-            objective: 'GESTANTE',
+            objective: 'GESTANTE' as any,
             gestationalWeek: gestationalWeek || null,
             trainingDaysPerWeek: gestanteFreq,
           },
