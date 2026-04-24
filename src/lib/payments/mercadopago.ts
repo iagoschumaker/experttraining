@@ -35,6 +35,8 @@ export interface CreatePaymentInput {
   expirationDate?: Date
   /** Parcelas máximas (cartão crédito) */
   maxInstallments?: number
+  /** URL de notificação do webhook */
+  notificationUrl?: string
 }
 
 export interface MercadoPagoPayment {

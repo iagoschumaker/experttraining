@@ -68,7 +68,7 @@ export default function DREPage() {
       if (result.success) {
         setData(result.data)
         // Auto-expand root categories
-        const rootIds = new Set(result.data.dre.map((n: DRENode) => n.id))
+        const rootIds = new Set<string>(result.data.dre.map((n: DRENode) => n.id))
         setExpanded(rootIds)
       }
     } catch { toast.error('Erro ao carregar DRE') }

@@ -13,6 +13,7 @@ import {
   mapMPStatusToEntryStatus,
   mapMPPaymentMethod,
 } from '@/lib/payments/mercadopago'
+import { PaymentMethod } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,9 @@ export async function POST(request: NextRequest) {
 
     const [refType, refId] = payment.externalReference.split(':')
     const newStatus = mapMPStatusToEntryStatus(payment.status)
-    const paymentMethod = mapMPPaymentMethod(payment.paymentMethod)
+    const paymentMethodStr = mapMPPaymentMethod(payment.paymentMethod)
+    // Cast para o enum PaymentMethod do Prisma
+    const paymentMethod = paymentMethodStr as PaymentMethod
 
     switch (refType) {
       // ─── LANÇAMENTO FINANCEIRO ───
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
               status: 'ACTIVE',
               startDate: now,
               endDate,
-              paymentMethod,
+              notes: `Pago via MP #${payment.id} (${paymentMethodStr})`,
             },
           })
           console.log(`[MP Webhook] Activated subscription ${refId}`)
