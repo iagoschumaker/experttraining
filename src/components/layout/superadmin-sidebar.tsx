@@ -19,7 +19,6 @@ import {
   TrendingUp,
   BarChart2,
   FolderTree,
-  Tag,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -47,11 +46,6 @@ const sidebarLinks: SidebarLink[] = [
     href: '/superadmin/plans',
     label: 'Planos SaaS',
     icon: <CreditCard className="w-5 h-5" />,
-  },
-  {
-    href: '/superadmin/client-plans',
-    label: 'Planos Aluno',
-    icon: <Tag className="w-5 h-5" />,
   },
   {
     href: '/superadmin/payments',

@@ -21,7 +21,6 @@ import {
   CheckCircle,
   ArrowUpRight,
   ArrowDownRight,
-  CreditCard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -194,7 +193,7 @@ export default function SuperAdminFinanceiroPage() {
       </Card>
 
       {/* Quick links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link href="/superadmin/financeiro/lancamentos">
           <Card className="bg-card border-border hover:border-emerald-500/30 transition-colors cursor-pointer">
             <CardContent className="pt-6 flex items-center gap-3">
@@ -217,19 +216,6 @@ export default function SuperAdminFinanceiroPage() {
               <div>
                 <p className="font-medium text-sm">DRE</p>
                 <p className="text-xs text-muted-foreground">Demonstração do resultado</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/superadmin/client-plans">
-          <Card className="bg-card border-border hover:border-amber-500/30 transition-colors cursor-pointer">
-            <CardContent className="pt-6 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <CreditCard className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Planos de Aluno</p>
-                <p className="text-xs text-muted-foreground">Templates de mensalidade</p>
               </div>
             </CardContent>
           </Card>
