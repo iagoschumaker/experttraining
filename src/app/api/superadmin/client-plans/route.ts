@@ -7,13 +7,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { verifyAuth } from '@/lib/auth/protection'
+import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
-  const auth = await verifyAuth(request, ['SUPERADMIN'])
-  if ('error' in auth) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
-  }
+  const token = await getAccessTokenCookie()
+  if (!token) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  const payload = verifyAccessToken(token)
+  if (!payload?.isSuperAdmin) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
 
   try {
     const plans = await prisma.clientPlan.findMany({
@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await verifyAuth(request, ['SUPERADMIN'])
-  if ('error' in auth) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
-  }
+  const token = await getAccessTokenCookie()
+  if (!token) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  const payload = verifyAccessToken(token)
+  if (!payload?.isSuperAdmin) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
 
   try {
     const body = await request.json()

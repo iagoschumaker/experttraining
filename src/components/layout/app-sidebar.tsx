@@ -21,6 +21,7 @@ import {
   TrendingUp,
   BarChart2,
   FolderTree,
+  CreditCard,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -101,7 +102,13 @@ const sidebarLinks: SidebarLink[] = [
     module: 'FINANCEIRO',
     requiresAdmin: true,
   },
-  // ─── SEMPRE VISÍVEL ───
+  // ─── GESTÃO ───
+  {
+    href: '/planos-aluno',
+    label: 'Planos de Aluno',
+    icon: <CreditCard className="w-5 h-5" />,
+    requiresAdmin: true,
+  },
   {
     href: '/team',
     label: 'Equipe',
