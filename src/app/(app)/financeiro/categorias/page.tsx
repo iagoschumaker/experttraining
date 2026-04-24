@@ -262,10 +262,10 @@ export default function CategoriasPage() {
             </div>
             <div>
               <Label>Categoria Pai (opcional)</Label>
-              <Select value={form.parentId} onValueChange={v => setForm(f => ({ ...f, parentId: v }))}>
+              <Select value={form.parentId || 'NONE'} onValueChange={v => setForm(f => ({ ...f, parentId: v === 'NONE' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma (raiz)</SelectItem>
+                  <SelectItem value="NONE">Nenhuma (raiz)</SelectItem>
                   {flat
                     .filter(c => c.type === form.type || c.type === form.type)
                     .map(c => (

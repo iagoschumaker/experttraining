@@ -77,7 +77,7 @@ const PAYMENT_METHODS = [
 ]
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'Todos' },
+  { value: 'ALL', label: 'Todos' },
   { value: 'PENDING', label: 'Pendente' },
   { value: 'PAID', label: 'Pago' },
   { value: 'OVERDUE', label: 'Vencido' },
@@ -272,18 +272,18 @@ export default function LancamentosPage() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
-        <Select value={filterType} onValueChange={setFilterType}>
+        <Select value={filterType || 'ALL'} onValueChange={v => setFilterType(v === 'ALL' ? '' : v)}>
           <SelectTrigger className="w-36 bg-card">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value="RECEITA">Receita</SelectItem>
             <SelectItem value="DESPESA">Despesa</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
+        <Select value={filterStatus || 'ALL'} onValueChange={v => setFilterStatus(v === 'ALL' ? '' : v)}>
           <SelectTrigger className="w-36 bg-card">
             <SelectValue placeholder="Status" />
           </SelectTrigger>

@@ -198,18 +198,18 @@ export default function SuperAdminLancamentosPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Select value={filterType} onValueChange={v => { setFilterType(v); }}>
+        <Select value={filterType || 'ALL'} onValueChange={v => { setFilterType(v === 'ALL' ? '' : v); }}>
           <SelectTrigger className="w-36 bg-card"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value="RECEITA">Receita</SelectItem>
             <SelectItem value="DESPESA">Despesa</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); }}>
+        <Select value={filterStatus || 'ALL'} onValueChange={v => { setFilterStatus(v === 'ALL' ? '' : v); }}>
           <SelectTrigger className="w-36 bg-card"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value="PENDING">Pendente</SelectItem>
             <SelectItem value="PAID">Pago</SelectItem>
             <SelectItem value="OVERDUE">Vencido</SelectItem>
