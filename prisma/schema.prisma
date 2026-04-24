@@ -55,6 +55,7 @@ model Studio {
   units                StudioUnit[]
   financialCategories  FinancialCategory[]
   financialEntries     FinancialEntry[]
+  clientPlans          ClientPlan[]
   clientSubscriptions  ClientSubscription[]
 
   @@index([isPaid])
@@ -751,6 +752,7 @@ model FinancialEntry {
 // ─── PLANOS DE ALUNO (templates criados pelo SuperAdmin) ───
 model ClientPlan {
   id            String       @id @default(cuid())
+  studioId      String?      @map("studio_id")
   name          String
   description   String?
   price         Decimal      @db.Decimal(10, 2)
@@ -763,8 +765,10 @@ model ClientPlan {
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
+  studio        Studio?      @relation(fields: [studioId], references: [id], onDelete: Cascade)
   subscriptions ClientSubscription[]
 
+  @@index([studioId])
   @@map("client_plans")
 }
 

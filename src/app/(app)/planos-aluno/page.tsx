@@ -3,7 +3,7 @@
 // ============================================================================
 // EXPERT PRO TRAINING — STUDIO: PLANOS DE ALUNO
 // ============================================================================
-// Permite ao Studio ver planos disponíveis e atribuir alunos a planos
+// Permite ao Studio criar planos, ver planos disponíveis e atribuir a alunos
 // ============================================================================
 
 import { useEffect, useState, useCallback } from 'react'
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -31,17 +32,21 @@ import {
   CreditCard,
   UserPlus,
   Calendar,
-  Users,
   Clock,
   CheckCircle,
   AlertCircle,
   Search,
+  Plus,
+  Globe,
+  Building2,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Plan {
   id: string; name: string; price: number; billingCycle: string
-  durationDays: number; description?: string | null; isTrial: boolean; trialDays?: number | null
+  durationDays: number; description?: string | null; isTrial: boolean
+  trialDays?: number | null; isGlobal?: boolean; studioId?: string | null
 }
 
 interface Subscription {
@@ -69,12 +74,18 @@ export default function StudioClientPlansPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [showCreatePlanDialog, setShowCreatePlanDialog] = useState(false)
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState('ACTIVE')
   const [searchClient, setSearchClient] = useState('')
 
   const [assignForm, setAssignForm] = useState({
     clientId: '', planId: '', notes: '',
+  })
+
+  const [planForm, setPlanForm] = useState({
+    name: '', description: '', price: '', billingCycle: 'MONTHLY',
+    durationDays: '30', isTrial: false, trialDays: '',
   })
 
   const loadData = useCallback(async () => {
@@ -120,6 +131,37 @@ export default function StudioClientPlansPage() {
     finally { setSaving(false) }
   }
 
+  const handleCreatePlan = async () => {
+    if (!planForm.name || !planForm.price || !planForm.billingCycle || !planForm.durationDays) {
+      toast.error('Preencha nome, preço, ciclo e duração')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/studio/client-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: planForm.name,
+          description: planForm.description || null,
+          price: planForm.price,
+          billingCycle: planForm.billingCycle,
+          durationDays: planForm.durationDays,
+          isTrial: planForm.isTrial,
+          trialDays: planForm.trialDays || null,
+        }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        toast.success('Plano criado!')
+        setShowCreatePlanDialog(false)
+        setPlanForm({ name: '', description: '', price: '', billingCycle: 'MONTHLY', durationDays: '30', isTrial: false, trialDays: '' })
+        loadData()
+      } else toast.error(result.error)
+    } catch { toast.error('Erro') }
+    finally { setSaving(false) }
+  }
+
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR')
 
@@ -127,11 +169,12 @@ export default function StudioClientPlansPage() {
     ? clients.filter(c => c.name.toLowerCase().includes(searchClient.toLowerCase()))
     : clients
 
-  // Separate active/expired subs
   const activeSubs = subscriptions.filter(s => s.status === 'ACTIVE' && !s.isExpired)
-  const expiredSubs = subscriptions.filter(s => s.isExpired || s.status === 'EXPIRED')
   const clientsWithPlan = new Set(activeSubs.map(s => s.client.id))
   const clientsWithoutPlan = clients.filter(c => !clientsWithPlan.has(c.id))
+
+  const globalPlans = plans.filter(p => p.isGlobal || !p.studioId)
+  const studioPlans = plans.filter(p => !p.isGlobal && p.studioId)
 
   if (loading) {
     return (
@@ -145,7 +188,7 @@ export default function StudioClientPlansPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <CreditCard className="h-6 w-6 text-emerald-500" />
@@ -155,34 +198,75 @@ export default function StudioClientPlansPage() {
             {activeSubs.length} ativos · {clientsWithoutPlan.length} sem plano
           </p>
         </div>
-        <Button disabled={plans.length === 0} onClick={() => { setAssignForm({ clientId: '', planId: '', notes: '' }); setShowAssignDialog(true) }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          <UserPlus className="h-4 w-4 mr-2" /> Atribuir Plano
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { setPlanForm({ name: '', description: '', price: '', billingCycle: 'MONTHLY', durationDays: '30', isTrial: false, trialDays: '' }); setShowCreatePlanDialog(true) }}
+            variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+            <Plus className="h-4 w-4 mr-2" /> Criar Plano
+          </Button>
+          <Button disabled={plans.length === 0} onClick={() => { setAssignForm({ clientId: '', planId: '', notes: '' }); setSearchClient(''); setShowAssignDialog(true) }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <UserPlus className="h-4 w-4 mr-2" /> Atribuir Plano
+          </Button>
+        </div>
       </div>
 
-      {/* Planos disponíveis */}
-      {plans.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {plans.map(plan => (
-            <Card key={plan.id} className="bg-card border-border">
-              <CardContent className="pt-4 pb-3">
-                <p className="font-semibold text-sm">{plan.name}</p>
-                <p className="text-xl font-bold text-emerald-400 mt-1">
-                  {fmt(plan.price)}
-                  <span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span>
-                </p>
-                {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
-                <p className="text-xs text-muted-foreground mt-1"><Calendar className="h-3 w-3 inline mr-1" />{plan.durationDays} dias</p>
-                {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
+      {/* Planos do Studio */}
+      {studioPlans.length > 0 && (
+        <>
+          <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Planos do Studio</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {studioPlans.map(plan => (
+              <Card key={plan.id} className="bg-card border-emerald-500/20">
+                <CardContent className="pt-4 pb-3">
+                  <div className="flex items-start justify-between">
+                    <p className="font-semibold text-sm">{plan.name}</p>
+                    <Badge className="bg-emerald-500/10 text-emerald-400 text-[10px]">Studio</Badge>
+                  </div>
+                  <p className="text-xl font-bold text-emerald-400 mt-1">
+                    {fmt(plan.price)}
+                    <span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span>
+                  </p>
+                  {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
+                  <p className="text-xs text-muted-foreground mt-1"><Calendar className="h-3 w-3 inline mr-1" />{plan.durationDays} dias</p>
+                  {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Planos Globais */}
+      {globalPlans.length > 0 && (
+        <>
+          <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Globe className="h-4 w-4" /> Planos Globais</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {globalPlans.map(plan => (
+              <Card key={plan.id} className="bg-card border-border">
+                <CardContent className="pt-4 pb-3">
+                  <div className="flex items-start justify-between">
+                    <p className="font-semibold text-sm">{plan.name}</p>
+                    <Badge className="bg-muted text-muted-foreground text-[10px]">Global</Badge>
+                  </div>
+                  <p className="text-xl font-bold text-emerald-400 mt-1">
+                    {fmt(plan.price)}
+                    <span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span>
+                  </p>
+                  {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
+                  <p className="text-xs text-muted-foreground mt-1"><Calendar className="h-3 w-3 inline mr-1" />{plan.durationDays} dias</p>
+                  {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {plans.length === 0 && (
         <Card className="bg-card border-border"><CardContent className="py-8 text-center text-muted-foreground">
           <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          Nenhum plano disponível. Peça ao SuperAdmin para criar planos.
+          <p>Nenhum plano disponível.</p>
+          <p className="text-xs mt-1">Crie um plano clicando no botão acima.</p>
         </CardContent></Card>
       )}
 
@@ -197,7 +281,7 @@ export default function StudioClientPlansPage() {
         ))}
       </div>
 
-      {/* Alunos sem plano (alerta) */}
+      {/* Alunos sem plano */}
       {clientsWithoutPlan.length > 0 && filterStatus === 'ACTIVE' && (
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardHeader className="pb-2">
@@ -209,7 +293,7 @@ export default function StudioClientPlansPage() {
             <div className="flex flex-wrap gap-2">
               {clientsWithoutPlan.slice(0, 10).map(c => (
                 <Badge key={c.id} className="bg-muted text-muted-foreground text-xs cursor-pointer hover:bg-amber-500/20 hover:text-amber-400"
-                  onClick={() => { setAssignForm({ clientId: c.id, planId: '', notes: '' }); setShowAssignDialog(true) }}>
+                  onClick={() => { setAssignForm({ clientId: c.id, planId: '', notes: '' }); setSearchClient(''); setShowAssignDialog(true) }}>
                   {c.name}
                 </Badge>
               ))}
@@ -253,10 +337,74 @@ export default function StudioClientPlansPage() {
         </CardContent>
       </Card>
 
+      {/* Dialog Criar Plano */}
+      <Dialog open={showCreatePlanDialog} onOpenChange={setShowCreatePlanDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar Plano</DialogTitle>
+            <DialogDescription>Crie um plano personalizado para o seu studio.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={planForm.name} onChange={e => setPlanForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Mensal 3x/semana" />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input value={planForm.description} onChange={e => setPlanForm(f => ({ ...f, description: e.target.value }))} placeholder="Opcional..." />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Preço (R$) *</Label>
+                <Input type="number" step="0.01" value={planForm.price} onChange={e => setPlanForm(f => ({ ...f, price: e.target.value }))} placeholder="199.90" />
+              </div>
+              <div>
+                <Label>Ciclo *</Label>
+                <Select value={planForm.billingCycle} onValueChange={v => {
+                  const days = v === 'MONTHLY' ? '30' : v === 'YEARLY' ? '365' : planForm.durationDays
+                  setPlanForm(f => ({ ...f, billingCycle: v, durationDays: days }))
+                }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHLY">Mensal</SelectItem>
+                    <SelectItem value="YEARLY">Anual</SelectItem>
+                    <SelectItem value="CUSTOM">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Duração (dias) *</Label>
+                <Input type="number" value={planForm.durationDays} onChange={e => setPlanForm(f => ({ ...f, durationDays: e.target.value }))} />
+              </div>
+              <div className="flex items-end gap-2">
+                <label className="flex items-center gap-2 cursor-pointer pb-2">
+                  <input type="checkbox" checked={planForm.isTrial} onChange={e => setPlanForm(f => ({ ...f, isTrial: e.target.checked }))} className="rounded" />
+                  <span className="text-sm">Trial</span>
+                </label>
+                {planForm.isTrial && (
+                  <div className="flex-1">
+                    <Input type="number" value={planForm.trialDays} onChange={e => setPlanForm(f => ({ ...f, trialDays: e.target.value }))} placeholder="dias" className="h-9" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreatePlanDialog(false)}>Cancelar</Button>
+            <Button onClick={handleCreatePlan} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving ? 'Criando...' : 'Criar Plano'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog Atribuir Plano */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Atribuir Plano a Aluno</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Atribuir Plano a Aluno</DialogTitle>
+            <DialogDescription>Selecione o aluno e o plano desejado.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Aluno *</Label>
@@ -280,7 +428,12 @@ export default function StudioClientPlansPage() {
               <Select value={assignForm.planId} onValueChange={v => setAssignForm(f => ({ ...f, planId: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
-                  {plans.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {fmt(p.price)}/{CYCLE_LABELS[p.billingCycle]?.toLowerCase()}</SelectItem>)}
+                  {plans.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} — {fmt(p.price)}/{CYCLE_LABELS[p.billingCycle]?.toLowerCase()}
+                      {p.isGlobal ? ' 🌐' : ' 🏢'}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

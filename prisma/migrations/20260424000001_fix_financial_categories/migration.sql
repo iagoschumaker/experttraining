@@ -18,3 +18,7 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 -- A FK original está correta para studios reais, mas o _SUPERADMIN_ não é um studio real
 -- Vamos manter a FK mas sem restriction para o superadmin
 ALTER TABLE "financial_entries" DROP CONSTRAINT IF EXISTS "financial_entries_studio_id_fkey";
+
+-- 6. Add studio_id to client_plans (for studio-created plans, NULL = global)
+ALTER TABLE "client_plans" ADD COLUMN IF NOT EXISTS "studio_id" TEXT;
+CREATE INDEX IF NOT EXISTS "client_plans_studio_id_idx" ON "client_plans"("studio_id");
