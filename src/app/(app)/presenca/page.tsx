@@ -145,7 +145,7 @@ export default function PresencaPage() {
     async function loadClients() {
         setLoadingClients(true)
         try {
-            const res = await fetchWithAuth('/api/studio/workouts?status=ACTIVE&limit=500')
+            const res = await fetchWithAuth('/api/studio/workouts?status=ACTIVE&pageSize=500')
             const data = await res.json()
             if (data.success) {
                 const cMap = new Map<string, Client>()
