@@ -18,6 +18,7 @@ const updateStudioSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/).optional(),
   planId: z.string().min(1, 'Plano é obrigatório').optional(),
   status: z.enum(['ACTIVE', 'SUSPENDED']).optional(),
+  modules: z.array(z.string()).optional(),
   resetPassword: z.boolean().optional(),
   adminUserId: z.string().optional(),
   newPassword: z.string().min(6).optional(),
@@ -238,7 +239,7 @@ export async function PUT(
       )
     }
 
-    const { name, slug, planId, status, resetPassword, adminUserId, newPassword } = validation.data
+    const { name, slug, planId, status, modules, resetPassword, adminUserId, newPassword } = validation.data
 
     // Check slug uniqueness if changing
     if (slug && slug !== existingStudio.slug) {
@@ -261,6 +262,7 @@ export async function PUT(
         slug,
         planId,
         status,
+        modules,
       },
     })
 

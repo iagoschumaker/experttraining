@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - SUPERADMIN STUDIOS API
 // ============================================================================
 // GET /api/superadmin/studios - Lista studios
@@ -17,6 +17,7 @@ const createStudioSchema = z.object({
   slug: z.string().min(1, 'Slug é obrigatório').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
   planId: z.string().min(1, 'Plano é obrigatório'),
   status: z.enum(['ACTIVE', 'SUSPENDED']).default('ACTIVE'),
+  modules: z.array(z.string()).optional().default(['TREINO']),
   adminEmail: z.string().email('Email inválido'),
   adminPassword: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional(),
 })
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, slug, planId, status, adminEmail, adminPassword } = validation.data
+    const { name, slug, planId, status, modules, adminEmail, adminPassword } = validation.data
 
     // Check if slug already exists
     const existingStudio = await prisma.studio.findUnique({
@@ -233,6 +234,7 @@ export async function POST(request: NextRequest) {
         slug,
         planId,
         status,
+        modules,
       },
     })
 

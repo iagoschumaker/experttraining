@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
         id: studio.id,
         name: studio.name,
         status: studio.status,
+        modules: studio.modules,
         plan: studio.plan
           ? {
               name: studio.plan.name,

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 // ============================================================================
 // EXPERT PRO TRAINING - SUPERADMIN STUDIOS PAGE
@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Building2, Plus, Search, Pencil, Trash2, Users, UserCheck, ExternalLink, Calendar, Clock } from 'lucide-react'
+import { Building2, Plus, Search, Pencil, Trash2, Users, UserCheck, ExternalLink, Calendar, Clock, Boxes } from 'lucide-react'
 
 interface Studio {
   id: string
@@ -89,6 +89,7 @@ export default function SuperAdminStudiosPage() {
     status: 'ACTIVE' | 'SUSPENDED'
     adminEmail: string
     adminPassword: string
+    modules: string[]
   }>({
     name: '',
     slug: '',
@@ -96,6 +97,7 @@ export default function SuperAdminStudiosPage() {
     status: 'ACTIVE',
     adminEmail: '',
     adminPassword: '',
+    modules: ['TREINO'],
   })
 
   const [emailExists, setEmailExists] = useState(false)
@@ -176,7 +178,7 @@ export default function SuperAdminStudiosPage() {
       const data = await res.json()
       if (data.success) {
         setIsCreateOpen(false)
-        setFormData({ name: '', slug: '', planId: '', status: 'ACTIVE', adminEmail: '', adminPassword: '' })
+        setFormData({ name: '', slug: '', planId: '', status: 'ACTIVE', adminEmail: '', adminPassword: '', modules: ['TREINO'] })
         setEmailExists(false)
         setExistingUserName('')
         fetchStudios()
@@ -199,6 +201,7 @@ export default function SuperAdminStudiosPage() {
       status: studio.status,
       adminEmail: '',
       adminPassword: '',
+      modules: (studio as any).modules || ['TREINO'],
     })
     setResetPassword(false)
     setSelectedAdminId('')
@@ -237,6 +240,7 @@ export default function SuperAdminStudiosPage() {
         slug: formData.slug,
         planId: formData.planId || null,
         status: formData.status,
+        modules: formData.modules,
       }
       
       // Adicionar dados de reset de senha se marcado
@@ -337,6 +341,23 @@ export default function SuperAdminStudiosPage() {
                       </div>
                     )
                   })()}
+                </div>
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3">Módulos</h4>
+                  <div className="flex flex-wrap gap-3 mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={formData.modules.includes('TREINO')} onChange={(e) => {
+                        setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'TREINO'), 'TREINO'] : f.modules.filter(m => m !== 'TREINO') }))
+                      }} className="rounded" />
+                      <span className="text-sm">🏋️ Treino</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={formData.modules.includes('FINANCEIRO')} onChange={(e) => {
+                        setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'FINANCEIRO'), 'FINANCEIRO'] : f.modules.filter(m => m !== 'FINANCEIRO') }))
+                      }} className="rounded" />
+                      <span className="text-sm">💰 Financeiro</span>
+                    </label>
+                  </div>
                 </div>
                 <div className="border-t border-border pt-4 mt-4">
                   <h4 className="text-sm font-medium text-foreground mb-3">Administrador do Studio</h4>
@@ -571,6 +592,23 @@ export default function SuperAdminStudiosPage() {
                     <SelectItem value="SUSPENDED">Suspenso</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Módulos</Label>
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.modules.includes('TREINO')} onChange={(e) => {
+                      setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'TREINO'), 'TREINO'] : f.modules.filter(m => m !== 'TREINO') }))
+                    }} className="rounded" />
+                    <span className="text-sm">🏋️ Treino</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.modules.includes('FINANCEIRO')} onChange={(e) => {
+                      setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'FINANCEIRO'), 'FINANCEIRO'] : f.modules.filter(m => m !== 'FINANCEIRO') }))
+                    }} className="rounded" />
+                    <span className="text-sm">💰 Financeiro</span>
+                  </label>
+                </div>
               </div>
               
               {studioAdmins.length > 0 && (
