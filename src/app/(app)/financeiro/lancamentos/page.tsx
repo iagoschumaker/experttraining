@@ -36,6 +36,8 @@ import {
   Trash2,
   Edit,
   Filter,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -51,6 +53,7 @@ interface Entry {
   notes: string | null
   installment: number | null
   totalInstallments: number | null
+  recurrenceId: string | null
   category: { id: string; code: string; name: string; type: string }
   client: { id: string; name: string } | null
   unit: { id: string; name: string } | null
@@ -109,6 +112,9 @@ export default function LancamentosPage() {
     paymentMethod: '',
     notes: '',
     isPaid: false,
+    isRecurrent: false,
+    recurrenceType: 'MONTHLY',
+    recurrenceCount: '6',
   })
 
   const loadEntries = useCallback(async () => {
@@ -172,6 +178,13 @@ export default function LancamentosPage() {
         body.status = 'PAID'
       }
 
+      if (form.isRecurrent && parseInt(form.recurrenceCount) > 1) {
+        body.recurrence = {
+          type: form.recurrenceType,
+          count: parseInt(form.recurrenceCount),
+        }
+      }
+
       const res = await fetch('/api/studio/financeiro/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,6 +238,16 @@ export default function LancamentosPage() {
     }
   }
 
+  const handleCancelRecurrence = async (recurrenceId: string) => {
+    if (!confirm('Cancelar todos os lançamentos pendentes desta recorrência?')) return
+    try {
+      const res = await fetch(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
+      const result = await res.json()
+      if (result.success) { toast.success(result.message); loadEntries() }
+      else toast.error(result.error)
+    } catch { toast.error('Erro') }
+  }
+
   const resetForm = () => {
     setForm({
       type: 'DESPESA',
@@ -236,6 +259,9 @@ export default function LancamentosPage() {
       paymentMethod: '',
       notes: '',
       isPaid: false,
+      isRecurrent: false,
+      recurrenceType: 'MONTHLY',
+      recurrenceCount: '6',
     })
   }
 
@@ -330,6 +356,11 @@ export default function LancamentosPage() {
                         {entry.dueDate && ` · Venc: ${fmtDate(entry.dueDate)}`}
                       </p>
                     </div>
+                    {entry.recurrenceId && (
+                      <Badge className="bg-blue-500/20 text-blue-400 text-[10px] ml-2 flex-shrink-0">
+                        <RefreshCw className="h-3 w-3 mr-1" />· Recorrente
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 ml-2">
                     <Badge className={
@@ -356,6 +387,17 @@ export default function LancamentosPage() {
                         title="Marcar como pago"
                       >
                         <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {entry.recurrenceId && entry.status === 'PENDING' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 text-orange-500 h-7 px-2"
+                        onClick={() => handleCancelRecurrence(entry.recurrenceId!)}
+                        title="Cancelar recorrência"
+                      >
+                        <XCircle className="h-4 w-4" />
                       </Button>
                     )}
                     <Button
@@ -488,6 +530,47 @@ export default function LancamentosPage() {
               />
               <span className="text-sm">Já está pago</span>
             </label>
+
+            {/* Recorrência */}
+            <div className="border rounded-lg p-3 space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isRecurrent}
+                  onChange={e => setForm(f => ({ ...f, isRecurrent: e.target.checked }))}
+                  className="rounded"
+                />
+                <span className="text-sm flex items-center gap-1"><RefreshCw className="h-3.5 w-3.5" /> Lançamento Recorrente</span>
+              </label>
+              {form.isRecurrent && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Frequência</Label>
+                    <Select value={form.recurrenceType} onValueChange={v => setForm(f => ({ ...f, recurrenceType: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MONTHLY">Mensal</SelectItem>
+                        <SelectItem value="QUARTERLY">Trimestral</SelectItem>
+                        <SelectItem value="SEMIANNUAL">Semestral</SelectItem>
+                        <SelectItem value="YEARLY">Anual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Repetições</Label>
+                    <Select value={form.recurrenceCount} onValueChange={v => setForm(f => ({ ...f, recurrenceCount: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">3 vezes</SelectItem>
+                        <SelectItem value="6">6 vezes</SelectItem>
+                        <SelectItem value="12">12 vezes</SelectItem>
+                        <SelectItem value="24">24 vezes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Observações */}
             <div>

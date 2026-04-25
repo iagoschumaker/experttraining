@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
+import { parseLocalDate } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
@@ -33,6 +34,26 @@ export async function GET(request: NextRequest) {
       orderBy: { endDate: 'desc' },
     })
 
+    // Check payments for current month
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+
+    const clientIds = subscriptions.map(s => s.clientId)
+    const payments = clientIds.length > 0 ? await prisma.financialEntry.findMany({
+      where: {
+        studioId: auth.studioId,
+        clientId: { in: clientIds },
+        type: 'RECEITA',
+        status: 'PAID',
+        description: { contains: 'Mensalidade' },
+        date: { gte: monthStart, lt: monthEnd },
+      },
+      select: { clientId: true, paidAt: true },
+    }) : []
+
+    const paidClientIds = new Set(payments.map(p => p.clientId))
+
     return NextResponse.json({
       success: true,
       data: subscriptions.map(s => ({
@@ -40,6 +61,8 @@ export async function GET(request: NextRequest) {
         price: parseFloat(s.price.toString()),
         plan: { ...s.plan, price: parseFloat(s.plan.price.toString()) },
         isExpired: s.endDate < new Date() && s.status === 'ACTIVE',
+        isPaidThisMonth: paidClientIds.has(s.clientId),
+        lastPaymentDate: payments.find(p => p.clientId === s.clientId)?.paidAt?.toISOString() || null,
       })),
     })
   } catch (error) {
@@ -102,7 +125,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Calcular datas
-    const start = startDate ? new Date(startDate) : new Date()
+    const start = startDate ? parseLocalDate(startDate) : new Date()
     const end = new Date(start)
     end.setDate(end.getDate() + plan.durationDays)
 

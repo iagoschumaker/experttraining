@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
+import { parseLocalDate } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (installments && installments.total > 1) {
       const recurrenceId = `REC-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       const installmentAmount = parseFloat(amount) / installments.total
-      const startDate = new Date(installments.startDate || date)
+      const startDate = parseLocalDate(installments.startDate || date)
       const entries = []
 
       for (let i = 0; i < installments.total; i++) {
@@ -152,6 +153,55 @@ export async function POST(request: NextRequest) {
       }, { status: 201 })
     }
 
+    // Se recorrente, criar múltiplos lançamentos futuros
+    const recurrence = body.recurrence // { type: MONTHLY|QUARTERLY|SEMIANNUAL|YEARLY, count: number }
+    if (recurrence && recurrence.count > 1) {
+      const recurrenceId = `REC-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      const recAmount = parseFloat(amount)
+      const startDt = parseLocalDate(date)
+      const entries = []
+
+      const monthsPerCycle: Record<string, number> = {
+        MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, YEARLY: 12,
+      }
+      const step = monthsPerCycle[recurrence.type] || 1
+
+      for (let i = 0; i < recurrence.count; i++) {
+        const entryDate = new Date(startDt)
+        entryDate.setMonth(entryDate.getMonth() + (i * step))
+        const entryDueDate = dueDate ? new Date(parseLocalDate(dueDate)) : new Date(entryDate)
+        if (i > 0 && dueDate) entryDueDate.setMonth(entryDueDate.getMonth() + (i * step))
+
+        const entry = await prisma.financialEntry.create({
+          data: {
+            studioId,
+            categoryId,
+            clientId: clientId || null,
+            unitId: unitId || null,
+            type,
+            description: `${description} (${i + 1}/${recurrence.count})`,
+            amount: recAmount,
+            date: entryDate,
+            dueDate: entryDueDate,
+            status: i === 0 ? (body.status || 'PENDING') : 'PENDING',
+            paymentMethod: paymentMethod || null,
+            recurrenceId,
+            installment: i + 1,
+            totalInstallments: recurrence.count,
+            notes,
+            createdById: userId,
+          } as any,
+          include: { category: { select: { id: true, code: true, name: true } } },
+        })
+        entries.push(entry)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: entries.map(e => ({ ...e, amount: parseFloat(e.amount.toString()) })),
+        message: `${recurrence.count} lançamentos recorrentes criados`,
+      }, { status: 201 })
+    }
     // Lançamento simples
     const status = body.status || (dueDate && new Date(dueDate) > new Date() ? 'PENDING' : 'PENDING')
     const paidAt = body.paidAt || (paymentMethod ? new Date() : null)
@@ -166,8 +216,8 @@ export async function POST(request: NextRequest) {
         type,
         description,
         amount: parseFloat(amount),
-        date: new Date(date),
-        dueDate: dueDate ? new Date(dueDate) : null,
+        date: parseLocalDate(date),
+        dueDate: dueDate ? parseLocalDate(dueDate) : null,
         paidAt: paidAt ? new Date(paidAt) : null,
         status: finalStatus,
         paymentMethod: paymentMethod || null,

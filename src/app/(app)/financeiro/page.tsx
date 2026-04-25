@@ -18,9 +18,12 @@ import {
   ArrowDownRight,
   Clock,
   CheckCircle,
+  FileDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { generateMonthlyReportPDF } from '@/lib/financial-pdf-generator'
 
 interface DashboardData {
   period: { month: number; year: number }
@@ -120,14 +123,37 @@ export default function FinanceiroDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <DollarSign className="h-6 w-6 text-emerald-500" />
-          Dashboard Financeiro
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {monthNames[(data.period.month || 1) - 1]} de {data.period.year}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <DollarSign className="h-6 w-6 text-emerald-500" />
+            Dashboard Financeiro
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {monthNames[(data.period.month || 1) - 1]} de {data.period.year}
+          </p>
+        </div>
+        <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+          onClick={async () => {
+            try {
+              const entriesRes = await fetch(`/api/studio/financeiro/entries?limit=200&page=1`)
+              const entriesData = await entriesRes.json()
+              const allEntries = entriesData.success ? entriesData.data.entries : []
+              await generateMonthlyReportPDF({
+                studio: { name: 'Studio' },
+                month: data.period.month, year: data.period.year,
+                totalReceita: summary.totalReceita, totalDespesa: summary.totalDespesa,
+                totalCusto: 0, lucroBruto: summary.lucro, lucroLiquido: summary.lucro,
+                entries: allEntries.map((e: any) => ({
+                  description: e.description, type: e.type, amount: e.amount,
+                  date: e.date, status: e.status, category: e.category?.name || '',
+                })),
+                topCategories: [],
+              })
+            } catch { toast.error('Erro ao gerar relatório') }
+          }}>
+          <FileDown className="h-4 w-4 mr-2" /> Relatório PDF
+        </Button>
       </div>
 
       {/* Stats Cards */}

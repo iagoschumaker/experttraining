@@ -15,9 +15,10 @@ import {
 } from '@/components/ui/select'
 import {
   CreditCard, UserPlus, Calendar, Clock, CheckCircle, AlertCircle,
-  Search, Plus, Globe, Building2, Trash2, Edit, X, Users,
+  Search, Plus, Globe, Building2, Trash2, Edit, X, Users, FileDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { generatePaymentReceiptPDF, generateInvoicePDF } from '@/lib/financial-pdf-generator'
 
 interface Plan {
   id: string; name: string; price: number; billingCycle: string
@@ -26,7 +27,7 @@ interface Plan {
 }
 interface Subscription {
   id: string; status: string; startDate: string; endDate: string; price: number
-  isExpired: boolean; notes?: string | null
+  isExpired: boolean; isPaidThisMonth?: boolean; lastPaymentDate?: string | null; notes?: string | null
   client: { id: string; name: string; email?: string }
   plan: { id: string; name: string; price: number; billingCycle: string; durationDays: number }
 }
@@ -52,6 +53,9 @@ export default function StudioClientPlansPage() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState('ACTIVE')
+  const [payingSubId, setPayingSubId] = useState<string | null>(null)
+  const [showPayDialog, setShowPayDialog] = useState(false)
+  const [payMethod, setPayMethod] = useState('PIX')
 
   // Assign form - search like presenca
   const [assignSearch, setAssignSearch] = useState('')
@@ -138,6 +142,34 @@ export default function StudioClientPlansPage() {
       const res = await fetch(`/api/studio/client-plans/${plan.id}`, { method: 'DELETE' })
       const result = await res.json()
       if (result.success) { toast.success(result.message || 'Excluído!'); loadData() }
+      else toast.error(result.error)
+    } catch { toast.error('Erro') }
+  }
+
+  // Pay subscription
+  const handlePay = async () => {
+    if (!payingSubId) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/studio/client-subscriptions/${payingSubId}/pay`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethod: payMethod }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        toast.success(result.message || 'Pagamento registrado!')
+        setShowPayDialog(false); setPayingSubId(null); loadData()
+      } else toast.error(result.error)
+    } catch { toast.error('Erro') }
+    finally { setSaving(false) }
+  }
+
+  const handleReversePay = async (subId: string) => {
+    if (!confirm('Estornar pagamento deste mês?')) return
+    try {
+      const res = await fetch(`/api/studio/client-subscriptions/${subId}/pay`, { method: 'DELETE' })
+      const result = await res.json()
+      if (result.success) { toast.success('Pagamento estornado'); loadData() }
       else toast.error(result.error)
     } catch { toast.error('Erro') }
   }
@@ -303,29 +335,103 @@ export default function StudioClientPlansPage() {
             <p className="text-center py-8 text-muted-foreground text-sm">Nenhuma assinatura encontrada</p>
           ) : (
             <div className="space-y-1">
-              {subscriptions.map(sub => (
-                <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${sub.isExpired ? 'bg-red-500/10' : 'bg-emerald-500/10'}`}>
-                      {sub.isExpired ? <Clock className="h-4 w-4 text-red-500" /> : <CheckCircle className="h-4 w-4 text-emerald-500" />}
+              {subscriptions.map(sub => {
+                const isPaid = sub.isPaidThisMonth
+                const isOverdue = !isPaid && sub.status === 'ACTIVE' && !sub.isExpired && new Date().getDate() > 10
+                return (
+                  <div key={sub.id} className={`flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group ${isOverdue ? 'bg-red-500/5' : ''}`}>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${sub.isExpired ? 'bg-red-500/10' : isPaid ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+                        {sub.isExpired ? <Clock className="h-4 w-4 text-red-500" /> : isPaid ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-amber-500" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{sub.client.name}</p>
+                        <p className="text-xs text-muted-foreground">{sub.plan.name} · {fmtDate(sub.startDate)} → {fmtDate(sub.endDate)}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{sub.client.name}</p>
-                      <p className="text-xs text-muted-foreground">{sub.plan.name} · {fmtDate(sub.startDate)} → {fmtDate(sub.endDate)}</p>
+                    <div className="flex items-center gap-2 ml-2">
+                      {sub.status === 'ACTIVE' && !sub.isExpired && (
+                        isPaid ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 cursor-pointer hover:bg-red-500/20 hover:text-red-400"
+                            onClick={() => handleReversePay(sub.id)} title="Clique para estornar">
+                            ✅ Pago
+                          </Badge>
+                        ) : (
+                          <Button size="sm" className="h-7 bg-amber-600 hover:bg-amber-700 text-xs"
+                            onClick={() => { setPayingSubId(sub.id); setPayMethod('PIX'); setShowPayDialog(true) }}>
+                            💰 Pagar
+                          </Button>
+                        )
+                      )}
+                      <Badge className={STATUS_LABELS[sub.isExpired ? 'EXPIRED' : sub.status]?.color || ''}>
+                        {sub.isExpired ? 'Vencido' : STATUS_LABELS[sub.status]?.label || sub.status}
+                      </Badge>
+                      {sub.status === 'ACTIVE' && !sub.isExpired && (
+                        isPaid ? (
+                          <button onClick={() => {
+                            const now = new Date()
+                            generatePaymentReceiptPDF({
+                              studio: { name: 'Studio' }, clientName: sub.client.name,
+                              planName: sub.plan.name, amount: sub.price,
+                              paymentMethod: 'PIX', paymentDate: sub.lastPaymentDate || now.toISOString(),
+                              period: `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`,
+                              receiptId: sub.id.slice(-8),
+                            }).catch(() => toast.error('Erro ao gerar PDF'))
+                          }} className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted transition-opacity" title="Comprovante">
+                            <FileDown className="h-3.5 w-3.5 text-emerald-500" />
+                          </button>
+                        ) : (
+                          <button onClick={() => {
+                            const now = new Date()
+                            generateInvoicePDF({
+                              studio: { name: 'Studio' }, clientName: sub.client.name,
+                              planName: sub.plan.name, amount: sub.price,
+                              dueDate: new Date(now.getFullYear(), now.getMonth(), 10).toISOString(),
+                              period: `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`,
+                              invoiceNumber: `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${sub.id.slice(-4)}`,
+                            }).catch(() => toast.error('Erro ao gerar PDF'))
+                          }} className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted transition-opacity" title="Gerar Cobrança">
+                            <FileDown className="h-3.5 w-3.5 text-amber-500" />
+                          </button>
+                        )
+                      )}
+                      <span className="text-sm font-medium text-emerald-400 min-w-[80px] text-right">{fmt(sub.price)}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <Badge className={STATUS_LABELS[sub.isExpired ? 'EXPIRED' : sub.status]?.color || ''}>
-                      {sub.isExpired ? 'Vencido' : STATUS_LABELS[sub.status]?.label || sub.status}
-                    </Badge>
-                    <span className="text-sm font-medium text-emerald-400 min-w-[80px] text-right">{fmt(sub.price)}</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Pay Dialog */}
+      <Dialog open={showPayDialog} onOpenChange={setShowPayDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Registrar Pagamento</DialogTitle>
+            <DialogDescription>Selecione o método de pagamento.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Método de pagamento</Label>
+            <Select value={payMethod} onValueChange={setPayMethod}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PIX">PIX</SelectItem>
+                <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
+                <SelectItem value="CARTAO_CREDITO">Cartão Crédito</SelectItem>
+                <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+                <SelectItem value="BOLETO">Boleto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPayDialog(false)}>Cancelar</Button>
+            <Button onClick={handlePay} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving ? 'Salvando...' : 'Confirmar Pagamento'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog Create/Edit Plan */}
       <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>

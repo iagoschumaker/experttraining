@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
+import { parseLocalDate } from '@/lib/date-utils'
 
 const SUPERADMIN_STUDIO_ID = '_SUPERADMIN_'
 
@@ -86,8 +87,8 @@ export async function POST(request: NextRequest) {
         type,
         description,
         amount: parseFloat(amount),
-        date: new Date(date),
-        dueDate: dueDate ? new Date(dueDate) : null,
+        date: parseLocalDate(date),
+        dueDate: dueDate ? parseLocalDate(dueDate) : null,
         paidAt,
         status: finalStatus,
         paymentMethod: paymentMethod || null,

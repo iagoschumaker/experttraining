@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
+import { parseLocalDate } from '@/lib/date-utils'
 
 export async function GET(
   request: NextRequest,
@@ -74,8 +75,8 @@ export async function PUT(
     if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
     if (body.description !== undefined) updateData.description = body.description
     if (body.amount !== undefined) updateData.amount = parseFloat(body.amount)
-    if (body.date !== undefined) updateData.date = new Date(body.date)
-    if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null
+    if (body.date !== undefined) updateData.date = parseLocalDate(body.date)
+    if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? parseLocalDate(body.dueDate) : null
     if (body.paymentMethod !== undefined) updateData.paymentMethod = body.paymentMethod || null
     if (body.clientId !== undefined) updateData.clientId = body.clientId || null
     if (body.unitId !== undefined) updateData.unitId = body.unitId || null
