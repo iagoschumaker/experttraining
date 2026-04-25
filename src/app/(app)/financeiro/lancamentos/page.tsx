@@ -38,6 +38,8 @@ import {
   Filter,
   RefreshCw,
   XCircle,
+  Undo2,
+  Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -224,6 +226,23 @@ export default function LancamentosPage() {
     }
   }
 
+  const handleRevertToPending = async (id: string) => {
+    try {
+      const res = await fetch(`/api/studio/financeiro/entries/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PENDING' }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        toast.success('Revertido para pendente')
+        loadEntries()
+      }
+    } catch {
+      toast.error('Erro')
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este lançamento?')) return
     try {
@@ -321,101 +340,132 @@ export default function LancamentosPage() {
         </Select>
       </div>
 
-      {/* Lista */}
-      <Card className="bg-card border-border">
-        <CardContent className="pt-4">
-          {loading ? (
-            <div className="space-y-3">
-              {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14" />)}
-            </div>
-          ) : entries.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Nenhum lançamento encontrado</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {entries.map(entry => (
-                <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`p-1.5 rounded-md flex-shrink-0 ${
-                      entry.type === 'RECEITA' ? 'bg-emerald-500/10' : 'bg-red-500/10'
-                    }`}>
-                      {entry.type === 'RECEITA'
-                        ? <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                        : <ArrowDownRight className="h-4 w-4 text-red-500" />
-                      }
+      {/* Lista agrupada por mês */}
+      {loading ? (
+        <Card className="bg-card border-border"><CardContent className="pt-4">
+          <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14" />)}</div>
+        </CardContent></Card>
+      ) : entries.length === 0 ? (
+        <Card className="bg-card border-border"><CardContent className="pt-4">
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p>Nenhum lançamento encontrado</p>
+          </div>
+        </CardContent></Card>
+      ) : (
+        (() => {
+          const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+          const grouped: Record<string, Entry[]> = {}
+          for (const entry of entries) {
+            const d = new Date(entry.date)
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+            if (!grouped[key]) grouped[key] = []
+            grouped[key].push(entry)
+          }
+          const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
+
+          return sortedKeys.map(key => {
+            const [yr, mo] = key.split('-').map(Number)
+            const monthEntries = grouped[key]
+            const monthReceita = monthEntries.filter(e => e.type === 'RECEITA' && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
+            const monthDespesa = monthEntries.filter(e => e.type === 'DESPESA' && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
+
+            return (
+              <Card key={key} className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-blue-400" />
+                      {MONTH_NAMES[mo - 1]} {yr}
+                      <Badge className="bg-muted text-muted-foreground text-[10px] ml-1">{monthEntries.length}</Badge>
+                    </CardTitle>
+                    <div className="flex gap-3 text-xs">
+                      <span className="text-emerald-400 font-semibold">+{fmt(monthReceita)}</span>
+                      <span className="text-red-400 font-semibold">-{fmt(monthDespesa)}</span>
+                      <span className={`font-bold ${monthReceita - monthDespesa >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                        = {fmt(monthReceita - monthDespesa)}
+                      </span>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{entry.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {entry.category.code} - {entry.category.name}
-                        {entry.client && ` · ${entry.client.name}`}
-                        {entry.installment && ` · ${entry.installment}/${entry.totalInstallments}`}
-                        {' · '}{fmtDate(entry.date)}
-                        {entry.dueDate && ` · Venc: ${fmtDate(entry.dueDate)}`}
-                      </p>
-                    </div>
-                    {entry.recurrenceId && (
-                      <Badge className="bg-blue-500/20 text-blue-400 text-[10px] ml-2 flex-shrink-0">
-                        <RefreshCw className="h-3 w-3 mr-1" />· Recorrente
-                      </Badge>
-                    )}
                   </div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <Badge className={
-                      entry.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
-                      entry.status === 'OVERDUE' ? 'bg-red-500/20 text-red-400' :
-                      entry.status === 'CANCELED' ? 'bg-muted text-muted-foreground' :
-                      'bg-amber-500/20 text-amber-400'
-                    }>
-                      {entry.status === 'PAID' ? 'Pago' :
-                       entry.status === 'OVERDUE' ? 'Vencido' :
-                       entry.status === 'CANCELED' ? 'Cancelado' : 'Pendente'}
-                    </Badge>
-                    <span className={`text-sm font-semibold whitespace-nowrap min-w-[90px] text-right ${
-                      entry.type === 'RECEITA' ? 'text-emerald-400' : 'text-red-400'
-                    }`}>
-                      {entry.type === 'DESPESA' ? '-' : '+'}{fmt(entry.amount)}
-                    </span>
-                    {entry.status === 'PENDING' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 text-emerald-500 h-7 px-2"
-                        onClick={() => handleMarkPaid(entry.id)}
-                        title="Marcar como pago"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {entry.recurrenceId && entry.status === 'PENDING' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 text-orange-500 h-7 px-2"
-                        onClick={() => handleCancelRecurrence(entry.recurrenceId!)}
-                        title="Cancelar recorrência"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 text-red-500 h-7 px-2"
-                      onClick={() => handleDelete(entry.id)}
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-0.5">
+                    {monthEntries.map(entry => (
+                      <div key={entry.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 group">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`p-1.5 rounded-md flex-shrink-0 ${entry.type === 'RECEITA' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                            {entry.type === 'RECEITA'
+                              ? <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                              : <ArrowDownRight className="h-4 w-4 text-red-500" />
+                            }
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{entry.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {entry.category.code} - {entry.category.name}
+                              {entry.client && ` · ${entry.client.name}`}
+                              {entry.installment && ` · ${entry.installment}/${entry.totalInstallments}`}
+                              {' · '}{fmtDate(entry.date)}
+                              {entry.dueDate && ` · Venc: ${fmtDate(entry.dueDate)}`}
+                            </p>
+                          </div>
+                          {entry.recurrenceId && (
+                            <Badge className="bg-blue-500/20 text-blue-400 text-[10px] ml-2 flex-shrink-0">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Recorrente
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 ml-2">
+                          {/* Status badge */}
+                          <Badge className={
+                            entry.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
+                            entry.status === 'OVERDUE' ? 'bg-red-500/20 text-red-400' :
+                            entry.status === 'CANCELED' ? 'bg-muted text-muted-foreground' :
+                            'bg-amber-500/20 text-amber-400'
+                          }>
+                            {entry.status === 'PAID' ? 'Pago' :
+                             entry.status === 'OVERDUE' ? 'Vencido' :
+                             entry.status === 'CANCELED' ? 'Cancelado' : 'Pendente'}
+                          </Badge>
+                          {/* Valor */}
+                          <span className={`text-sm font-semibold whitespace-nowrap min-w-[90px] text-right ${
+                            entry.type === 'RECEITA' ? 'text-emerald-400' : 'text-red-400'
+                          }`}>
+                            {entry.type === 'DESPESA' ? '-' : '+'}{fmt(entry.amount)}
+                          </span>
+                          {/* Ações sempre visíveis */}
+                          {entry.status === 'PENDING' && (
+                            <Button size="sm" className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-xs"
+                              onClick={() => handleMarkPaid(entry.id)} title="Marcar como pago">
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
+                            </Button>
+                          )}
+                          {entry.status === 'PAID' && (
+                            <Button size="sm" variant="outline" className="h-7 px-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs"
+                              onClick={() => handleRevertToPending(entry.id)} title="Voltar para pendente">
+                              <Undo2 className="h-3.5 w-3.5 mr-1" /> Desfazer
+                            </Button>
+                          )}
+                          {entry.recurrenceId && entry.status === 'PENDING' && (
+                            <Button variant="ghost" size="sm" className="h-7 px-1.5 text-orange-500"
+                              onClick={() => handleCancelRecurrence(entry.recurrenceId!)} title="Cancelar recorrência">
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-red-500 opacity-0 group-hover:opacity-100"
+                            onClick={() => handleDelete(entry.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
+            )
+          })
+        })()
+      )}
 
       {/* Dialog Novo Lançamento */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
