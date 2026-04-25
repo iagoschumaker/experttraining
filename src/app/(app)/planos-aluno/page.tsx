@@ -1,11 +1,5 @@
 'use client'
 
-// ============================================================================
-// EXPERT PRO TRAINING — STUDIO: PLANOS DE ALUNO
-// ============================================================================
-// Permite ao Studio criar planos, ver planos disponíveis e atribuir a alunos
-// ============================================================================
-
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,32 +8,14 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  CreditCard,
-  UserPlus,
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Search,
-  Plus,
-  Globe,
-  Building2,
-  Trash2,
+  CreditCard, UserPlus, Calendar, Clock, CheckCircle, AlertCircle,
+  Search, Plus, Globe, Building2, Trash2, Edit, X, Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -48,17 +24,13 @@ interface Plan {
   durationDays: number; description?: string | null; isTrial: boolean
   trialDays?: number | null; isGlobal?: boolean; studioId?: string | null
 }
-
 interface Subscription {
   id: string; status: string; startDate: string; endDate: string; price: number
   isExpired: boolean; notes?: string | null
   client: { id: string; name: string; email?: string }
   plan: { id: string; name: string; price: number; billingCycle: string; durationDays: number }
 }
-
-interface Client {
-  id: string; name: string; email?: string
-}
+interface Client { id: string; name: string; email?: string }
 
 const CYCLE_LABELS: Record<string, string> = { MONTHLY: 'Mensal', YEARLY: 'Anual', CUSTOM: 'Custom' }
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -68,20 +40,25 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PAUSED: { label: 'Pausado', color: 'bg-amber-500/20 text-amber-400' },
 }
 
+const initials = (name: string) => name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+
 export default function StudioClientPlansPage() {
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<Plan[]>([])
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [showAssignDialog, setShowAssignDialog] = useState(false)
-  const [showCreatePlanDialog, setShowCreatePlanDialog] = useState(false)
+  const [showPlanDialog, setShowPlanDialog] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState('ACTIVE')
-  const [searchClient, setSearchClient] = useState('')
 
-  const [assignForm, setAssignForm] = useState({
-    clientId: '', planId: '', notes: '',
-  })
+  // Assign form - search like presenca
+  const [assignSearch, setAssignSearch] = useState('')
+  const [assignClientId, setAssignClientId] = useState('')
+  const [assignClientName, setAssignClientName] = useState('')
+  const [assignPlanId, setAssignPlanId] = useState('')
+  const [assignNotes, setAssignNotes] = useState('')
 
   const [planForm, setPlanForm] = useState({
     name: '', description: '', price: '', billingCycle: 'MONTHLY',
@@ -108,73 +85,100 @@ export default function StudioClientPlansPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
+  // Assign plan
   const handleAssign = async () => {
-    if (!assignForm.clientId || !assignForm.planId) {
-      toast.error('Selecione aluno e plano')
-      return
-    }
+    if (!assignClientId || !assignPlanId) { toast.error('Selecione aluno e plano'); return }
     setSaving(true)
     try {
       const res = await fetch('/api/studio/client-subscriptions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assignForm),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: assignClientId, planId: assignPlanId, notes: assignNotes }),
       })
       const result = await res.json()
       if (result.success) {
-        toast.success(result.message || 'Plano atribuído!')
+        toast.success('Plano atribuído!')
         setShowAssignDialog(false)
-        setAssignForm({ clientId: '', planId: '', notes: '' })
         loadData()
       } else toast.error(result.error)
     } catch { toast.error('Erro') }
     finally { setSaving(false) }
   }
 
-  const handleCreatePlan = async () => {
-    if (!planForm.name || !planForm.price || !planForm.billingCycle || !planForm.durationDays) {
-      toast.error('Preencha nome, preço, ciclo e duração')
-      return
+  // Create/Edit plan
+  const handleSavePlan = async () => {
+    if (!planForm.name || !planForm.price || !planForm.durationDays) {
+      toast.error('Preencha nome, preço e duração'); return
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/studio/client-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const url = editingPlan ? `/api/studio/client-plans/${editingPlan.id}` : '/api/studio/client-plans'
+      const method = editingPlan ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: planForm.name,
-          description: planForm.description || null,
-          price: planForm.price,
-          billingCycle: planForm.billingCycle,
-          durationDays: planForm.durationDays,
-          isTrial: planForm.isTrial,
+          name: planForm.name, description: planForm.description || null,
+          price: planForm.price, billingCycle: planForm.billingCycle,
+          durationDays: planForm.durationDays, isTrial: planForm.isTrial,
           trialDays: planForm.trialDays || null,
         }),
       })
       const result = await res.json()
       if (result.success) {
-        toast.success('Plano criado!')
-        setShowCreatePlanDialog(false)
-        setPlanForm({ name: '', description: '', price: '', billingCycle: 'MONTHLY', durationDays: '30', isTrial: false, trialDays: '' })
-        loadData()
+        toast.success(editingPlan ? 'Plano atualizado!' : 'Plano criado!')
+        setShowPlanDialog(false); setEditingPlan(null); loadData()
       } else toast.error(result.error)
     } catch { toast.error('Erro') }
     finally { setSaving(false) }
   }
 
+  // Delete plan
+  const handleDeletePlan = async (plan: Plan) => {
+    if (!confirm(`Excluir o plano "${plan.name}"?`)) return
+    try {
+      const res = await fetch(`/api/studio/client-plans/${plan.id}`, { method: 'DELETE' })
+      const result = await res.json()
+      if (result.success) { toast.success(result.message || 'Excluído!'); loadData() }
+      else toast.error(result.error)
+    } catch { toast.error('Erro') }
+  }
+
+  const openEditPlan = (plan: Plan) => {
+    setEditingPlan(plan)
+    setPlanForm({
+      name: plan.name, description: plan.description || '',
+      price: String(plan.price), billingCycle: plan.billingCycle,
+      durationDays: String(plan.durationDays), isTrial: plan.isTrial,
+      trialDays: plan.trialDays ? String(plan.trialDays) : '',
+    })
+    setShowPlanDialog(true)
+  }
+
+  const openCreatePlan = () => {
+    setEditingPlan(null)
+    setPlanForm({ name: '', description: '', price: '', billingCycle: 'MONTHLY', durationDays: '30', isTrial: false, trialDays: '' })
+    setShowPlanDialog(true)
+  }
+
+  const openAssignDialog = (preselectedClientId?: string, preselectedName?: string) => {
+    setAssignClientId(preselectedClientId || '')
+    setAssignClientName(preselectedName || '')
+    setAssignPlanId(''); setAssignNotes(''); setAssignSearch('')
+    setShowAssignDialog(true)
+  }
+
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR')
-
-  const filteredClients = searchClient
-    ? clients.filter(c => c.name.toLowerCase().includes(searchClient.toLowerCase()))
-    : clients
 
   const activeSubs = subscriptions.filter(s => s.status === 'ACTIVE' && !s.isExpired)
   const clientsWithPlan = new Set(activeSubs.map(s => s.client.id))
   const clientsWithoutPlan = clients.filter(c => !clientsWithPlan.has(c.id))
-
-  const globalPlans = plans.filter(p => p.isGlobal || !p.studioId)
   const studioPlans = plans.filter(p => !p.isGlobal && p.studioId)
+  const globalPlans = plans.filter(p => p.isGlobal || !p.studioId)
+
+  // Filtered clients for assign dialog (like presenca pattern)
+  const filteredAssignClients = assignSearch
+    ? clients.filter(c => c.name.toLowerCase().includes(assignSearch.toLowerCase()))
+    : clients
 
   if (loading) {
     return (
@@ -188,44 +192,40 @@ export default function StudioClientPlansPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <CreditCard className="h-6 w-6 text-emerald-500" />
-            Planos de Aluno
+            <CreditCard className="h-6 w-6 text-emerald-500" /> Planos de Aluno
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {activeSubs.length} ativos · {clientsWithoutPlan.length} sem plano
-          </p>
+          <p className="text-sm text-muted-foreground">{activeSubs.length} ativos · {clientsWithoutPlan.length} sem plano</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => { setPlanForm({ name: '', description: '', price: '', billingCycle: 'MONTHLY', durationDays: '30', isTrial: false, trialDays: '' }); setShowCreatePlanDialog(true) }}
-            variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+          <Button onClick={openCreatePlan} variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
             <Plus className="h-4 w-4 mr-2" /> Criar Plano
           </Button>
-          <Button disabled={plans.length === 0} onClick={() => { setAssignForm({ clientId: '', planId: '', notes: '' }); setSearchClient(''); setShowAssignDialog(true) }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button disabled={plans.length === 0} onClick={() => openAssignDialog()} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <UserPlus className="h-4 w-4 mr-2" /> Atribuir Plano
           </Button>
         </div>
       </div>
 
-      {/* Planos do Studio */}
+      {/* Studio Plans */}
       {studioPlans.length > 0 && (
         <>
           <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Planos do Studio</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {studioPlans.map(plan => (
-              <Card key={plan.id} className="bg-card border-emerald-500/20">
+              <Card key={plan.id} className="bg-card border-emerald-500/20 group">
                 <CardContent className="pt-4 pb-3">
                   <div className="flex items-start justify-between">
                     <p className="font-semibold text-sm">{plan.name}</p>
-                    <Badge className="bg-emerald-500/10 text-emerald-400 text-[10px]">Studio</Badge>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEditPlan(plan)} className="p-1 rounded hover:bg-muted"><Edit className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                      <button onClick={() => handleDeletePlan(plan)} className="p-1 rounded hover:bg-muted"><Trash2 className="h-3.5 w-3.5 text-red-500" /></button>
+                    </div>
                   </div>
-                  <p className="text-xl font-bold text-emerald-400 mt-1">
-                    {fmt(plan.price)}
-                    <span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span>
-                  </p>
+                  <p className="text-xl font-bold text-emerald-400 mt-1">{fmt(plan.price)}<span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span></p>
                   {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
                   <p className="text-xs text-muted-foreground mt-1"><Calendar className="h-3 w-3 inline mr-1" />{plan.durationDays} dias</p>
                   {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
@@ -236,7 +236,7 @@ export default function StudioClientPlansPage() {
         </>
       )}
 
-      {/* Planos Globais */}
+      {/* Global Plans */}
       {globalPlans.length > 0 && (
         <>
           <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Globe className="h-4 w-4" /> Planos Globais</h2>
@@ -248,13 +248,9 @@ export default function StudioClientPlansPage() {
                     <p className="font-semibold text-sm">{plan.name}</p>
                     <Badge className="bg-muted text-muted-foreground text-[10px]">Global</Badge>
                   </div>
-                  <p className="text-xl font-bold text-emerald-400 mt-1">
-                    {fmt(plan.price)}
-                    <span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span>
-                  </p>
+                  <p className="text-xl font-bold text-emerald-400 mt-1">{fmt(plan.price)}<span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span></p>
                   {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
                   <p className="text-xs text-muted-foreground mt-1"><Calendar className="h-3 w-3 inline mr-1" />{plan.durationDays} dias</p>
-                  {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
                 </CardContent>
               </Card>
             ))}
@@ -270,18 +266,16 @@ export default function StudioClientPlansPage() {
         </CardContent></Card>
       )}
 
-      {/* Filtros */}
+      {/* Filters */}
       <div className="flex gap-2">
         {['ACTIVE', 'EXPIRED', 'CANCELED'].map(s => (
           <Button key={s} variant={filterStatus === s ? 'default' : 'outline'} size="sm"
             className={filterStatus === s ? 'bg-emerald-600 text-white' : ''}
-            onClick={() => setFilterStatus(s)}>
-            {STATUS_LABELS[s]?.label || s}
-          </Button>
+            onClick={() => setFilterStatus(s)}>{STATUS_LABELS[s]?.label || s}</Button>
         ))}
       </div>
 
-      {/* Alunos sem plano */}
+      {/* Students without plan */}
       {clientsWithoutPlan.length > 0 && filterStatus === 'ACTIVE' && (
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardHeader className="pb-2">
@@ -293,9 +287,7 @@ export default function StudioClientPlansPage() {
             <div className="flex flex-wrap gap-2">
               {clientsWithoutPlan.slice(0, 10).map(c => (
                 <Badge key={c.id} className="bg-muted text-muted-foreground text-xs cursor-pointer hover:bg-amber-500/20 hover:text-amber-400"
-                  onClick={() => { setAssignForm({ clientId: c.id, planId: '', notes: '' }); setSearchClient(''); setShowAssignDialog(true) }}>
-                  {c.name}
-                </Badge>
+                  onClick={() => openAssignDialog(c.id, c.name)}>{c.name}</Badge>
               ))}
               {clientsWithoutPlan.length > 10 && <Badge className="bg-muted text-muted-foreground text-xs">+{clientsWithoutPlan.length - 10} mais</Badge>}
             </div>
@@ -303,7 +295,7 @@ export default function StudioClientPlansPage() {
         </Card>
       )}
 
-      {/* Assinaturas */}
+      {/* Subscriptions */}
       <Card className="bg-card border-border">
         <CardHeader><CardTitle className="text-base">Assinaturas</CardTitle></CardHeader>
         <CardContent>
@@ -319,9 +311,7 @@ export default function StudioClientPlansPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{sub.client.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {sub.plan.name} · {fmtDate(sub.startDate)} → {fmtDate(sub.endDate)}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{sub.plan.name} · {fmtDate(sub.startDate)} → {fmtDate(sub.endDate)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-2">
@@ -337,27 +327,18 @@ export default function StudioClientPlansPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog Criar Plano */}
-      <Dialog open={showCreatePlanDialog} onOpenChange={setShowCreatePlanDialog}>
+      {/* Dialog Create/Edit Plan */}
+      <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Criar Plano</DialogTitle>
-            <DialogDescription>Crie um plano personalizado para o seu studio.</DialogDescription>
+            <DialogTitle>{editingPlan ? 'Editar Plano' : 'Criar Plano'}</DialogTitle>
+            <DialogDescription>{editingPlan ? 'Atualize as informações do plano.' : 'Crie um plano personalizado para o seu studio.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Nome *</Label>
-              <Input value={planForm.name} onChange={e => setPlanForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Mensal 3x/semana" />
-            </div>
-            <div>
-              <Label>Descrição</Label>
-              <Input value={planForm.description} onChange={e => setPlanForm(f => ({ ...f, description: e.target.value }))} placeholder="Opcional..." />
-            </div>
+            <div><Label>Nome *</Label><Input value={planForm.name} onChange={e => setPlanForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Mensal 3x/semana" /></div>
+            <div><Label>Descrição</Label><Input value={planForm.description} onChange={e => setPlanForm(f => ({ ...f, description: e.target.value }))} placeholder="Opcional..." /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Preço (R$) *</Label>
-                <Input type="number" step="0.01" value={planForm.price} onChange={e => setPlanForm(f => ({ ...f, price: e.target.value }))} placeholder="199.90" />
-              </div>
+              <div><Label>Preço (R$) *</Label><Input type="number" step="0.01" value={planForm.price} onChange={e => setPlanForm(f => ({ ...f, price: e.target.value }))} /></div>
               <div>
                 <Label>Ciclo *</Label>
                 <Select value={planForm.billingCycle} onValueChange={v => {
@@ -374,80 +355,109 @@ export default function StudioClientPlansPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Duração (dias) *</Label>
-                <Input type="number" value={planForm.durationDays} onChange={e => setPlanForm(f => ({ ...f, durationDays: e.target.value }))} />
-              </div>
+              <div><Label>Duração (dias) *</Label><Input type="number" value={planForm.durationDays} onChange={e => setPlanForm(f => ({ ...f, durationDays: e.target.value }))} /></div>
               <div className="flex items-end gap-2">
                 <label className="flex items-center gap-2 cursor-pointer pb-2">
                   <input type="checkbox" checked={planForm.isTrial} onChange={e => setPlanForm(f => ({ ...f, isTrial: e.target.checked }))} className="rounded" />
                   <span className="text-sm">Trial</span>
                 </label>
-                {planForm.isTrial && (
-                  <div className="flex-1">
-                    <Input type="number" value={planForm.trialDays} onChange={e => setPlanForm(f => ({ ...f, trialDays: e.target.value }))} placeholder="dias" className="h-9" />
-                  </div>
-                )}
+                {planForm.isTrial && <Input type="number" value={planForm.trialDays} onChange={e => setPlanForm(f => ({ ...f, trialDays: e.target.value }))} placeholder="dias" className="h-9 flex-1" />}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreatePlanDialog(false)}>Cancelar</Button>
-            <Button onClick={handleCreatePlan} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving ? 'Criando...' : 'Criar Plano'}</Button>
+            <Button variant="outline" onClick={() => setShowPlanDialog(false)}>Cancelar</Button>
+            <Button onClick={handleSavePlan} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving ? 'Salvando...' : editingPlan ? 'Salvar' : 'Criar Plano'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Atribuir Plano */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Atribuir Plano a Aluno</DialogTitle>
-            <DialogDescription>Selecione o aluno e o plano desejado.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Aluno *</Label>
-              <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Buscar aluno..." value={searchClient} onChange={e => setSearchClient(e.target.value)} className="pl-10" />
+      {/* Dialog Assign Plan - search like presenca */}
+      {showAssignDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-card rounded-2xl border shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-bold text-sm">Atribuir Plano a Aluno</h3>
+              <button onClick={() => setShowAssignDialog(false)}><X className="w-4 h-4 text-muted-foreground hover:text-foreground" /></button>
+            </div>
+
+            <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
+              {/* Step 1: Select Student */}
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground mb-2 block">1. SELECIONE O ALUNO</Label>
+                {assignClientId ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <span className="text-emerald-500 font-bold text-xs">{initials(assignClientName)}</span>
+                    </div>
+                    <span className="text-sm font-medium flex-1">{assignClientName}</span>
+                    <button onClick={() => { setAssignClientId(''); setAssignClientName('') }} className="text-muted-foreground hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input placeholder="Buscar aluno..." value={assignSearch} onChange={e => setAssignSearch(e.target.value)} className="pl-10" autoFocus />
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto space-y-1">
+                      {filteredAssignClients.length === 0 ? (
+                        <p className="text-center text-xs text-muted-foreground py-4">Nenhum aluno encontrado</p>
+                      ) : filteredAssignClients.slice(0, 30).map(c => (
+                        <button key={c.id} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                          onClick={() => { setAssignClientId(c.id); setAssignClientName(c.name); setAssignSearch('') }}>
+                          <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-amber-500 font-bold text-xs">{initials(c.name)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{c.name}</p>
+                            {!clientsWithPlan.has(c.id) && <p className="text-[10px] text-amber-400">Sem plano ativo</p>}
+                          </div>
+                          <Plus className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-              <Select value={assignForm.clientId} onValueChange={v => setAssignForm(f => ({ ...f, clientId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {filteredClients.slice(0, 50).map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} {!clientsWithPlan.has(c.id) && '⚠️'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Plano *</Label>
-              <Select value={assignForm.planId} onValueChange={v => setAssignForm(f => ({ ...f, planId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
+
+              {/* Step 2: Select Plan */}
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground mb-2 block">2. SELECIONE O PLANO</Label>
+                <div className="space-y-1">
                   {plans.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} — {fmt(p.price)}/{CYCLE_LABELS[p.billingCycle]?.toLowerCase()}
-                      {p.isGlobal ? ' 🌐' : ' 🏢'}
-                    </SelectItem>
+                    <button key={p.id}
+                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors text-left ${
+                        assignPlanId === p.id ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-border hover:bg-muted/50'
+                      }`}
+                      onClick={() => setAssignPlanId(p.id)}>
+                      <div>
+                        <p className="text-sm font-medium">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{CYCLE_LABELS[p.billingCycle]} · {p.durationDays} dias {p.isGlobal ? '🌐' : '🏢'}</p>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-400">{fmt(p.price)}</span>
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+
+              {/* Step 3: Notes */}
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground mb-2 block">3. OBSERVAÇÕES (OPCIONAL)</Label>
+                <Input value={assignNotes} onChange={e => setAssignNotes(e.target.value)} placeholder="Opcional..." />
+              </div>
             </div>
-            <div>
-              <Label>Observações</Label>
-              <Input value={assignForm.notes} onChange={e => setAssignForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional..." />
+
+            <div className="p-4 border-t flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowAssignDialog(false)}>Cancelar</Button>
+              <Button onClick={handleAssign} disabled={saving || !assignClientId || !assignPlanId} className="bg-emerald-600 hover:bg-emerald-700">
+                {saving ? 'Salvando...' : 'Atribuir Plano'}
+              </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>Cancelar</Button>
-            <Button onClick={handleAssign} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving ? 'Salvando...' : 'Atribuir'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   )
 }
