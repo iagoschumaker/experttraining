@@ -103,11 +103,12 @@ export default function ClientsPage() {
   }
 
   // Birthday check — compares only month+day (ignores year)
+  // Uses UTC methods because birthDate is stored as @db.Date (UTC midnight)
   const isBirthdayToday = (client: Client) => {
     if (!client.birthDate) return false
     const today = new Date()
     const bd = new Date(client.birthDate)
-    return bd.getMonth() === today.getMonth() && bd.getDate() === today.getDate()
+    return bd.getUTCMonth() === today.getMonth() && bd.getUTCDate() === today.getDate()
   }
 
   // Fetch clients
@@ -155,18 +156,18 @@ export default function ClientsPage() {
     if (activeTab === 'birthdays') fetchAllClientsForBirthdays()
   }, [activeTab])
 
-  // Birthday helpers
+  // Birthday helpers — uses UTC methods because birthDate is @db.Date
   const getBirthdayClients = () => {
     const now = new Date()
     return allClients
       .filter(c => c.birthDate)
       .map(c => {
         const bd = new Date(c.birthDate!)
-        const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate())
+        const thisYearBd = new Date(now.getFullYear(), bd.getUTCMonth(), bd.getUTCDate())
         if (thisYearBd.getTime() < now.getTime() - 86400000) thisYearBd.setFullYear(now.getFullYear() + 1)
         const daysUntil = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        const age = thisYearBd.getFullYear() - bd.getFullYear()
-        return { ...c, daysUntil: daysUntil < 0 ? 0 : daysUntil, age, bdMonth: bd.getMonth(), bdDay: bd.getDate() }
+        const age = thisYearBd.getFullYear() - bd.getUTCFullYear()
+        return { ...c, daysUntil: daysUntil < 0 ? 0 : daysUntil, age, bdMonth: bd.getUTCMonth(), bdDay: bd.getUTCDate() }
       })
       .sort((a, b) => a.daysUntil - b.daysUntil)
   }
@@ -515,7 +516,7 @@ export default function ClientsPage() {
                             <div>
                               <p className="text-sm font-medium">{c.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(c.birthDate!).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                {new Date(c.birthDate!).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', timeZone: 'UTC' })}
                                 {c.age > 0 && ` · Faz ${c.age} anos`}
                               </p>
                             </div>

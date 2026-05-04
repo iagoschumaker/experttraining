@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     const birthdaysToday = allClientsForBirthday.filter(c => {
       if (!c.birthDate) return false
       const bd = new Date(c.birthDate)
-      return bd.getDate() === todayDay && bd.getMonth() === todayMonth
+      return bd.getUTCDate() === todayDay && bd.getUTCMonth() === todayMonth
     }).map(c => ({
       id: c.id,
       name: c.name,
@@ -116,16 +116,16 @@ export async function GET(request: NextRequest) {
     const upcomingBirthdays = allClientsForBirthday.filter(c => {
       if (!c.birthDate) return false
       const bd = new Date(c.birthDate)
-      const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate())
+      const thisYearBd = new Date(now.getFullYear(), bd.getUTCMonth(), bd.getUTCDate())
       if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1)
       const diffDays = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       return diffDays >= 0 && diffDays <= 30
     }).map(c => {
       const bd = new Date(c.birthDate!)
-      const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate())
+      const thisYearBd = new Date(now.getFullYear(), bd.getUTCMonth(), bd.getUTCDate())
       if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1)
       const daysUntil = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      const age = now.getFullYear() - bd.getFullYear() + (daysUntil === 0 ? 0 : (thisYearBd.getFullYear() > now.getFullYear() ? 0 : -1))
+      const age = now.getFullYear() - bd.getUTCFullYear() + (daysUntil === 0 ? 0 : (thisYearBd.getFullYear() > now.getFullYear() ? 0 : -1))
       return { id: c.id, name: c.name, birthDate: c.birthDate, daysUntil, age: age + 1 }
     }).sort((a, b) => a.daysUntil - b.daysUntil)
 

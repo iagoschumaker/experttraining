@@ -305,7 +305,7 @@ export default function DashboardPage() {
                       {client.daysUntil === 0 ? 'Hoje!' :
                        client.daysUntil === 1 ? 'Amanhã!' :
                        `Em ${client.daysUntil} dias`}
-                      {' · '}{new Date(client.birthDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                      {' · '}{new Date(client.birthDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}
                       {client.age > 0 && ` · ${client.age} anos`}
                     </p>
                   </div>
