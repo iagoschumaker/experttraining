@@ -35,6 +35,9 @@ import {
   Trash2,
   ClipboardCheck,
   AlertTriangle,
+  Cake,
+  Gift,
+  Calendar,
 } from 'lucide-react'
 
 interface Client {
@@ -78,6 +81,9 @@ export default function ClientsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [activeTab, setActiveTab] = useState<'all' | 'birthdays'>('all')
+  const [allClients, setAllClients] = useState<Client[]>([])
+  const [loadingBirthdays, setLoadingBirthdays] = useState(false)
 
   // Check permissions
   const isAdmin = user?.role === 'STUDIO_ADMIN'
@@ -133,6 +139,38 @@ export default function ClientsPage() {
     fetchClients()
   }, [page, search])
 
+  // Fetch all clients for birthday tab
+  const fetchAllClientsForBirthdays = async () => {
+    if (allClients.length > 0) return // cache
+    setLoadingBirthdays(true)
+    try {
+      const res = await fetch('/api/clients?pageSize=500&page=1')
+      const data: ClientsResponse = await res.json()
+      if (data.success) setAllClients(data.data.items)
+    } catch { console.error('Error fetching clients for birthdays') }
+    finally { setLoadingBirthdays(false) }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'birthdays') fetchAllClientsForBirthdays()
+  }, [activeTab])
+
+  // Birthday helpers
+  const getBirthdayClients = () => {
+    const now = new Date()
+    return allClients
+      .filter(c => c.birthDate)
+      .map(c => {
+        const bd = new Date(c.birthDate!)
+        const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate())
+        if (thisYearBd.getTime() < now.getTime() - 86400000) thisYearBd.setFullYear(now.getFullYear() + 1)
+        const daysUntil = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        const age = thisYearBd.getFullYear() - bd.getFullYear()
+        return { ...c, daysUntil: daysUntil < 0 ? 0 : daysUntil, age, bdMonth: bd.getMonth(), bdDay: bd.getDate() }
+      })
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+  }
+
   // Delete client
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este aluno?')) return
@@ -169,7 +207,7 @@ export default function ClientsPage() {
         const birthdayKids = clients.filter(isBirthdayToday)
         if (birthdayKids.length === 0) return null
         return (
-          <div className="flex items-center gap-3 p-4 rounded-xl border border-pink-500/30 bg-pink-500/10 animate-pulse">
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-pink-500/30 bg-pink-500/10">
             <span className="text-2xl flex-shrink-0">🎂</span>
             <div className="flex-1">
               <p className="text-sm font-bold text-pink-500">Aniversário hoje!</p>
@@ -192,7 +230,26 @@ export default function ClientsPage() {
         />
       </StatsGrid>
 
-      {/* Search and filters */}
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-border pb-2">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            activeTab === 'all' ? 'bg-blue-500/10 text-blue-400 border-b-2 border-blue-500' : 'text-muted-foreground hover:text-foreground'
+          }`}>
+          <Users className="h-4 w-4" /> Todos
+        </button>
+        <button
+          onClick={() => setActiveTab('birthdays')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            activeTab === 'birthdays' ? 'bg-pink-500/10 text-pink-400 border-b-2 border-pink-500' : 'text-muted-foreground hover:text-foreground'
+          }`}>
+          <Cake className="h-4 w-4" /> Aniversários
+        </button>
+      </div>
+
+      {/* TAB: Todos */}
+      {activeTab === 'all' && (
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -406,6 +463,98 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* TAB: Aniversários */}
+      {activeTab === 'birthdays' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Cake className="h-5 w-5 text-pink-500" />
+              Aniversários dos Alunos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingBirthdays ? (
+              <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-14" />)}</div>
+            ) : (() => {
+              const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+              const bClients = getBirthdayClients()
+              const noDate = allClients.filter(c => !c.birthDate)
+
+              if (bClients.length === 0 && noDate.length === 0) {
+                return <p className="text-center py-8 text-muted-foreground text-sm">Nenhum aluno com data de nascimento cadastrada</p>
+              }
+
+              // Group by daysUntil categories
+              const today = bClients.filter(c => c.daysUntil === 0)
+              const thisWeek = bClients.filter(c => c.daysUntil > 0 && c.daysUntil <= 7)
+              const thisMonth = bClients.filter(c => c.daysUntil > 7 && c.daysUntil <= 30)
+              const later = bClients.filter(c => c.daysUntil > 30)
+
+              const Section = ({ title, icon, clients, color }: { title: string; icon: string; clients: typeof bClients; color: string }) => {
+                if (clients.length === 0) return null
+                return (
+                  <div className="mb-6">
+                    <h3 className={`text-sm font-semibold ${color} mb-2 flex items-center gap-2`}>
+                      <span>{icon}</span> {title}
+                      <Badge className="bg-muted text-muted-foreground text-[10px]">{clients.length}</Badge>
+                    </h3>
+                    <div className="space-y-1">
+                      {clients.map(c => (
+                        <Link key={c.id} href={`/clients/${c.id}`}
+                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+                            c.daysUntil === 0 ? 'border-pink-500/50 bg-pink-500/5' : 'border-border'
+                          }`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              c.daysUntil === 0 ? 'bg-pink-500/20' : c.daysUntil <= 7 ? 'bg-amber-500/10' : 'bg-muted'
+                            }`}>
+                              <span className="text-base">{c.daysUntil === 0 ? '🎂' : c.daysUntil <= 7 ? '🎉' : '🎁'}</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{c.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(c.birthDate!).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                {c.age > 0 && ` · Faz ${c.age} anos`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {c.daysUntil === 0 ? (
+                              <Badge className="bg-pink-500/20 text-pink-400">Hoje!</Badge>
+                            ) : c.daysUntil === 1 ? (
+                              <Badge className="bg-amber-500/20 text-amber-400">Amanhã</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">em {c.daysUntil} dias</span>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <>
+                  <Section title="Aniversário Hoje" icon="🎂" clients={today} color="text-pink-500" />
+                  <Section title="Esta Semana" icon="🎉" clients={thisWeek} color="text-amber-400" />
+                  <Section title="Este Mês" icon="🎁" clients={thisMonth} color="text-blue-400" />
+                  <Section title="Próximos" icon="📅" clients={later} color="text-muted-foreground" />
+                  {noDate.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        ⚠️ {noDate.length} aluno(s) sem data de nascimento cadastrada
+                      </p>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </CardContent>
+        </Card>
+      )}
 
       {/* FAB para mobile */}
       <FloatingActionButton

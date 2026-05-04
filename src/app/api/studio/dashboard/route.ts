@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - STUDIO DASHBOARD API
 // ============================================================================
 
@@ -91,6 +91,44 @@ export async function GET(request: NextRequest) {
         daysSinceLastAssessment: Math.floor((now.getTime() - new Date(client.assessments[0].createdAt).getTime()) / (1000 * 60 * 60 * 24)),
       }))
 
+    // ========================================================================
+    // ANIVERSARIANTES DO DIA E DO MÊS
+    // ========================================================================
+    const allClientsForBirthday = await prisma.client.findMany({
+      where: { studioId, status: 'ACTIVE', birthDate: { not: null } },
+      select: { id: true, name: true, birthDate: true },
+    })
+
+    const todayDay = now.getDate()
+    const todayMonth = now.getMonth()
+
+    const birthdaysToday = allClientsForBirthday.filter(c => {
+      if (!c.birthDate) return false
+      const bd = new Date(c.birthDate)
+      return bd.getDate() === todayDay && bd.getMonth() === todayMonth
+    }).map(c => ({
+      id: c.id,
+      name: c.name,
+      birthDate: c.birthDate,
+    }))
+
+    // Upcoming birthdays (next 30 days)
+    const upcomingBirthdays = allClientsForBirthday.filter(c => {
+      if (!c.birthDate) return false
+      const bd = new Date(c.birthDate)
+      const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate())
+      if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1)
+      const diffDays = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return diffDays >= 0 && diffDays <= 30
+    }).map(c => {
+      const bd = new Date(c.birthDate!)
+      const thisYearBd = new Date(now.getFullYear(), bd.getMonth(), bd.getDate())
+      if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1)
+      const daysUntil = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      const age = now.getFullYear() - bd.getFullYear() + (daysUntil === 0 ? 0 : (thisYearBd.getFullYear() > now.getFullYear() ? 0 : -1))
+      return { id: c.id, name: c.name, birthDate: c.birthDate, daysUntil, age: age + 1 }
+    }).sort((a, b) => a.daysUntil - b.daysUntil)
+
     // Format goals distribution
     const goalsDistribution = clientsByGoal.map((g: any) => ({
       goal: g.goal || 'Não definido',
@@ -117,7 +155,9 @@ export async function GET(request: NextRequest) {
           type: a.type,
         })),
         goalsDistribution,
-        reassessmentAlerts, // Clientes que precisam de reavaliação
+        reassessmentAlerts,
+        birthdaysToday,
+        upcomingBirthdays,
       },
     })
   } catch (error) {

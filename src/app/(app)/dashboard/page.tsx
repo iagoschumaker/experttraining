@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - DASHBOARD DO STUDIO
 // ============================================================================
 // Visão geral: KPIs, alunos ativos, avaliações pendentes, treinos recentes
@@ -9,8 +9,9 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatsCard, StatsGrid } from '@/components/ui'
-import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle } from 'lucide-react'
+import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle, Cake, Gift } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 
 interface ReassessmentAlert {
@@ -46,6 +47,8 @@ interface DashboardData {
     count: number
   }>
   reassessmentAlerts: ReassessmentAlert[]
+  birthdaysToday: Array<{ id: string; name: string; birthDate: string }>
+  upcomingBirthdays: Array<{ id: string; name: string; birthDate: string; daysUntil: number; age: number }>
 }
 
 export default function DashboardPage() {
@@ -141,6 +144,31 @@ export default function DashboardPage() {
                   E mais {data.reassessmentAlerts.length - 5} aluno(s)...
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aniversariantes do Dia */}
+      {data.birthdaysToday && data.birthdaysToday.length > 0 && (
+        <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0">
+              <Cake className="w-5 h-5 text-pink-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-pink-500 mb-1 flex items-center gap-2">
+                🎂 Aniversário Hoje!
+              </h3>
+              <div className="space-y-1">
+                {data.birthdaysToday.map(client => (
+                  <Link key={client.id} href={`/clients/${client.id}`}
+                    className="flex items-center gap-2 p-2 bg-card/50 rounded border border-border hover:border-pink-500/50 transition-colors">
+                    <span className="text-lg">🎉</span>
+                    <span className="font-medium text-sm">{client.name}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -248,6 +276,45 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Aniversariantes Próximos */}
+      {data.upcomingBirthdays && data.upcomingBirthdays.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-pink-500" />
+              Aniversários Próximos
+              <Badge className="bg-pink-500/20 text-pink-400 text-xs ml-1">{data.upcomingBirthdays.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {data.upcomingBirthdays.map(client => (
+                <Link key={client.id} href={`/clients/${client.id}`}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+                    client.daysUntil === 0 ? 'border-pink-500/50 bg-pink-500/5' : 'border-border'
+                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    client.daysUntil === 0 ? 'bg-pink-500/20' : 'bg-muted'
+                  }`}>
+                    <span className="text-sm">{client.daysUntil === 0 ? '🎂' : '🎁'}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{client.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {client.daysUntil === 0 ? 'Hoje!' :
+                       client.daysUntil === 1 ? 'Amanhã!' :
+                       `Em ${client.daysUntil} dias`}
+                      {' · '}{new Date(client.birthDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                      {client.age > 0 && ` · ${client.age} anos`}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
