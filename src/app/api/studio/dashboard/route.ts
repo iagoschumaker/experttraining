@@ -99,8 +99,20 @@ export async function GET(request: NextRequest) {
       select: { id: true, name: true, birthDate: true },
     })
 
-    const todayDay = now.getDate()
-    const todayMonth = now.getMonth()
+    // Obter dia/mês/ano atual no fuso do Brasil (independente do fuso do VPS)
+    const spFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    })
+    const [spMonthStr, spDayStr, spYearStr] = spFormatter.format(new Date()).split('/')
+    const todayDay = parseInt(spDayStr, 10)
+    const todayMonth = parseInt(spMonthStr, 10) - 1
+    const currentYear = parseInt(spYearStr, 10)
+    
+    // Data "zerada" para os cálculos de diffDays (em tempo local do servidor, mas com os valores do Brasil)
+    const today = new Date(currentYear, todayMonth, todayDay)
 
     const birthdaysToday = allClientsForBirthday.filter(c => {
       if (!c.birthDate) return false
@@ -116,16 +128,16 @@ export async function GET(request: NextRequest) {
     const upcomingBirthdays = allClientsForBirthday.filter(c => {
       if (!c.birthDate) return false
       const bd = new Date(c.birthDate)
-      const thisYearBd = new Date(now.getFullYear(), bd.getUTCMonth(), bd.getUTCDate())
-      if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1)
-      const diffDays = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      const thisYearBd = new Date(currentYear, bd.getUTCMonth(), bd.getUTCDate())
+      if (thisYearBd < today) thisYearBd.setFullYear(currentYear + 1)
+      const diffDays = Math.round((thisYearBd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
       return diffDays >= 0 && diffDays <= 30
     }).map(c => {
       const bd = new Date(c.birthDate!)
-      const thisYearBd = new Date(now.getFullYear(), bd.getUTCMonth(), bd.getUTCDate())
-      if (thisYearBd < now) thisYearBd.setFullYear(now.getFullYear() + 1)
-      const daysUntil = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      const age = now.getFullYear() - bd.getUTCFullYear() + (daysUntil === 0 ? 0 : (thisYearBd.getFullYear() > now.getFullYear() ? 0 : -1))
+      const thisYearBd = new Date(currentYear, bd.getUTCMonth(), bd.getUTCDate())
+      if (thisYearBd < today) thisYearBd.setFullYear(currentYear + 1)
+      const daysUntil = Math.round((thisYearBd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      const age = currentYear - bd.getUTCFullYear() + (daysUntil === 0 ? 0 : (thisYearBd.getFullYear() > currentYear ? 0 : -1))
       return { id: c.id, name: c.name, birthDate: c.birthDate, daysUntil, age: age + 1 }
     }).sort((a, b) => a.daysUntil - b.daysUntil)
 

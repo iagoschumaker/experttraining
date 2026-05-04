@@ -159,15 +159,17 @@ export default function ClientsPage() {
   // Birthday helpers — uses UTC methods because birthDate is @db.Date
   const getBirthdayClients = () => {
     const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()) // Midnight local time
+    
     return allClients
       .filter(c => c.birthDate)
       .map(c => {
         const bd = new Date(c.birthDate!)
         const thisYearBd = new Date(now.getFullYear(), bd.getUTCMonth(), bd.getUTCDate())
-        if (thisYearBd.getTime() < now.getTime() - 86400000) thisYearBd.setFullYear(now.getFullYear() + 1)
-        const daysUntil = Math.floor((thisYearBd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (thisYearBd < today) thisYearBd.setFullYear(now.getFullYear() + 1)
+        const diffDays = Math.round((thisYearBd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         const age = thisYearBd.getFullYear() - bd.getUTCFullYear()
-        return { ...c, daysUntil: daysUntil < 0 ? 0 : daysUntil, age, bdMonth: bd.getUTCMonth(), bdDay: bd.getUTCDate() }
+        return { ...c, daysUntil: diffDays, age, bdMonth: bd.getUTCMonth(), bdDay: bd.getUTCDate() }
       })
       .sort((a, b) => a.daysUntil - b.daysUntil)
   }
