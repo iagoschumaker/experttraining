@@ -75,10 +75,10 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   addMetric('abs', bodyFat, 'Gordura Corporal Total', '%')
   if (muscleValues['abs']) muscleValues['abs'].title = 'Abdômen'
 
-  // Cintura / Supra-ilíaca (Obliques)
-  addMetric('obliques', waist, 'Circunferência', 'cm')
-  addMetric('obliques', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
-  if (muscleValues['obliques']) muscleValues['obliques'].title = 'Cintura / Oblíquos'
+  // Cintura / Supra-ilíaca (Obliques na frente, Lower Back atrás)
+  addMetric('waist', waist, 'Circunferência', 'cm')
+  addMetric('waist', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
+  if (muscleValues['waist']) muscleValues['waist'].title = 'Cintura / Lombar'
 
   // Quadril
   addMetric('gluteal', hip, 'Circunferência', 'cm')
@@ -121,6 +121,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   if (muscleValues['calf-left']) muscleValues['calf-left'].title = 'Panturrilha Esq.'
 
   // Costas / Axilar
+  addMetric('upper-back', chest, 'Circunferência do Tórax', 'cm') // O peitoral dá a volta no tórax
   addMetric('upper-back', sfSubscapular, 'Dobra Subescapular', 'mm')
   if (muscleValues['upper-back']) muscleValues['upper-back'].title = 'Costas Superiores'
   addMetric('back-deltoids', sfMidaxillary, 'Dobra Axilar Média', 'mm')
@@ -137,6 +138,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
     if (['forearm'].includes(muscle)) return `forearm-${side}`
     if (['quadriceps', 'hamstring'].includes(muscle)) return `thigh-${side}`
     if (['calves', 'left-soleus', 'right-soleus'].includes(muscle)) return `calf-${side}`
+    if (['obliques', 'lower-back'].includes(muscle)) return 'waist'
     return muscle // músculos centrais ou que não precisam separar
   }
 
