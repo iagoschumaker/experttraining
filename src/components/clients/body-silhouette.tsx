@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { anteriorData, posteriorData, Muscle } from './body-svg-data'
 
 interface BodySilhouetteProps {
-  gender: 'M' | 'F' | null
+  gender?: 'M' | 'F' | null
   bodyFat?: number | null
-  // Circunferências (cm)
+  compact?: boolean
   chest?: number | null
   waist?: number | null
   hip?: number | null
@@ -19,7 +19,6 @@ interface BodySilhouetteProps {
   thighLeft?: number | null
   calfRight?: number | null
   calfLeft?: number | null
-  // Dobras cutâneas (mm)
   sfChest?: number | null
   sfAbdomen?: number | null
   sfThigh?: number | null
@@ -47,6 +46,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
 
   const {
     bodyFat,
+    compact,
     chest, waist, hip, abdomen,
     armRight, armLeft,
     forearmRight, forearmLeft,
@@ -69,7 +69,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   addMetric('chest', sfChest, 'Dobra Cutânea', 'mm')
   if (muscleValues['chest']) muscleValues['chest'].title = 'Peitoral'
 
-  // Abdômen e Cintura (agrupados como 'core' para iluminar toda a região do tronco de uma vez)
+  // Abdômen e Cintura
   addMetric('core', waist, 'Cintura (Circ.)', 'cm')
   addMetric('core', abdomen, 'Abdômen (Circ.)', 'cm')
   addMetric('core', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
@@ -130,17 +130,15 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   const activeData = hoveredKey ? muscleValues[hoveredKey] : null
   const showTooltip = !!(hoveredKey && activeData?.metrics.length)
 
-  // Mapeia qual é a chave do body part baseado no músculo e no lado
   const getBodyPartKey = (muscle: Muscle, side: 'left' | 'right'): string => {
     if (['biceps', 'triceps'].includes(muscle)) return `arm-${side}`
     if (['forearm'].includes(muscle)) return `forearm-${side}`
     if (['quadriceps', 'hamstring'].includes(muscle)) return `thigh-${side}`
     if (['calves', 'left-soleus', 'right-soleus'].includes(muscle)) return `calf-${side}`
     if (['abs', 'obliques', 'lower-back'].includes(muscle)) return 'core'
-    return muscle // músculos centrais ou que não precisam separar
+    return muscle
   }
 
-  // Lógica Dinâmica de Biotipo (Morphing do SVG)
   type Phenotype = 'definido' | 'magro' | 'normal' | 'sobrepeso' | 'obeso'
 
   const getPhenotype = (gender: 'M' | 'F' | null, bf?: number | null): Phenotype => {
@@ -160,41 +158,14 @@ export function BodySilhouette(props: BodySilhouetteProps) {
     }
   }
 
-  const phenotype = getPhenotype(props.gender, bodyFat)
+  const phenotype = getPhenotype(props.gender ?? 'M', bodyFat)
 
   const morphProfiles: Record<Phenotype, {y: number, mult: number}[]> = {
-    'normal': [
-      { y: 0, mult: 1.0 }, { y: 220, mult: 1.0 }
-    ],
-    'magro': [
-      { y: 0, mult: 0.95 },
-      { y: 40, mult: 0.9 }, // ombros menores
-      { y: 70, mult: 0.85 }, // cintura bem fina
-      { y: 110, mult: 0.9 }, // quadril fino
-      { y: 220, mult: 0.9 }
-    ],
-    'definido': [
-      { y: 0, mult: 1.0 },
-      { y: 35, mult: 1.15 }, // ombros largos (shape em V)
-      { y: 50, mult: 1.1 }, // peitoral largo
-      { y: 75, mult: 0.95 }, // cintura fina
-      { y: 110, mult: 1.05 }, // coxas fortes
-      { y: 220, mult: 1.05 }
-    ],
-    'sobrepeso': [
-      { y: 0, mult: 1.05 }, // rosto levemente mais largo
-      { y: 40, mult: 1.1 }, // ombros largos
-      { y: 75, mult: 1.25 }, // barriga
-      { y: 110, mult: 1.2 }, // quadril largo
-      { y: 220, mult: 1.1 }
-    ],
-    'obeso': [
-      { y: 0, mult: 1.1 },
-      { y: 40, mult: 1.2 },
-      { y: 75, mult: 1.5 }, // barriga grande
-      { y: 110, mult: 1.4 }, // quadril muito largo
-      { y: 220, mult: 1.2 }
-    ]
+    'normal': [{ y: 0, mult: 1.0 }, { y: 220, mult: 1.0 }],
+    'magro': [{ y: 0, mult: 0.95 }, { y: 40, mult: 0.9 }, { y: 70, mult: 0.85 }, { y: 110, mult: 0.9 }, { y: 220, mult: 0.9 }],
+    'definido': [{ y: 0, mult: 1.0 }, { y: 35, mult: 1.15 }, { y: 50, mult: 1.1 }, { y: 75, mult: 0.95 }, { y: 110, mult: 1.05 }, { y: 220, mult: 1.05 }],
+    'sobrepeso': [{ y: 0, mult: 1.05 }, { y: 40, mult: 1.1 }, { y: 75, mult: 1.25 }, { y: 110, mult: 1.2 }, { y: 220, mult: 1.1 }],
+    'obeso': [{ y: 0, mult: 1.1 }, { y: 40, mult: 1.2 }, { y: 75, mult: 1.5 }, { y: 110, mult: 1.4 }, { y: 220, mult: 1.2 }]
   }
 
   const getMultiplier = (y: number, profileName: Phenotype) => {
@@ -214,8 +185,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   }
 
   const applyMorph = (pointsString: string, phenotypeType: Phenotype) => {
-    if (phenotypeType === 'normal') return pointsString // sem distorção
-
+    if (phenotypeType === 'normal') return pointsString
     const coords = pointsString.trim().split(/\s+/)
     const newCoords = []
     for (let i = 0; i < coords.length; i += 2) {
@@ -240,33 +210,52 @@ export function BodySilhouette(props: BodySilhouetteProps) {
 
   return (
     <div className="flex flex-col items-center gap-4 select-none w-full max-w-sm mx-auto relative">
-      <div className="flex items-center justify-between w-full">
-        <div className="flex flex-col gap-1">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-            Mapa Corporal 3D — {props.gender === 'F' ? 'Feminino' : 'Masculino'}
-          </p>
-          {bodyFat && (
-            <span className="text-xs font-bold text-primary flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-              Biotipo: {biotypeLabels[phenotype]}
-            </span>
-          )}
+      {!compact && (
+        <div className="flex items-center justify-between w-full">
+          <div className="flex flex-col gap-1">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Mapa Corporal 3D — {props.gender === 'F' ? 'Feminino' : 'Masculino'}
+            </p>
+            {bodyFat && (
+              <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+                Biotipo: {biotypeLabels[phenotype]}
+              </span>
+            )}
+          </div>
+          <div className="flex bg-muted rounded-lg p-1">
+            <button
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'anterior' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setView('anterior')}
+            >
+              Frente
+            </button>
+            <button
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'posterior' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setView('posterior')}
+            >
+              Costas
+            </button>
+          </div>
         </div>
-        <div className="flex bg-muted rounded-lg p-1">
+      )}
+
+      {compact && (
+        <div className="flex bg-muted/80 rounded-lg p-1 z-10 mb-2">
           <button
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'anterior' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'anterior' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             onClick={() => setView('anterior')}
           >
             Frente
           </button>
           <button
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'posterior' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'posterior' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             onClick={() => setView('posterior')}
           >
             Costas
           </button>
         </div>
-      </div>
+      )}
 
       <div className="relative w-full max-w-[200px] mx-auto group">
         <svg

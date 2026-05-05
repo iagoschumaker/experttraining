@@ -1317,21 +1317,21 @@ export default function ClientDetailPage() {
                 {/* 3D Body Evolution Comparison */}
                 <div className="grid grid-cols-2 gap-4 mt-6 mb-6">
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-1 rounded-full">
+                    <div className="flex items-center gap-2 mb-4 bg-muted/50 px-3 py-1.5 rounded-full z-10 shadow-sm border border-border/50">
                       <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                      <span className="text-[10px] font-bold text-foreground">{labelA}</span>
+                      <span className="text-xs font-bold text-foreground">{labelA}</span>
                     </div>
-                    <div className="scale-75 origin-top -mb-[25%] -mt-6">
-                      <BodySilhouette gender={client.gender} {...dataA} />
+                    <div className="scale-75 origin-top -mb-[25%] w-full">
+                      <BodySilhouette gender={client.gender} {...dataA} compact={true} />
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-1 rounded-full">
+                    <div className="flex items-center gap-2 mb-4 bg-muted/50 px-3 py-1.5 rounded-full z-10 shadow-sm border border-border/50">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                      <span className="text-[10px] font-bold text-foreground">{labelB}</span>
+                      <span className="text-xs font-bold text-foreground">{labelB}</span>
                     </div>
-                    <div className="scale-75 origin-top -mb-[25%] -mt-6">
-                      <BodySilhouette gender={client.gender} {...dataB} />
+                    <div className="scale-75 origin-top -mb-[25%] w-full">
+                      <BodySilhouette gender={client.gender} {...dataB} compact={true} />
                     </div>
                   </div>
                 </div>
