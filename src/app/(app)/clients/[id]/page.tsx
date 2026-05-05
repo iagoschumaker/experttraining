@@ -1222,35 +1222,35 @@ export default function ClientDetailPage() {
             const idxA = compareIdxA >= 0 && compareIdxA < evals.length ? compareIdxA : 0
             const idxB = compareIdxB >= 0 && compareIdxB < evals.length ? compareIdxB : evals.length - 1
 
-            const flattenMetrics = (bm: any) => {
+            const flattenMetrics = (bm: any, computed: any) => {
               if (!bm) return {}
               return {
                 weight: bm.weight,
-                bodyFat: bm.bodyFat,
-                chest: bm.measurements?.chest,
-                waist: bm.measurements?.waist,
-                hip: bm.measurements?.hip,
-                abdomen: bm.measurements?.abdomen,
-                armRight: bm.measurements?.arm_right,
-                armLeft: bm.measurements?.arm_left,
-                forearmRight: bm.measurements?.forearm_right,
-                forearmLeft: bm.measurements?.forearm_left,
-                thighRight: bm.measurements?.thigh_right,
-                thighLeft: bm.measurements?.thigh_left,
-                calfRight: bm.measurements?.calf_right,
-                calfLeft: bm.measurements?.calf_left,
-                sfChest: bm.skinfolds?.chest,
-                sfAbdomen: bm.skinfolds?.abdomen,
-                sfThigh: bm.skinfolds?.thigh,
-                sfTriceps: bm.skinfolds?.triceps,
-                sfSuprailiac: bm.skinfolds?.suprailiac,
-                sfSubscapular: bm.skinfolds?.subscapular,
-                sfMidaxillary: bm.skinfolds?.midaxillary,
+                bodyFat: computed?.pollock?.bodyFatPercent ?? computed?.juba?.fatPercentage ?? bm.bodyFat,
+                chest: bm.measurements?.chest ?? bm.chest,
+                waist: bm.measurements?.waist ?? bm.waist,
+                hip: bm.measurements?.hip ?? bm.hip,
+                abdomen: bm.measurements?.abdomen ?? bm.abdomen,
+                armRight: bm.measurements?.arm_right ?? bm.armRight ?? bm.arm_right,
+                armLeft: bm.measurements?.arm_left ?? bm.armLeft ?? bm.arm_left,
+                forearmRight: bm.measurements?.forearm_right ?? bm.forearmRight ?? bm.forearm_right,
+                forearmLeft: bm.measurements?.forearm_left ?? bm.forearmLeft ?? bm.forearm_left,
+                thighRight: bm.measurements?.thigh_right ?? bm.thighRight ?? bm.thigh_right,
+                thighLeft: bm.measurements?.thigh_left ?? bm.thighLeft ?? bm.thigh_left,
+                calfRight: bm.measurements?.calf_right ?? bm.calfRight ?? bm.calf_right,
+                calfLeft: bm.measurements?.calf_left ?? bm.calfLeft ?? bm.calf_left,
+                sfChest: bm.skinfolds?.chest ?? bm.sfChest ?? bm.sf_chest,
+                sfAbdomen: bm.skinfolds?.abdomen ?? bm.sfAbdomen ?? bm.sf_abdomen,
+                sfThigh: bm.skinfolds?.thigh ?? bm.sfThigh ?? bm.sf_thigh,
+                sfTriceps: bm.skinfolds?.triceps ?? bm.sfTriceps ?? bm.sf_triceps,
+                sfSuprailiac: bm.skinfolds?.suprailiac ?? bm.sfSuprailiac ?? bm.sf_suprailiac,
+                sfSubscapular: bm.skinfolds?.subscapular ?? bm.sfSubscapular ?? bm.sf_subscapular,
+                sfMidaxillary: bm.skinfolds?.midaxillary ?? bm.sfMidaxillary ?? bm.sf_midaxillary,
               }
             }
 
-            const dataA = flattenMetrics(evals[idxA]?.bodyMetricsJson)
-            const dataB = flattenMetrics(evals[idxB]?.bodyMetricsJson)
+            const dataA = flattenMetrics(evals[idxA]?.bodyMetricsJson, evals[idxA]?.computedJson)
+            const dataB = flattenMetrics(evals[idxB]?.bodyMetricsJson, evals[idxB]?.computedJson)
             const labelA = new Date(evals[idxA]?.createdAt).toLocaleDateString('pt-BR')
             const labelB = new Date(evals[idxB]?.createdAt).toLocaleDateString('pt-BR')
 

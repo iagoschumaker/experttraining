@@ -112,6 +112,7 @@ export async function GET(
             createdAt: true,
             completedAt: true,
             bodyMetricsJson: true,
+            computedJson: true,
           },
         },
         workouts: {
