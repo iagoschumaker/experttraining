@@ -1221,8 +1221,36 @@ export default function ClientDetailPage() {
             // Data always from assessments (not client-level fields anymore)
             const idxA = compareIdxA >= 0 && compareIdxA < evals.length ? compareIdxA : 0
             const idxB = compareIdxB >= 0 && compareIdxB < evals.length ? compareIdxB : evals.length - 1
-            const dataA: Record<string, number> = (evals[idxA]?.bodyMetricsJson as Record<string, number> ?? {})
-            const dataB: Record<string, number> = (evals[idxB]?.bodyMetricsJson as Record<string, number> ?? {})
+
+            const flattenMetrics = (bm: any) => {
+              if (!bm) return {}
+              return {
+                weight: bm.weight,
+                bodyFat: bm.bodyFat,
+                chest: bm.measurements?.chest,
+                waist: bm.measurements?.waist,
+                hip: bm.measurements?.hip,
+                abdomen: bm.measurements?.abdomen,
+                armRight: bm.measurements?.arm_right,
+                armLeft: bm.measurements?.arm_left,
+                forearmRight: bm.measurements?.forearm_right,
+                forearmLeft: bm.measurements?.forearm_left,
+                thighRight: bm.measurements?.thigh_right,
+                thighLeft: bm.measurements?.thigh_left,
+                calfRight: bm.measurements?.calf_right,
+                calfLeft: bm.measurements?.calf_left,
+                sfChest: bm.skinfolds?.chest,
+                sfAbdomen: bm.skinfolds?.abdomen,
+                sfThigh: bm.skinfolds?.thigh,
+                sfTriceps: bm.skinfolds?.triceps,
+                sfSuprailiac: bm.skinfolds?.suprailiac,
+                sfSubscapular: bm.skinfolds?.subscapular,
+                sfMidaxillary: bm.skinfolds?.midaxillary,
+              }
+            }
+
+            const dataA = flattenMetrics(evals[idxA]?.bodyMetricsJson)
+            const dataB = flattenMetrics(evals[idxB]?.bodyMetricsJson)
             const labelA = new Date(evals[idxA]?.createdAt).toLocaleDateString('pt-BR')
             const labelB = new Date(evals[idxB]?.createdAt).toLocaleDateString('pt-BR')
 
