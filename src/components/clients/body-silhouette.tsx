@@ -140,12 +140,118 @@ export function BodySilhouette(props: BodySilhouetteProps) {
     return muscle // músculos centrais ou que não precisam separar
   }
 
+  // Lógica Dinâmica de Biotipo (Morphing do SVG)
+  type Phenotype = 'definido' | 'magro' | 'normal' | 'sobrepeso' | 'obeso'
+
+  const getPhenotype = (gender: 'M' | 'F' | null, bf?: number | null): Phenotype => {
+    if (!bf) return 'normal'
+    if (gender === 'F') {
+      if (bf < 20) return 'definido'
+      if (bf < 24) return 'magro'
+      if (bf < 30) return 'normal'
+      if (bf < 35) return 'sobrepeso'
+      return 'obeso'
+    } else {
+      if (bf < 12) return 'definido'
+      if (bf < 15) return 'magro'
+      if (bf < 20) return 'normal'
+      if (bf < 25) return 'sobrepeso'
+      return 'obeso'
+    }
+  }
+
+  const phenotype = getPhenotype(props.gender, bodyFat)
+
+  const morphProfiles: Record<Phenotype, {y: number, mult: number}[]> = {
+    'normal': [
+      { y: 0, mult: 1.0 }, { y: 220, mult: 1.0 }
+    ],
+    'magro': [
+      { y: 0, mult: 0.95 },
+      { y: 40, mult: 0.9 }, // ombros menores
+      { y: 70, mult: 0.85 }, // cintura bem fina
+      { y: 110, mult: 0.9 }, // quadril fino
+      { y: 220, mult: 0.9 }
+    ],
+    'definido': [
+      { y: 0, mult: 1.0 },
+      { y: 35, mult: 1.15 }, // ombros largos (shape em V)
+      { y: 50, mult: 1.1 }, // peitoral largo
+      { y: 75, mult: 0.95 }, // cintura fina
+      { y: 110, mult: 1.05 }, // coxas fortes
+      { y: 220, mult: 1.05 }
+    ],
+    'sobrepeso': [
+      { y: 0, mult: 1.05 }, // rosto levemente mais largo
+      { y: 40, mult: 1.1 }, // ombros largos
+      { y: 75, mult: 1.25 }, // barriga
+      { y: 110, mult: 1.2 }, // quadril largo
+      { y: 220, mult: 1.1 }
+    ],
+    'obeso': [
+      { y: 0, mult: 1.1 },
+      { y: 40, mult: 1.2 },
+      { y: 75, mult: 1.5 }, // barriga grande
+      { y: 110, mult: 1.4 }, // quadril muito largo
+      { y: 220, mult: 1.2 }
+    ]
+  }
+
+  const getMultiplier = (y: number, profileName: Phenotype) => {
+    const profile = morphProfiles[profileName]
+    if (y <= profile[0].y) return profile[0].mult
+    if (y >= profile[profile.length - 1].y) return profile[profile.length - 1].mult
+    
+    for (let i = 0; i < profile.length - 1; i++) {
+      const p1 = profile[i]
+      const p2 = profile[i + 1]
+      if (y >= p1.y && y <= p2.y) {
+        const t = (y - p1.y) / (p2.y - p1.y)
+        return p1.mult + t * (p2.mult - p1.mult)
+      }
+    }
+    return 1.0
+  }
+
+  const applyMorph = (pointsString: string, phenotypeType: Phenotype) => {
+    if (phenotypeType === 'normal') return pointsString // sem distorção
+
+    const coords = pointsString.trim().split(/\s+/)
+    const newCoords = []
+    for (let i = 0; i < coords.length; i += 2) {
+      const x = parseFloat(coords[i])
+      const y = parseFloat(coords[i+1])
+      if (!isNaN(x) && !isNaN(y)) {
+        const mult = getMultiplier(y, phenotypeType)
+        const newX = 50 + (x - 50) * mult
+        newCoords.push(`${newX.toFixed(2)} ${y.toFixed(2)}`)
+      }
+    }
+    return newCoords.join(' ')
+  }
+
+  const biotypeLabels: Record<Phenotype, string> = {
+    'definido': 'Atleta / Definido',
+    'magro': 'Magro / Esbelto',
+    'normal': 'Normal',
+    'sobrepeso': 'Sobrepeso / Forte',
+    'obeso': 'Obeso'
+  }
+
   return (
     <div className="flex flex-col items-center gap-4 select-none w-full max-w-sm mx-auto relative">
       <div className="flex items-center justify-between w-full">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-          Mapa Corporal 3D — {props.gender === 'F' ? 'Feminino' : 'Masculino'}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            Mapa Corporal 3D — {props.gender === 'F' ? 'Feminino' : 'Masculino'}
+          </p>
+          {bodyFat && (
+            <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+              Biotipo: {biotypeLabels[phenotype]}
+            </span>
+          )}
+        </div>
         <div className="flex bg-muted rounded-lg p-1">
           <button
             className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${view === 'anterior' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
@@ -165,7 +271,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
       <div className="relative w-full max-w-[200px] mx-auto group">
         <svg
           viewBox="0 0 100 220"
-          className="w-full h-auto drop-shadow-lg transition-all"
+          className="w-full h-auto drop-shadow-lg transition-all duration-700"
           xmlns="http://www.w3.org/2000/svg"
         >
           {modelData.map((part) => {
@@ -196,8 +302,8 @@ export function BodySilhouette(props: BodySilhouetteProps) {
               return (
                 <polygon
                   key={`${part.muscle}-${idx}`}
-                  points={points}
-                  className="transition-all duration-200 ease-out outline-none"
+                  points={applyMorph(points, phenotype)}
+                  className="transition-all duration-500 ease-out outline-none"
                   style={{
                     fill,
                     cursor: hasData ? 'pointer' : 'default',
