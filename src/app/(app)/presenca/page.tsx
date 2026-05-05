@@ -293,7 +293,7 @@ export default function PresencaPage() {
             const res = await fetchWithAuth('/api/studio/training-sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ students, label: `${time} · ${selected.length} alunos` }),
+                body: JSON.stringify({ students, label: `${time} · ${selected.length} ${selected.length === 1 ? 'aluno' : 'alunos'}` }),
             })
             const data = await res.json()
             if (data.success) {
@@ -575,7 +575,10 @@ export default function PresencaPage() {
                     <div>
                         <h2 className="text-lg font-bold">Sessão {activeSession.label}</h2>
                         <p className="text-xs text-muted-foreground">
-                            {activeCards.filter(s => !s.loading && !s.error).length} alunos • {new Date().toLocaleDateString('pt-BR')}
+                            {activeSession.students.length} {activeSession.students.length === 1 ? 'aluno' : 'alunos'} • {new Date().toLocaleDateString('pt-BR')}
+                            {activeCards.some(s => s.loading) && (
+                                <span className="ml-2 text-amber-400 animate-pulse">⏳ carregando...</span>
+                            )}
                             {isFinalized && <span className="text-green-500 font-bold ml-2">✅ Finalizada!</span>}
                         </p>
                     </div>
