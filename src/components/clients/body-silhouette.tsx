@@ -36,11 +36,12 @@ interface Metric {
 }
 
 interface MuscleData {
+  title: string
   metrics: Metric[]
 }
 
 export function BodySilhouette(props: BodySilhouetteProps) {
-  const [hoveredMuscle, setHoveredMuscle] = useState<Muscle | null>(null)
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [view, setView] = useState<'anterior' | 'posterior'>('anterior')
 
@@ -54,74 +55,89 @@ export function BodySilhouette(props: BodySilhouetteProps) {
     sfChest, sfAbdomen, sfThigh, sfTriceps, sfSuprailiac, sfSubscapular, sfMidaxillary
   } = props
 
-  // Faz média para membros (garante conversão para Number para evitar concatenação de strings)
-  const avg = (a?: any, b?: any) => {
-    const numA = a ? Number(a) : 0
-    const numB = b ? Number(b) : 0
-    if (numA && numB) return (numA + numB) / 2
-    return numA || numB || null
-  }
+  // Agrupa as métricas por chave da parte do corpo
+  const muscleValues: Record<string, MuscleData> = {}
 
-  // Agrupa as métricas por músculo
-  const muscleValues: Partial<Record<Muscle, MuscleData>> = {}
-
-  const addMetric = (m: Muscle, val: number | null | undefined, label: string, unit: string) => {
+  const addMetric = (key: string, val: number | null | undefined, label: string, unit: string) => {
     if (!val) return
-    if (!muscleValues[m]) muscleValues[m] = { metrics: [] }
-    muscleValues[m]!.metrics.push({ val, label, unit })
+    if (!muscleValues[key]) muscleValues[key] = { title: '', metrics: [] }
+    muscleValues[key].metrics.push({ val, label, unit })
   }
 
   // Peitoral
   addMetric('chest', chest, 'Circunferência', 'cm')
   addMetric('chest', sfChest, 'Dobra Cutânea', 'mm')
+  if (muscleValues['chest']) muscleValues['chest'].title = 'Peitoral'
 
   // Abdômen
   addMetric('abs', abdomen, 'Circunferência', 'cm')
   addMetric('abs', sfAbdomen, 'Dobra Cutânea', 'mm')
-  addMetric('abs', bodyFat, 'Gordura Corporal Total', '%') // Exibe o BF no centro do corpo
+  addMetric('abs', bodyFat, 'Gordura Corporal Total', '%')
+  if (muscleValues['abs']) muscleValues['abs'].title = 'Abdômen'
 
   // Cintura / Supra-ilíaca (Obliques)
   addMetric('obliques', waist, 'Circunferência', 'cm')
   addMetric('obliques', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
+  if (muscleValues['obliques']) muscleValues['obliques'].title = 'Cintura / Oblíquos'
 
   // Quadril
   addMetric('gluteal', hip, 'Circunferência', 'cm')
+  if (muscleValues['gluteal']) muscleValues['gluteal'].title = 'Quadril / Glúteos'
 
-  // Braços
-  const armCm = avg(armRight, armLeft)
-  addMetric('biceps', armCm, 'Circunferência', 'cm')
-  addMetric('triceps', armCm, 'Circunferência', 'cm')
-  addMetric('triceps', sfTriceps, 'Dobra Cutânea (Tríceps)', 'mm')
+  // Braço Direito
+  addMetric('arm-right', armRight, 'Circunferência', 'cm')
+  addMetric('arm-right', sfTriceps, 'Dobra Cutânea (Tríceps)', 'mm')
+  if (muscleValues['arm-right']) muscleValues['arm-right'].title = 'Braço Dir.'
 
-  // Antebraço
-  addMetric('forearm', avg(forearmRight, forearmLeft), 'Circunferência', 'cm')
+  // Braço Esquerdo
+  addMetric('arm-left', armLeft, 'Circunferência', 'cm')
+  addMetric('arm-left', sfTriceps, 'Dobra Cutânea (Tríceps)', 'mm')
+  if (muscleValues['arm-left']) muscleValues['arm-left'].title = 'Braço Esq.'
 
-  // Coxas
-  const thighCm = avg(thighRight, thighLeft)
-  addMetric('quadriceps', thighCm, 'Circunferência', 'cm')
-  addMetric('quadriceps', sfThigh, 'Dobra Cutânea', 'mm')
-  addMetric('hamstring', thighCm, 'Circunferência', 'cm')
-  addMetric('hamstring', sfThigh, 'Dobra Cutânea', 'mm')
+  // Antebraço Direito
+  addMetric('forearm-right', forearmRight, 'Circunferência', 'cm')
+  if (muscleValues['forearm-right']) muscleValues['forearm-right'].title = 'Antebraço Dir.'
 
-  // Panturrilhas
-  addMetric('calves', avg(calfRight, calfLeft), 'Circunferência', 'cm')
+  // Antebraço Esquerdo
+  addMetric('forearm-left', forearmLeft, 'Circunferência', 'cm')
+  if (muscleValues['forearm-left']) muscleValues['forearm-left'].title = 'Antebraço Esq.'
+
+  // Coxa Direita
+  addMetric('thigh-right', thighRight, 'Circunferência', 'cm')
+  addMetric('thigh-right', sfThigh, 'Dobra Cutânea (Coxa)', 'mm')
+  if (muscleValues['thigh-right']) muscleValues['thigh-right'].title = 'Coxa Dir.'
+
+  // Coxa Esquerda
+  addMetric('thigh-left', thighLeft, 'Circunferência', 'cm')
+  addMetric('thigh-left', sfThigh, 'Dobra Cutânea (Coxa)', 'mm')
+  if (muscleValues['thigh-left']) muscleValues['thigh-left'].title = 'Coxa Esq.'
+
+  // Panturrilha Direita
+  addMetric('calf-right', calfRight, 'Circunferência', 'cm')
+  if (muscleValues['calf-right']) muscleValues['calf-right'].title = 'Panturrilha Dir.'
+
+  // Panturrilha Esquerda
+  addMetric('calf-left', calfLeft, 'Circunferência', 'cm')
+  if (muscleValues['calf-left']) muscleValues['calf-left'].title = 'Panturrilha Esq.'
 
   // Costas / Axilar
   addMetric('upper-back', sfSubscapular, 'Dobra Subescapular', 'mm')
+  if (muscleValues['upper-back']) muscleValues['upper-back'].title = 'Costas Superiores'
   addMetric('back-deltoids', sfMidaxillary, 'Dobra Axilar Média', 'mm')
+  if (muscleValues['back-deltoids']) muscleValues['back-deltoids'].title = 'Costas / Axilar'
 
   const modelData = view === 'anterior' ? anteriorData : posteriorData
 
-  const activeData = hoveredMuscle ? muscleValues[hoveredMuscle] : null
-  const showTooltip = !!(hoveredMuscle && activeData?.metrics.length)
+  const activeData = hoveredKey ? muscleValues[hoveredKey] : null
+  const showTooltip = !!(hoveredKey && activeData?.metrics.length)
 
-  const muscleNames: Record<Muscle, string> = {
-    'chest': 'Peitoral', 'abs': 'Abdômen', 'obliques': 'Cintura / Oblíquos', 'gluteal': 'Quadril / Glúteos',
-    'biceps': 'Braço', 'triceps': 'Braço', 'forearm': 'Antebraço', 'quadriceps': 'Coxa',
-    'hamstring': 'Coxa', 'calves': 'Panturrilha', 'upper-back': 'Costas Superiores',
-    'lower-back': 'Lombar', 'back-deltoids': 'Costas / Axilar', 'front-deltoids': 'Deltoide Anterior',
-    'trapezius': 'Trapézio', 'adductor': 'Adutores', 'abductors': 'Abdutores', 'head': 'Cabeça',
-    'neck': 'Pescoço', 'knees': 'Joelhos', 'left-soleus': 'Sóleo', 'right-soleus': 'Sóleo'
+  // Mapeia qual é a chave do body part baseado no músculo e no lado
+  const getBodyPartKey = (muscle: Muscle, side: 'left' | 'right'): string => {
+    if (['biceps', 'triceps'].includes(muscle)) return `arm-${side}`
+    if (['forearm'].includes(muscle)) return `forearm-${side}`
+    if (['quadriceps', 'hamstring'].includes(muscle)) return `thigh-${side}`
+    if (['calves', 'left-soleus', 'right-soleus'].includes(muscle)) return `calf-${side}`
+    return muscle // músculos centrais ou que não precisam separar
   }
 
   return (
@@ -153,34 +169,47 @@ export function BodySilhouette(props: BodySilhouetteProps) {
           xmlns="http://www.w3.org/2000/svg"
         >
           {modelData.map((part) => {
-            const data = muscleValues[part.muscle]
-            const hasData = !!data?.metrics.length
-            const isHovered = hoveredMuscle === part.muscle
+            return part.svgPoints.map((points, idx) => {
+              // Descobre o lado (esquerdo ou direito) baseado no primeiro ponto X
+              const firstX = parseFloat(points.split(' ')[0])
+              const isImageLeft = firstX < 50
+              
+              // No Anterior, ImageLeft (< 50) é o Braço DIREITO da pessoa.
+              // No Posterior, ImageLeft (< 50) é o Braço ESQUERDO da pessoa.
+              const side = view === 'anterior' 
+                ? (isImageLeft ? 'right' : 'left') 
+                : (isImageLeft ? 'left' : 'right')
 
-            let fill = 'hsl(var(--muted) / 0.5)'
-            if (hasData) {
-              fill = 'hsl(var(--primary) / 0.4)'
-            }
-            if (isHovered) {
-              fill = 'hsl(var(--primary))'
-            }
+              const key = getBodyPartKey(part.muscle, side)
+              const data = muscleValues[key]
+              const hasData = !!data?.metrics.length
+              const isHovered = hoveredKey === key
 
-            return part.svgPoints.map((points, idx) => (
-              <polygon
-                key={`${part.muscle}-${idx}`}
-                points={points}
-                className="transition-all duration-200 ease-out outline-none"
-                style={{
-                  fill,
-                  cursor: hasData ? 'pointer' : 'default',
-                  stroke: isHovered ? 'hsl(var(--primary))' : 'hsl(var(--background))',
-                  strokeWidth: isHovered ? 0.5 : 0.2,
-                }}
-                onMouseEnter={() => setHoveredMuscle(part.muscle)}
-                onMouseLeave={() => setHoveredMuscle(null)}
-                onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
-              />
-            ))
+              let fill = 'hsl(var(--muted) / 0.5)'
+              if (hasData) {
+                fill = 'hsl(var(--primary) / 0.4)'
+              }
+              if (isHovered) {
+                fill = 'hsl(var(--primary))'
+              }
+
+              return (
+                <polygon
+                  key={`${part.muscle}-${idx}`}
+                  points={points}
+                  className="transition-all duration-200 ease-out outline-none"
+                  style={{
+                    fill,
+                    cursor: hasData ? 'pointer' : 'default',
+                    stroke: isHovered ? 'hsl(var(--primary))' : 'hsl(var(--background))',
+                    strokeWidth: isHovered ? 0.5 : 0.2,
+                  }}
+                  onMouseEnter={() => setHoveredKey(key)}
+                  onMouseLeave={() => setHoveredKey(null)}
+                  onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+                />
+              )
+            })
           })}
         </svg>
 
@@ -197,7 +226,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
           style={{ left: mousePos.x, top: mousePos.y, minWidth: '160px' }}
         >
           <div className="text-[10px] uppercase font-bold text-muted-foreground border-b border-border/50 pb-1 mb-1 tracking-wider">
-            {muscleNames[hoveredMuscle!]}
+            {activeData.title}
           </div>
           {activeData.metrics.map((m, i) => (
              <div key={i} className="flex justify-between items-center gap-4">
