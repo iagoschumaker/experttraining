@@ -69,16 +69,13 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   addMetric('chest', sfChest, 'Dobra Cutânea', 'mm')
   if (muscleValues['chest']) muscleValues['chest'].title = 'Peitoral'
 
-  // Abdômen
-  addMetric('abs', abdomen, 'Circunferência', 'cm')
-  addMetric('abs', sfAbdomen, 'Dobra Cutânea', 'mm')
-  addMetric('abs', bodyFat, 'Gordura Corporal Total', '%')
-  if (muscleValues['abs']) muscleValues['abs'].title = 'Abdômen'
-
-  // Cintura / Supra-ilíaca (Obliques na frente, Lower Back atrás)
-  addMetric('waist', waist, 'Circunferência', 'cm')
-  addMetric('waist', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
-  if (muscleValues['waist']) muscleValues['waist'].title = 'Cintura / Lombar'
+  // Abdômen e Cintura (agrupados como 'core' para iluminar toda a região do tronco de uma vez)
+  addMetric('core', waist, 'Cintura (Circ.)', 'cm')
+  addMetric('core', abdomen, 'Abdômen (Circ.)', 'cm')
+  addMetric('core', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
+  addMetric('core', sfAbdomen, 'Dobra Abdominal', 'mm')
+  addMetric('core', bodyFat, 'Gordura Corporal Total', '%')
+  if (muscleValues['core']) muscleValues['core'].title = 'Cintura / Abdômen'
 
   // Quadril
   addMetric('gluteal', hip, 'Circunferência', 'cm')
@@ -120,10 +117,11 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   addMetric('calf-left', calfLeft, 'Circunferência', 'cm')
   if (muscleValues['calf-left']) muscleValues['calf-left'].title = 'Panturrilha Esq.'
 
-  // Costas / Axilar
-  addMetric('upper-back', chest, 'Circunferência do Tórax', 'cm') // O peitoral dá a volta no tórax
+  // Costas / Axilar / Tórax
+  addMetric('upper-back', chest, 'Circunferência do Tórax', 'cm')
   addMetric('upper-back', sfSubscapular, 'Dobra Subescapular', 'mm')
   if (muscleValues['upper-back']) muscleValues['upper-back'].title = 'Costas Superiores'
+  
   addMetric('back-deltoids', sfMidaxillary, 'Dobra Axilar Média', 'mm')
   if (muscleValues['back-deltoids']) muscleValues['back-deltoids'].title = 'Costas / Axilar'
 
@@ -138,7 +136,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
     if (['forearm'].includes(muscle)) return `forearm-${side}`
     if (['quadriceps', 'hamstring'].includes(muscle)) return `thigh-${side}`
     if (['calves', 'left-soleus', 'right-soleus'].includes(muscle)) return `calf-${side}`
-    if (['obliques', 'lower-back'].includes(muscle)) return 'waist'
+    if (['abs', 'obliques', 'lower-back'].includes(muscle)) return 'core'
     return muscle // músculos centrais ou que não precisam separar
   }
 
