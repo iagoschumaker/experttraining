@@ -1233,12 +1233,12 @@ export default function ClientDetailPage() {
               { label: 'Cintura', key: 'waist', unit: 'cm', lowerBetter: true },
               { label: 'Quadril', key: 'hip', unit: 'cm', lowerBetter: false },
               { label: 'Abdômen', key: 'abdomen', unit: 'cm', lowerBetter: true },
-              { label: 'Braço D', key: 'arm_right', unit: 'cm', lowerBetter: false },
-              { label: 'Braço E', key: 'arm_left', unit: 'cm', lowerBetter: false },
-              { label: 'Coxa D', key: 'thigh_right', unit: 'cm', lowerBetter: false },
-              { label: 'Coxa E', key: 'thigh_left', unit: 'cm', lowerBetter: false },
-              { label: 'Pant. D', key: 'calf_right', unit: 'cm', lowerBetter: false },
-              { label: 'Pant. E', key: 'calf_left', unit: 'cm', lowerBetter: false },
+              { label: 'Braço D', key: 'armRight', unit: 'cm', lowerBetter: false },
+              { label: 'Braço E', key: 'armLeft', unit: 'cm', lowerBetter: false },
+              { label: 'Coxa D', key: 'thighRight', unit: 'cm', lowerBetter: false },
+              { label: 'Coxa E', key: 'thighLeft', unit: 'cm', lowerBetter: false },
+              { label: 'Pant. D', key: 'calfRight', unit: 'cm', lowerBetter: false },
+              { label: 'Pant. E', key: 'calfLeft', unit: 'cm', lowerBetter: false },
               { label: 'Tríceps', key: 'sfTriceps', unit: 'mm', lowerBetter: true },
               { label: 'Suprail.', key: 'sfSuprailiac', unit: 'mm', lowerBetter: true },
               { label: 'Coxa DC', key: 'sfThigh', unit: 'mm', lowerBetter: true },
@@ -1283,6 +1283,28 @@ export default function ClientDetailPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* 3D Body Evolution Comparison */}
+                <div className="grid grid-cols-2 gap-4 mt-6 mb-6">
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-1 rounded-full">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      <span className="text-[10px] font-bold text-foreground">{labelA}</span>
+                    </div>
+                    <div className="scale-75 origin-top -mb-[25%] -mt-6">
+                      <BodySilhouette gender={client.gender} {...dataA} />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-2 bg-muted/50 px-3 py-1 rounded-full">
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                      <span className="text-[10px] font-bold text-foreground">{labelB}</span>
+                    </div>
+                    <div className="scale-75 origin-top -mb-[25%] -mt-6">
+                      <BodySilhouette gender={client.gender} {...dataB} />
+                    </div>
                   </div>
                 </div>
 
