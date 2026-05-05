@@ -54,10 +54,12 @@ export function BodySilhouette(props: BodySilhouetteProps) {
     sfChest, sfAbdomen, sfThigh, sfTriceps, sfSuprailiac, sfSubscapular, sfMidaxillary
   } = props
 
-  // Faz média para membros
-  const avg = (a?: number | null, b?: number | null) => {
-    if (a && b) return (a + b) / 2
-    return a || b || null
+  // Faz média para membros (garante conversão para Number para evitar concatenação de strings)
+  const avg = (a?: any, b?: any) => {
+    const numA = a ? Number(a) : 0
+    const numB = b ? Number(b) : 0
+    if (numA && numB) return (numA + numB) / 2
+    return numA || numB || null
   }
 
   // Agrupa as métricas por músculo
@@ -76,33 +78,33 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   // Abdômen
   addMetric('abs', abdomen, 'Circunferência', 'cm')
   addMetric('abs', sfAbdomen, 'Dobra Cutânea', 'mm')
-  addMetric('abs', bodyFat, 'Gordura Corporal (Total)', '%') // Exibe o BF no centro do corpo
+  addMetric('abs', bodyFat, 'Gordura Corporal Total', '%') // Exibe o BF no centro do corpo
 
   // Cintura / Supra-ilíaca (Obliques)
-  addMetric('obliques', waist, 'Cintura', 'cm')
+  addMetric('obliques', waist, 'Circunferência', 'cm')
   addMetric('obliques', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
 
   // Quadril
-  addMetric('gluteal', hip, 'Quadril', 'cm')
+  addMetric('gluteal', hip, 'Circunferência', 'cm')
 
   // Braços
   const armCm = avg(armRight, armLeft)
-  addMetric('biceps', armCm, 'Braço', 'cm')
-  addMetric('triceps', armCm, 'Braço', 'cm')
-  addMetric('triceps', sfTriceps, 'Dobra Tríceps', 'mm')
+  addMetric('biceps', armCm, 'Circunferência', 'cm')
+  addMetric('triceps', armCm, 'Circunferência', 'cm')
+  addMetric('triceps', sfTriceps, 'Dobra Cutânea (Tríceps)', 'mm')
 
   // Antebraço
-  addMetric('forearm', avg(forearmRight, forearmLeft), 'Antebraço', 'cm')
+  addMetric('forearm', avg(forearmRight, forearmLeft), 'Circunferência', 'cm')
 
   // Coxas
   const thighCm = avg(thighRight, thighLeft)
-  addMetric('quadriceps', thighCm, 'Coxa', 'cm')
-  addMetric('quadriceps', sfThigh, 'Dobra Coxa', 'mm')
-  addMetric('hamstring', thighCm, 'Coxa', 'cm')
-  addMetric('hamstring', sfThigh, 'Dobra Coxa', 'mm')
+  addMetric('quadriceps', thighCm, 'Circunferência', 'cm')
+  addMetric('quadriceps', sfThigh, 'Dobra Cutânea', 'mm')
+  addMetric('hamstring', thighCm, 'Circunferência', 'cm')
+  addMetric('hamstring', sfThigh, 'Dobra Cutânea', 'mm')
 
   // Panturrilhas
-  addMetric('calves', avg(calfRight, calfLeft), 'Panturrilha', 'cm')
+  addMetric('calves', avg(calfRight, calfLeft), 'Circunferência', 'cm')
 
   // Costas / Axilar
   addMetric('upper-back', sfSubscapular, 'Dobra Subescapular', 'mm')
@@ -115,8 +117,8 @@ export function BodySilhouette(props: BodySilhouetteProps) {
 
   const muscleNames: Record<Muscle, string> = {
     'chest': 'Peitoral', 'abs': 'Abdômen', 'obliques': 'Cintura / Oblíquos', 'gluteal': 'Quadril / Glúteos',
-    'biceps': 'Bíceps', 'triceps': 'Tríceps', 'forearm': 'Antebraço', 'quadriceps': 'Coxa (Anterior)',
-    'hamstring': 'Coxa (Posterior)', 'calves': 'Panturrilha', 'upper-back': 'Costas Superiores',
+    'biceps': 'Braço', 'triceps': 'Braço', 'forearm': 'Antebraço', 'quadriceps': 'Coxa',
+    'hamstring': 'Coxa', 'calves': 'Panturrilha', 'upper-back': 'Costas Superiores',
     'lower-back': 'Lombar', 'back-deltoids': 'Costas / Axilar', 'front-deltoids': 'Deltoide Anterior',
     'trapezius': 'Trapézio', 'adductor': 'Adutores', 'abductors': 'Abdutores', 'head': 'Cabeça',
     'neck': 'Pescoço', 'knees': 'Joelhos', 'left-soleus': 'Sóleo', 'right-soleus': 'Sóleo'
