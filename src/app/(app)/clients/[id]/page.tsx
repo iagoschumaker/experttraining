@@ -1188,6 +1188,7 @@ export default function ClientDetailPage() {
                   {/* SVG Silhueta */}
                   <BodySilhouette
                     gender={client.gender as 'M' | 'F' | null}
+                    bodyFat={client.bodyFat}
                     chest={client.chest}
                     waist={client.waist}
                     hip={client.hip}
@@ -1200,6 +1201,13 @@ export default function ClientDetailPage() {
                     thighLeft={client.thighLeft}
                     calfRight={client.calfRight}
                     calfLeft={client.calfLeft}
+                    sfChest={client.sfChest}
+                    sfAbdomen={client.sfAbdomen}
+                    sfThigh={client.sfThigh}
+                    sfTriceps={client.sfTriceps}
+                    sfSuprailiac={client.sfSuprailiac}
+                    sfSubscapular={client.sfSubscapular}
+                    sfMidaxillary={client.sfMidaxillary}
                   />
                 </div>
               </div>

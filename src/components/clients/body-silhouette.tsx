@@ -5,6 +5,8 @@ import { anteriorData, posteriorData, Muscle } from './body-svg-data'
 
 interface BodySilhouetteProps {
   gender: 'M' | 'F' | null
+  bodyFat?: number | null
+  // Circunferências (cm)
   chest?: number | null
   waist?: number | null
   hip?: number | null
@@ -17,11 +19,24 @@ interface BodySilhouetteProps {
   thighLeft?: number | null
   calfRight?: number | null
   calfLeft?: number | null
+  // Dobras cutâneas (mm)
+  sfChest?: number | null
+  sfAbdomen?: number | null
+  sfThigh?: number | null
+  sfTriceps?: number | null
+  sfSuprailiac?: number | null
+  sfSubscapular?: number | null
+  sfMidaxillary?: number | null
+}
+
+interface Metric {
+  val: number | null | undefined
+  label: string
+  unit: string
 }
 
 interface MuscleData {
-  value: number | null | undefined
-  label: string
+  metrics: Metric[]
 }
 
 export function BodySilhouette(props: BodySilhouetteProps) {
@@ -30,38 +45,82 @@ export function BodySilhouette(props: BodySilhouetteProps) {
   const [view, setView] = useState<'anterior' | 'posterior'>('anterior')
 
   const {
+    bodyFat,
     chest, waist, hip, abdomen,
     armRight, armLeft,
     forearmRight, forearmLeft,
     thighRight, thighLeft,
-    calfRight, calfLeft
+    calfRight, calfLeft,
+    sfChest, sfAbdomen, sfThigh, sfTriceps, sfSuprailiac, sfSubscapular, sfMidaxillary
   } = props
 
-  // Mapeia os dados do corpo para os músculos do react-body-highlighter
-  // Combina direita e esquerda fazendo média ou somando, dependendo do caso, 
-  // já que o SVG ilumina o músculo inteiro (ambos os lados juntos na maioria dos SVGs)
+  // Faz média para membros
   const avg = (a?: number | null, b?: number | null) => {
     if (a && b) return (a + b) / 2
     return a || b || null
   }
 
-  const muscleValues: Partial<Record<Muscle, MuscleData>> = {
-    'chest': { value: chest, label: 'Peitoral' },
-    'abs': { value: abdomen, label: 'Abdômen' },
-    'obliques': { value: waist, label: 'Cintura' },
-    'gluteal': { value: hip, label: 'Quadril' },
-    'biceps': { value: avg(armRight, armLeft), label: 'Braço (Bíceps)' },
-    'triceps': { value: avg(armRight, armLeft), label: 'Braço (Tríceps)' },
-    'forearm': { value: avg(forearmRight, forearmLeft), label: 'Antebraço' },
-    'quadriceps': { value: avg(thighRight, thighLeft), label: 'Coxa' },
-    'hamstring': { value: avg(thighRight, thighLeft), label: 'Coxa (Posterior)' },
-    'calves': { value: avg(calfRight, calfLeft), label: 'Panturrilha' },
+  // Agrupa as métricas por músculo
+  const muscleValues: Partial<Record<Muscle, MuscleData>> = {}
+
+  const addMetric = (m: Muscle, val: number | null | undefined, label: string, unit: string) => {
+    if (!val) return
+    if (!muscleValues[m]) muscleValues[m] = { metrics: [] }
+    muscleValues[m]!.metrics.push({ val, label, unit })
   }
+
+  // Peitoral
+  addMetric('chest', chest, 'Circunferência', 'cm')
+  addMetric('chest', sfChest, 'Dobra Cutânea', 'mm')
+
+  // Abdômen
+  addMetric('abs', abdomen, 'Circunferência', 'cm')
+  addMetric('abs', sfAbdomen, 'Dobra Cutânea', 'mm')
+  addMetric('abs', bodyFat, 'Gordura Corporal (Total)', '%') // Exibe o BF no centro do corpo
+
+  // Cintura / Supra-ilíaca (Obliques)
+  addMetric('obliques', waist, 'Cintura', 'cm')
+  addMetric('obliques', sfSuprailiac, 'Dobra Suprailíaca', 'mm')
+
+  // Quadril
+  addMetric('gluteal', hip, 'Quadril', 'cm')
+
+  // Braços
+  const armCm = avg(armRight, armLeft)
+  addMetric('biceps', armCm, 'Braço', 'cm')
+  addMetric('triceps', armCm, 'Braço', 'cm')
+  addMetric('triceps', sfTriceps, 'Dobra Tríceps', 'mm')
+
+  // Antebraço
+  addMetric('forearm', avg(forearmRight, forearmLeft), 'Antebraço', 'cm')
+
+  // Coxas
+  const thighCm = avg(thighRight, thighLeft)
+  addMetric('quadriceps', thighCm, 'Coxa', 'cm')
+  addMetric('quadriceps', sfThigh, 'Dobra Coxa', 'mm')
+  addMetric('hamstring', thighCm, 'Coxa', 'cm')
+  addMetric('hamstring', sfThigh, 'Dobra Coxa', 'mm')
+
+  // Panturrilhas
+  addMetric('calves', avg(calfRight, calfLeft), 'Panturrilha', 'cm')
+
+  // Costas / Axilar
+  addMetric('upper-back', sfSubscapular, 'Dobra Subescapular', 'mm')
+  addMetric('back-deltoids', sfMidaxillary, 'Dobra Axilar Média', 'mm')
 
   const modelData = view === 'anterior' ? anteriorData : posteriorData
 
   const activeData = hoveredMuscle ? muscleValues[hoveredMuscle] : null
-  const showTooltip = !!(hoveredMuscle && activeData?.value)
+  const showTooltip = !!(hoveredMuscle && activeData?.metrics.length)
+
+  const muscleNames: Record<Muscle, string> = {
+    'chest': 'Peitoral', 'abs': 'Abdômen', 'obliques': 'Cintura / Oblíquos', 'gluteal': 'Quadril / Glúteos',
+    'biceps': 'Bíceps', 'triceps': 'Tríceps', 'forearm': 'Antebraço', 'quadriceps': 'Coxa (Anterior)',
+    'hamstring': 'Coxa (Posterior)', 'calves': 'Panturrilha', 'upper-back': 'Costas Superiores',
+    'lower-back': 'Lombar', 'back-deltoids': 'Costas / Axilar', 'front-deltoids': 'Deltoide Anterior',
+    'trapezius': 'Trapézio', 'adductor': 'Adutores', 'abductors': 'Abdutores', 'head': 'Cabeça',
+    'neck': 'Pescoço', 'knees': 'Joelhos', 'left-soleus': 'Sóleo', 'right-soleus': 'Sóleo'
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 select-none w-full max-w-sm mx-auto relative">
@@ -93,10 +152,10 @@ export function BodySilhouette(props: BodySilhouetteProps) {
         >
           {modelData.map((part) => {
             const data = muscleValues[part.muscle]
-            const hasData = !!data?.value
+            const hasData = !!data?.metrics.length
             const isHovered = hoveredMuscle === part.muscle
 
-            let fill = 'hsl(var(--muted))'
+            let fill = 'hsl(var(--muted) / 0.5)'
             if (hasData) {
               fill = 'hsl(var(--primary) / 0.4)'
             }
@@ -124,7 +183,7 @@ export function BodySilhouette(props: BodySilhouetteProps) {
         </svg>
 
         <div className="absolute -bottom-6 left-0 right-0 text-center pointer-events-none">
-          <span className="text-[9px] text-muted-foreground bg-background/80 px-2 py-1 rounded-full backdrop-blur-sm shadow-sm">
+          <span className="text-[9px] text-muted-foreground bg-background/80 px-2 py-1 rounded-full backdrop-blur-sm shadow-sm border border-border/50">
             💡 Passe o mouse nas áreas em destaque
           </span>
         </div>
@@ -132,17 +191,24 @@ export function BodySilhouette(props: BodySilhouetteProps) {
 
       {showTooltip && activeData && (
         <div
-          className="fixed z-[100] pointer-events-none bg-foreground text-background shadow-2xl flex flex-col gap-0.5 p-2 rounded-lg border border-border/10 transform -translate-x-1/2 -translate-y-[120%]"
-          style={{ left: mousePos.x, top: mousePos.y }}
+          className="fixed z-[100] pointer-events-none bg-popover text-popover-foreground shadow-2xl flex flex-col gap-1 p-3 rounded-xl border border-border transform -translate-x-1/2 -translate-y-[110%]"
+          style={{ left: mousePos.x, top: mousePos.y, minWidth: '160px' }}
         >
-          <span className="text-[10px] uppercase font-bold text-muted/80">{activeData.label}</span>
-          <span className="text-sm font-black text-primary-foreground">
-            {Number(activeData.value).toFixed(1)} cm
-          </span>
+          <div className="text-[10px] uppercase font-bold text-muted-foreground border-b border-border/50 pb-1 mb-1 tracking-wider">
+            {muscleNames[hoveredMuscle!]}
+          </div>
+          {activeData.metrics.map((m, i) => (
+             <div key={i} className="flex justify-between items-center gap-4">
+               <span className="text-xs font-semibold text-popover-foreground/80">{m.label}</span>
+               <span className="text-sm font-black text-primary">
+                 {Number(m.val).toFixed(1)} <span className="text-[10px] text-primary/70">{m.unit}</span>
+               </span>
+             </div>
+          ))}
         </div>
       )}
 
-      {!Object.values(muscleValues).some(m => m?.value) && (
+      {Object.keys(muscleValues).length === 0 && (
         <p className="text-[10px] text-muted-foreground text-center mt-4">
           Preencha as circunferências para ver o modelo colorido
         </p>
