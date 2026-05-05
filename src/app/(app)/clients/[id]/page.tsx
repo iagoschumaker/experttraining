@@ -52,6 +52,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
+import { BodySilhouette } from '@/components/clients/body-silhouette'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import { generateBodyCompositionPDF } from '@/lib/pdf-generator'
 import type { SkinfoldsInput } from '@/services/pollock'
@@ -1169,17 +1170,37 @@ export default function ClientDetailPage() {
               <div className="space-y-3">
                 <Separator />
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Circunferências (cm)</p>
-                <div className="space-y-2">
-                  {measurements.map(({ label, val, color }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      <span className="text-xs w-24 text-muted-foreground">{label}</span>
-                      <div className="flex-1 h-3 rounded-full bg-muted/30 overflow-hidden">
-                        <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all`}
-                          style={{ width: `${(Number(val) / maxVal) * 100}%` }} />
+                {/* Layout lado a lado: barras + silhueta */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                  {/* Barras */}
+                  <div className="space-y-2">
+                    {measurements.map(({ label, val, color }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-xs w-24 text-muted-foreground">{label}</span>
+                        <div className="flex-1 h-3 rounded-full bg-muted/30 overflow-hidden">
+                          <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all`}
+                            style={{ width: `${(Number(val) / maxVal) * 100}%` }} />
+                        </div>
+                        <span className="text-xs font-bold w-14 text-right">{Number(val).toFixed(1)}</span>
                       </div>
-                      <span className="text-xs font-bold w-14 text-right">{Number(val).toFixed(1)}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  {/* SVG Silhueta */}
+                  <BodySilhouette
+                    gender={client.gender as 'M' | 'F' | null}
+                    chest={client.chest}
+                    waist={client.waist}
+                    hip={client.hip}
+                    abdomen={client.abdomen}
+                    armRight={client.armRight}
+                    armLeft={client.armLeft}
+                    forearmRight={client.forearmRight}
+                    forearmLeft={client.forearmLeft}
+                    thighRight={client.thighRight}
+                    thighLeft={client.thighLeft}
+                    calfRight={client.calfRight}
+                    calfLeft={client.calfLeft}
+                  />
                 </div>
               </div>
             )

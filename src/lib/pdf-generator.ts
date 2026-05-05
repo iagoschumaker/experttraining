@@ -466,6 +466,46 @@ export async function generateBodyCompositionPDF(
     </div>`
   }
 
+  // ===== BODY SILHOUETTE SVG (inline for PDF) =====
+  function generateBodySVG(g: 'M' | 'F' | null, d: BodyCompData): string {
+    const isFemale = g === 'F'
+    const spots: Array<{cx:number;cy:number;label:string;val:number|null|undefined;unit:string;side:'left'|'right';color:string}> = [
+      {cx:100,cy:118,label:'Peitoral',val:d.chest,unit:'cm',side:'right',color:'#3b82f6'},
+      {cx:100,cy:148,label:'Abdômen',val:d.abdomen,unit:'cm',side:'left',color:'#6366f1'},
+      {cx:100,cy:172,label:'Cintura',val:d.waist,unit:'cm',side:'right',color:'#a855f7'},
+      {cx:100,cy:210,label:'Quadril',val:d.hip,unit:'cm',side:'left',color:'#ec4899'},
+      {cx:70,cy:130,label:'Braço D',val:d.armRight,unit:'cm',side:'left',color:'#06b6d4'},
+      {cx:57,cy:172,label:'Anteb.D',val:d.forearmRight,unit:'cm',side:'left',color:'#14b8a6'},
+      {cx:78,cy:275,label:'Coxa D',val:d.thighRight,unit:'cm',side:'left',color:'#10b981'},
+      {cx:80,cy:355,label:'Pant.D',val:d.calfRight,unit:'cm',side:'left',color:'#22c55e'},
+      {cx:130,cy:130,label:'Braço E',val:d.armLeft,unit:'cm',side:'right',color:'#06b6d4'},
+      {cx:143,cy:172,label:'Anteb.E',val:d.forearmLeft,unit:'cm',side:'right',color:'#14b8a6'},
+      {cx:122,cy:275,label:'Coxa E',val:d.thighLeft,unit:'cm',side:'right',color:'#10b981'},
+      {cx:120,cy:355,label:'Pant.E',val:d.calfLeft,unit:'cm',side:'right',color:'#22c55e'},
+    ]
+    const bp = isFemale
+      ? 'M 100,20 C 82,22 78,40 72,70 C 68,82 58,92 46,102 C 42,110 44,128 56,148 C 58,162 52,188 46,218 C 44,236 52,260 76,278 C 80,310 70,372 70,408 C 72,420 84,420 86,408 C 86,388 88,326 92,275 L 108,275 C 112,326 114,388 114,408 C 116,420 128,420 130,408 C 130,372 120,310 124,278 C 148,260 156,236 154,218 C 148,188 142,162 144,148 C 156,128 158,110 154,102 C 142,92 132,82 128,70 C 122,40 118,22 100,20 Z'
+      : 'M 100,20 C 80,22 76,40 70,70 C 64,82 50,92 36,104 C 32,114 36,132 52,152 C 54,166 48,190 44,220 C 44,234 56,254 80,272 C 78,308 68,372 68,408 C 70,420 82,420 84,408 C 84,388 86,324 90,272 L 110,272 C 114,324 116,388 116,408 C 116,420 130,420 132,408 C 132,372 120,308 120,272 C 144,254 156,234 156,220 C 156,206 148,190 148,174 C 148,158 160,140 164,132 C 168,114 160,95 142,88 C 130,78 130,62 124,40 C 120,22 100,20 100,20 Z'
+    const hs = spots.map(h => {
+      const has = h.val != null && Number(h.val) > 0
+      const lx = h.side === 'right' ? h.cx + 36 : h.cx - 36
+      const ta = h.side === 'right' ? 'start' : 'end'
+      const tx = h.side === 'right' ? lx + 2 : lx - 2
+      if (!has) return `<circle cx="${h.cx}" cy="${h.cy}" r="3" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.8"/>`
+      return `<line x1="${h.cx}" y1="${h.cy}" x2="${lx}" y2="${h.cy}" stroke="${h.color}" stroke-width="0.8"/>
+        <circle cx="${h.cx}" cy="${h.cy}" r="4" fill="${h.color}"/>
+        <circle cx="${h.cx}" cy="${h.cy}" r="2" fill="white" fill-opacity="0.6"/>
+        <text x="${tx}" y="${h.cy-3}" font-size="6" fill="${h.color}" text-anchor="${ta}" font-family="Arial,sans-serif" font-weight="600">${h.label}</text>
+        <text x="${tx}" y="${h.cy+6}" font-size="7" fill="#111" text-anchor="${ta}" font-family="Arial,sans-serif" font-weight="700">${Number(h.val).toFixed(1)}${h.unit}</text>`
+    }).join('')
+    return `<svg viewBox="0 0 200 440" width="130" height="286" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="100" cy="32" rx="${isFemale?18:20}" ry="22" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
+      <rect x="${isFemale?93:91}" y="52" width="${isFemale?14:18}" height="16" rx="4" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
+      <path d="${bp}" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.2"/>
+      ${hs}
+    </svg>`
+  }
+
   // ===== CIRCUMFERENCES SECTION =====
   const measurements = [
     { label: 'Peitoral', val: data.chest },
@@ -484,30 +524,28 @@ export async function generateBodyCompositionPDF(
 
   let circumSection = ''
   if (measurements.length > 0) {
+    const bodySVG = generateBodySVG(gender, data)
     circumSection = `
     <div style="border:1px solid #93c5fd;border-radius:2mm;overflow:hidden;margin-bottom:3mm">
       <div style="background:#eff6ff;padding:2mm 3mm;border-bottom:0.5px solid #93c5fd">
-        <span style="font-size:8pt;font-weight:700;color:#1e40af">📐 Circunferências (cm)</span>
+        <span style="font-size:8pt;font-weight:700;color:#1e40af">📐 Circunferências (cm) — Mapa Corporal</span>
       </div>
-      <div style="padding:2mm 3mm">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:4mm;padding:2mm 3mm;align-items:center">
         <table style="width:100%;border-collapse:collapse;font-size:8pt">
           ${measurements.map(m => `<tr>
             <td style="padding:1mm 0;color:#666;border-bottom:0.3px solid #f3f4f6">${m.label}</td>
             <td style="padding:1mm 0;text-align:right;font-weight:600;border-bottom:0.3px solid #f3f4f6">${Number(m.val).toFixed(1)} cm</td>
           </tr>`).join('')}
         </table>
+        <div style="flex-shrink:0">${bodySVG}</div>
       </div>
     </div>`
   }
 
-  // ===== SKINFOLDS + CIRCUMFERENCES SIDE BY SIDE =====
+  // ===== DATA TABLES ASSEMBLY =====
   let dataTablesSection = ''
   if (skinfoldsSection || circumSection) {
-    if (skinfoldsSection && circumSection) {
-      dataTablesSection = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3mm">${skinfoldsSection}${circumSection}</div>`
-    } else {
-      dataTablesSection = skinfoldsSection || circumSection
-    }
+    dataTablesSection = (skinfoldsSection || '') + (circumSection || '')
   }
 
   // ===== COMPARISON SECTION =====
