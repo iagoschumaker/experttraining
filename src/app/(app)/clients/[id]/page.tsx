@@ -135,6 +135,9 @@ export default function ClientDetailPage() {
   const [compareIdxA, setCompareIdxA] = useState(0) // first assessment
   const [compareIdxB, setCompareIdxB] = useState(0) // will be set to last when evals load
   const [bodyCompEvalIdx, setBodyCompEvalIdx] = useState(-1) // -1 = última avaliação
+  const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false)
+  const [pdfIdxA, setPdfIdxA] = useState(0)
+  const [pdfIdxB, setPdfIdxB] = useState(-1) // -1 = latest
 
   // Manual check-in state
   const [isCheckinOpen, setIsCheckinOpen] = useState(false)
@@ -300,61 +303,75 @@ export default function ClientDetailPage() {
   }
 
   // PDF body composition handler
-  const handleBodyCompositionPDF = async () => {
+  const handleBodyCompositionPDF = async (idxA: number, idxB: number) => {
     if (!client) return
     try {
-      // Compute Pollock
-      let bf: number | null = null
-      const w = client.weight ? Number(client.weight) : null
+      const compEvals = (client.assessments || [])
+        .filter((a: any) => a.bodyMetricsJson)
+        .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+      const effectiveA = idxA >= 0 && idxA < compEvals.length ? idxA : 0
+      const effectiveB = idxB === -1 ? compEvals.length - 1 : Math.min(idxB, compEvals.length - 1)
+
+      const flattenM = (bm: any, computed: any) => {
+        if (!bm) return {}
+        return {
+          weight: bm.weight,
+          bodyFat: computed?.pollock?.bodyFatPercent ?? computed?.juba?.fatPercentage ?? bm.bodyFat,
+          chest: bm.measurements?.chest ?? bm.chest,
+          waist: bm.measurements?.waist ?? bm.waist,
+          hip: bm.measurements?.hip ?? bm.hip,
+          abdomen: bm.measurements?.abdomen ?? bm.abdomen,
+          armRight: bm.measurements?.arm_right ?? bm.armRight ?? bm.arm_right,
+          armLeft: bm.measurements?.arm_left ?? bm.armLeft ?? bm.arm_left,
+          forearmRight: bm.measurements?.forearm_right ?? bm.forearmRight ?? bm.forearm_right,
+          forearmLeft: bm.measurements?.forearm_left ?? bm.forearmLeft ?? bm.forearm_left,
+          thighRight: bm.measurements?.thigh_right ?? bm.thighRight ?? bm.thigh_right,
+          thighLeft: bm.measurements?.thigh_left ?? bm.thighLeft ?? bm.thigh_left,
+          calfRight: bm.measurements?.calf_right ?? bm.calfRight ?? bm.calf_right,
+          calfLeft: bm.measurements?.calf_left ?? bm.calfLeft ?? bm.calf_left,
+          sfChest: bm.skinfolds?.chest ?? bm.sfChest,
+          sfAbdomen: bm.skinfolds?.abdomen ?? bm.sfAbdomen,
+          sfThigh: bm.skinfolds?.thigh ?? bm.sfThigh,
+          sfTriceps: bm.skinfolds?.triceps ?? bm.sfTriceps,
+          sfSuprailiac: bm.skinfolds?.suprailiac ?? bm.sfSuprailiac,
+          sfSubscapular: bm.skinfolds?.subscapular ?? bm.sfSubscapular,
+          sfMidaxillary: bm.skinfolds?.midaxillary ?? bm.sfMidaxillary,
+        }
+      }
+
+      const evalA = compEvals[effectiveA]
+      const evalB = compEvals[effectiveB]
+      const dA = flattenM(evalA?.bodyMetricsJson, (evalA as any)?.computedJson)
+      const dB = flattenM(evalB?.bodyMetricsJson, (evalB as any)?.computedJson)
+      const labelA = new Date(evalA?.createdAt).toLocaleDateString('pt-BR')
+      const labelB = new Date(evalB?.createdAt).toLocaleDateString('pt-BR')
+
+      // Primary data = latest selected (evalB)
+      const w = dB.weight ? Number(dB.weight) : null
       const gender = client.gender as 'M' | 'F' | null
       const age = client.birthDate ? ageFromBirthDate(client.birthDate) : null
 
-      if (w && gender && (gender === 'M' || gender === 'F') && client.birthDate) {
+      let bf: number | null = dB.bodyFat ? Number(dB.bodyFat) : null
+      if (bf == null && w && gender && (gender === 'M' || gender === 'F') && client.birthDate) {
         const sfInput: SkinfoldsInput = {
-          chest: client.sfChest ? Number(client.sfChest) : undefined,
-          abdomen: client.sfAbdomen ? Number(client.sfAbdomen) : undefined,
-          thigh: client.sfThigh ? Number(client.sfThigh) : undefined,
-          triceps: client.sfTriceps ? Number(client.sfTriceps) : undefined,
-          suprailiac: client.sfSuprailiac ? Number(client.sfSuprailiac) : undefined,
-          subscapular: client.sfSubscapular ? Number(client.sfSubscapular) : undefined,
-          midaxillary: client.sfMidaxillary ? Number(client.sfMidaxillary) : undefined,
+          chest: dB.sfChest ? Number(dB.sfChest) : undefined,
+          abdomen: dB.sfAbdomen ? Number(dB.sfAbdomen) : undefined,
+          thigh: dB.sfThigh ? Number(dB.sfThigh) : undefined,
+          triceps: dB.sfTriceps ? Number(dB.sfTriceps) : undefined,
+          suprailiac: dB.sfSuprailiac ? Number(dB.sfSuprailiac) : undefined,
+          subscapular: dB.sfSubscapular ? Number(dB.sfSubscapular) : undefined,
+          midaxillary: dB.sfMidaxillary ? Number(dB.sfMidaxillary) : undefined,
         }
         const result = computePollock(sfInput, age!, w, gender)
         if (result) bf = result.bodyFatPercent
       }
-      if (bf == null && client.bodyFat) bf = Number(client.bodyFat)
 
-      // Build comparison data if selecting different dates
-      let comparisonData = null
-      const evals = (client.assessments || []).filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-
-      if (evals.length >= 1 && compareIdxA !== compareIdxB) {
-        const currentData: Record<string, number> = {}
-        if (client.weight) currentData.weight = Number(client.weight)
-        if (client.bodyFat) currentData.bodyFat = Number(client.bodyFat)
-        if (client.chest) currentData.chest = Number(client.chest)
-        if (client.waist) currentData.waist = Number(client.waist)
-        if (client.hip) currentData.hip = Number(client.hip)
-        if (client.abdomen) currentData.abdomen = Number(client.abdomen)
-        if (client.armRight) currentData.arm_right = Number(client.armRight)
-        if (client.armLeft) currentData.arm_left = Number(client.armLeft)
-        if (client.thighRight) currentData.thigh_right = Number(client.thighRight)
-        if (client.thighLeft) currentData.thigh_left = Number(client.thighLeft)
-        if (client.calfRight) currentData.calf_right = Number(client.calfRight)
-        if (client.calfLeft) currentData.calf_left = Number(client.calfLeft)
-        if (client.sfTriceps) currentData.sfTriceps = Number(client.sfTriceps)
-        if (client.sfSuprailiac) currentData.sfSuprailiac = Number(client.sfSuprailiac)
-        if (client.sfThigh) currentData.sfThigh = Number(client.sfThigh)
-        if (client.sfChest) currentData.sfChest = Number(client.sfChest)
-        if (client.sfAbdomen) currentData.sfAbdomen = Number(client.sfAbdomen)
-
-        const dataA = compareIdxA === -1 ? currentData : (evals[compareIdxA]?.bodyMetricsJson as Record<string, number> ?? {})
-        const dataB = compareIdxB === -1 ? currentData : (evals[compareIdxB]?.bodyMetricsJson as Record<string, number> ?? {})
-        const labelA = compareIdxA === -1 ? 'Atual' : new Date(evals[compareIdxA]?.createdAt).toLocaleDateString('pt-BR')
-        const labelB = compareIdxB === -1 ? 'Atual' : new Date(evals[compareIdxB]?.createdAt).toLocaleDateString('pt-BR')
-
-        comparisonData = { labelA, labelB, dataA, dataB }
-      }
+      const comparisonData = effectiveA !== effectiveB ? {
+        labelA, labelB,
+        dataA: dA as Record<string, number>,
+        dataB: dB as Record<string, number>,
+      } : null
 
       await generateBodyCompositionPDF({
         clientName: client.name,
@@ -363,25 +380,25 @@ export default function ClientDetailPage() {
         weight: w,
         height: client.height ? Number(client.height) : null,
         bodyFat: bf,
-        sfChest: client.sfChest ? Number(client.sfChest) : null,
-        sfAbdomen: client.sfAbdomen ? Number(client.sfAbdomen) : null,
-        sfThigh: client.sfThigh ? Number(client.sfThigh) : null,
-        sfTriceps: client.sfTriceps ? Number(client.sfTriceps) : null,
-        sfSuprailiac: client.sfSuprailiac ? Number(client.sfSuprailiac) : null,
-        sfSubscapular: client.sfSubscapular ? Number(client.sfSubscapular) : null,
-        sfMidaxillary: client.sfMidaxillary ? Number(client.sfMidaxillary) : null,
-        chest: client.chest ? Number(client.chest) : null,
-        waist: client.waist ? Number(client.waist) : null,
-        hip: client.hip ? Number(client.hip) : null,
-        abdomen: client.abdomen ? Number(client.abdomen) : null,
-        armRight: client.armRight ? Number(client.armRight) : null,
-        armLeft: client.armLeft ? Number(client.armLeft) : null,
-        forearmRight: client.forearmRight ? Number(client.forearmRight) : null,
-        forearmLeft: client.forearmLeft ? Number(client.forearmLeft) : null,
-        thighRight: client.thighRight ? Number(client.thighRight) : null,
-        thighLeft: client.thighLeft ? Number(client.thighLeft) : null,
-        calfRight: client.calfRight ? Number(client.calfRight) : null,
-        calfLeft: client.calfLeft ? Number(client.calfLeft) : null,
+        sfChest: dB.sfChest ? Number(dB.sfChest) : null,
+        sfAbdomen: dB.sfAbdomen ? Number(dB.sfAbdomen) : null,
+        sfThigh: dB.sfThigh ? Number(dB.sfThigh) : null,
+        sfTriceps: dB.sfTriceps ? Number(dB.sfTriceps) : null,
+        sfSuprailiac: dB.sfSuprailiac ? Number(dB.sfSuprailiac) : null,
+        sfSubscapular: dB.sfSubscapular ? Number(dB.sfSubscapular) : null,
+        sfMidaxillary: dB.sfMidaxillary ? Number(dB.sfMidaxillary) : null,
+        chest: dB.chest ? Number(dB.chest) : null,
+        waist: dB.waist ? Number(dB.waist) : null,
+        hip: dB.hip ? Number(dB.hip) : null,
+        abdomen: dB.abdomen ? Number(dB.abdomen) : null,
+        armRight: dB.armRight ? Number(dB.armRight) : null,
+        armLeft: dB.armLeft ? Number(dB.armLeft) : null,
+        forearmRight: dB.forearmRight ? Number(dB.forearmRight) : null,
+        forearmLeft: dB.forearmLeft ? Number(dB.forearmLeft) : null,
+        thighRight: dB.thighRight ? Number(dB.thighRight) : null,
+        thighLeft: dB.thighLeft ? Number(dB.thighLeft) : null,
+        calfRight: dB.calfRight ? Number(dB.calfRight) : null,
+        calfLeft: dB.calfLeft ? Number(dB.calfLeft) : null,
         studioName: undefined,
         studioLogo: undefined,
         studioPhone: undefined,
@@ -963,15 +980,64 @@ export default function ClientDetailPage() {
             Composição Corporal & Medidas
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBodyCompositionPDF}
-              title="Exportar PDF"
-            >
-              <FileDown className="mr-1 h-4 w-4 text-amber-500" />
-              PDF
-            </Button>
+            {/* PDF Dialog */}
+            {(() => {
+              const pdfEvals = (client.assessments || []).filter(a => a.bodyMetricsJson).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+              return (
+                <Dialog open={isPdfDialogOpen} onOpenChange={setIsPdfDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" title="Exportar PDF"
+                      onClick={() => { setPdfIdxA(0); setPdfIdxB(pdfEvals.length - 1); setIsPdfDialogOpen(true) }}>
+                      <FileDown className="mr-1 h-4 w-4 text-amber-500" />
+                      PDF
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">Exportar PDF — Composição Corporal</DialogTitle>
+                      <DialogDescription className="text-xs">
+                        Escolha as avaliações para o PDF. Se selecionar avaliações diferentes, uma comparação lado a lado será gerada.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground uppercase">Avaliação A (anterior)</Label>
+                        <select className="w-full text-xs rounded-md border bg-background px-2 py-1.5"
+                          value={pdfIdxA} onChange={e => setPdfIdxA(Number(e.target.value))}>
+                          {pdfEvals.map((ev, i) => (
+                            <option key={ev.id} value={i}>
+                              {new Date(ev.createdAt).toLocaleDateString('pt-BR')}
+                              {i === 0 ? ' (1ª)' : i === pdfEvals.length - 1 ? ' (última)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground uppercase">Avaliação B (comparar com)</Label>
+                        <select className="w-full text-xs rounded-md border bg-background px-2 py-1.5"
+                          value={pdfIdxB} onChange={e => setPdfIdxB(Number(e.target.value))}>
+                          {pdfEvals.map((ev, i) => (
+                            <option key={ev.id} value={i}>
+                              {new Date(ev.createdAt).toLocaleDateString('pt-BR')}
+                              {i === 0 ? ' (1ª)' : i === pdfEvals.length - 1 ? ' (última)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {pdfIdxA === pdfIdxB && <p className="text-[10px] text-amber-500">⚠️ Selecione avaliações diferentes para gerar a comparação.</p>}
+                    </div>
+                    <DialogFooter className="gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsPdfDialogOpen(false)}>Cancelar</Button>
+                      <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black"
+                        onClick={() => { setIsPdfDialogOpen(false); handleBodyCompositionPDF(pdfIdxA, pdfIdxB) }}>
+                        <FileDown className="mr-1 h-3 w-3" />
+                        Gerar PDF
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )
+            })()}
             {canEdit && (
               <Link href={`/clients/${client.id}/edit`}>
                 <Button variant="outline" size="sm">

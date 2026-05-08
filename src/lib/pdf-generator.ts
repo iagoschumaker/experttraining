@@ -466,43 +466,133 @@ export async function generateBodyCompositionPDF(
     </div>`
   }
 
-  // ===== BODY SILHOUETTE SVG (inline for PDF) =====
-  function generateBodySVG(g: 'M' | 'F' | null, d: BodyCompData): string {
-    const isFemale = g === 'F'
-    const spots: Array<{cx:number;cy:number;label:string;val:number|null|undefined;unit:string;side:'left'|'right';color:string}> = [
-      {cx:100,cy:118,label:'Peitoral',val:d.chest,unit:'cm',side:'right',color:'#3b82f6'},
-      {cx:100,cy:148,label:'Abdômen',val:d.abdomen,unit:'cm',side:'left',color:'#6366f1'},
-      {cx:100,cy:172,label:'Cintura',val:d.waist,unit:'cm',side:'right',color:'#a855f7'},
-      {cx:100,cy:210,label:'Quadril',val:d.hip,unit:'cm',side:'left',color:'#ec4899'},
-      {cx:70,cy:130,label:'Braço D',val:d.armRight,unit:'cm',side:'left',color:'#06b6d4'},
-      {cx:57,cy:172,label:'Anteb.D',val:d.forearmRight,unit:'cm',side:'left',color:'#14b8a6'},
-      {cx:78,cy:275,label:'Coxa D',val:d.thighRight,unit:'cm',side:'left',color:'#10b981'},
-      {cx:80,cy:355,label:'Pant.D',val:d.calfRight,unit:'cm',side:'left',color:'#22c55e'},
-      {cx:130,cy:130,label:'Braço E',val:d.armLeft,unit:'cm',side:'right',color:'#06b6d4'},
-      {cx:143,cy:172,label:'Anteb.E',val:d.forearmLeft,unit:'cm',side:'right',color:'#14b8a6'},
-      {cx:122,cy:275,label:'Coxa E',val:d.thighLeft,unit:'cm',side:'right',color:'#10b981'},
-      {cx:120,cy:355,label:'Pant.E',val:d.calfLeft,unit:'cm',side:'right',color:'#22c55e'},
+  // ===== BODY SILHOUETTE SVG (inline for PDF) — matches screen BodySilhouette =====
+  function getMorphMult(y: number, bf: number | null, gender: 'M' | 'F' | null): number {
+    if (!bf) return 1.0
+    type Phenotype = 'definido' | 'magro' | 'normal' | 'sobrepeso' | 'obeso'
+    let pheno: Phenotype = 'normal'
+    if (gender === 'F') {
+      if (bf < 20) pheno = 'definido'
+      else if (bf < 24) pheno = 'magro'
+      else if (bf < 30) pheno = 'normal'
+      else if (bf < 35) pheno = 'sobrepeso'
+      else pheno = 'obeso'
+    } else {
+      if (bf < 12) pheno = 'definido'
+      else if (bf < 15) pheno = 'magro'
+      else if (bf < 20) pheno = 'normal'
+      else if (bf < 25) pheno = 'sobrepeso'
+      else pheno = 'obeso'
+    }
+    const profiles: Record<Phenotype, {y: number; mult: number}[]> = {
+      normal:    [{ y: 0, mult: 1.0 }, { y: 220, mult: 1.0 }],
+      magro:     [{ y: 0, mult: 0.95 }, { y: 40, mult: 0.9 }, { y: 70, mult: 0.85 }, { y: 110, mult: 0.9 }, { y: 220, mult: 0.9 }],
+      definido:  [{ y: 0, mult: 1.0 }, { y: 35, mult: 1.15 }, { y: 50, mult: 1.1 }, { y: 75, mult: 0.95 }, { y: 110, mult: 1.05 }, { y: 220, mult: 1.05 }],
+      sobrepeso: [{ y: 0, mult: 1.05 }, { y: 40, mult: 1.1 }, { y: 75, mult: 1.25 }, { y: 110, mult: 1.2 }, { y: 220, mult: 1.1 }],
+      obeso:     [{ y: 0, mult: 1.1 }, { y: 40, mult: 1.2 }, { y: 75, mult: 1.5 }, { y: 110, mult: 1.4 }, { y: 220, mult: 1.2 }],
+    }
+    const profile = profiles[pheno]
+    if (y <= profile[0].y) return profile[0].mult
+    if (y >= profile[profile.length - 1].y) return profile[profile.length - 1].mult
+    for (let i = 0; i < profile.length - 1; i++) {
+      const p1 = profile[i], p2 = profile[i + 1]
+      if (y >= p1.y && y <= p2.y) {
+        const t = (y - p1.y) / (p2.y - p1.y)
+        return p1.mult + t * (p2.mult - p1.mult)
+      }
+    }
+    return 1.0
+  }
+
+  function morphPts(pts: string, bf: number | null, g: 'M' | 'F' | null): string {
+    if (!bf) return pts
+    const coords = pts.trim().split(/\s+/)
+    const out: string[] = []
+    for (let i = 0; i < coords.length; i += 2) {
+      const x = parseFloat(coords[i]), yv = parseFloat(coords[i + 1])
+      if (!isNaN(x) && !isNaN(yv)) {
+        const mult = getMorphMult(yv, bf, g)
+        out.push(`${(50 + (x - 50) * mult).toFixed(1)} ${yv.toFixed(1)}`)
+      }
+    }
+    return out.join(' ')
+  }
+
+  function generateBodySVGForPDF(g: 'M' | 'F' | null, bf: number | null, measurements: {
+    chest?: number | null, waist?: number | null, hip?: number | null, abdomen?: number | null,
+    armRight?: number | null, armLeft?: number | null, forearmRight?: number | null, forearmLeft?: number | null,
+    thighRight?: number | null, thighLeft?: number | null, calfRight?: number | null, calfLeft?: number | null,
+  }, width = 130): string {
+    // Muscle region polygons (same as body-svg-data used in screen)
+    const regions: { key: string; pts: string; color: string; label: string; val?: number | null }[] = [
+      { key: 'chest',       pts: '38 55 62 55 65 75 60 80 40 80 35 75', color: '#0e7490', label: 'Peitoral',   val: measurements.chest },
+      { key: 'core',        pts: '38 80 62 80 63 108 37 108',            color: '#7c3aed', label: 'Cintura',    val: measurements.waist ?? measurements.abdomen },
+      { key: 'gluteal',     pts: '34 108 66 108 68 125 32 125',          color: '#be185d', label: 'Quadril',    val: measurements.hip },
+      { key: 'arm-right',   pts: '26 55 35 55 33 95 24 95',              color: '#0369a1', label: 'Braço D',    val: measurements.armRight },
+      { key: 'arm-left',    pts: '65 55 74 55 76 95 67 95',              color: '#0369a1', label: 'Braço E',    val: measurements.armLeft },
+      { key: 'forearm-right', pts:'21 95 32 95 30 130 19 130',           color: '#0891b2', label: 'Anteb.D',   val: measurements.forearmRight },
+      { key: 'forearm-left',  pts:'68 95 79 95 81 130 70 130',           color: '#0891b2', label: 'Anteb.E',   val: measurements.forearmLeft },
+      { key: 'thigh-right', pts: '33 125 50 125 48 165 31 165',          color: '#059669', label: 'Coxa D',    val: measurements.thighRight },
+      { key: 'thigh-left',  pts: '50 125 67 125 69 165 52 165',          color: '#059669', label: 'Coxa E',    val: measurements.thighLeft },
+      { key: 'calf-right',  pts: '33 165 48 165 46 200 31 200',          color: '#16a34a', label: 'Pant.D',    val: measurements.calfRight },
+      { key: 'calf-left',   pts: '52 165 67 165 65 200 50 200',          color: '#16a34a', label: 'Pant.E',    val: measurements.calfLeft },
     ]
-    const bp = isFemale
-      ? 'M 100,20 C 82,22 78,40 72,70 C 68,82 58,92 46,102 C 42,110 44,128 56,148 C 58,162 52,188 46,218 C 44,236 52,260 76,278 C 80,310 70,372 70,408 C 72,420 84,420 86,408 C 86,388 88,326 92,275 L 108,275 C 112,326 114,388 114,408 C 116,420 128,420 130,408 C 130,372 120,310 124,278 C 148,260 156,236 154,218 C 148,188 142,162 144,148 C 156,128 158,110 154,102 C 142,92 132,82 128,70 C 122,40 118,22 100,20 Z'
-      : 'M 100,20 C 80,22 76,40 70,70 C 64,82 50,92 36,104 C 32,114 36,132 52,152 C 54,166 48,190 44,220 C 44,234 56,254 80,272 C 78,308 68,372 68,408 C 70,420 82,420 84,408 C 84,388 86,324 90,272 L 110,272 C 114,324 116,388 116,408 C 116,420 130,420 132,408 C 132,372 120,308 120,272 C 144,254 156,234 156,220 C 156,206 148,190 148,174 C 148,158 160,140 164,132 C 168,114 160,95 142,88 C 130,78 130,62 124,40 C 120,22 100,20 100,20 Z'
-    const hs = spots.map(h => {
-      const has = h.val != null && Number(h.val) > 0
-      const lx = h.side === 'right' ? h.cx + 36 : h.cx - 36
-      const ta = h.side === 'right' ? 'start' : 'end'
-      const tx = h.side === 'right' ? lx + 2 : lx - 2
-      if (!has) return `<circle cx="${h.cx}" cy="${h.cy}" r="3" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.8"/>`
-      return `<line x1="${h.cx}" y1="${h.cy}" x2="${lx}" y2="${h.cy}" stroke="${h.color}" stroke-width="0.8"/>
-        <circle cx="${h.cx}" cy="${h.cy}" r="4" fill="${h.color}"/>
-        <circle cx="${h.cx}" cy="${h.cy}" r="2" fill="white" fill-opacity="0.6"/>
-        <text x="${tx}" y="${h.cy-3}" font-size="6" fill="${h.color}" text-anchor="${ta}" font-family="Arial,sans-serif" font-weight="600">${h.label}</text>
-        <text x="${tx}" y="${h.cy+6}" font-size="7" fill="#111" text-anchor="${ta}" font-family="Arial,sans-serif" font-weight="700">${Number(h.val).toFixed(1)}${h.unit}</text>`
+
+    // Biótype label
+    const getPheno = () => {
+      if (!bf) return 'Normal'
+      if (g === 'F') return bf < 20 ? 'Definida' : bf < 24 ? 'Magra' : bf < 30 ? 'Normal' : bf < 35 ? 'Sobrepeso' : 'Obesa'
+      return bf < 12 ? 'Definido' : bf < 15 ? 'Magro' : bf < 20 ? 'Normal' : bf < 25 ? 'Sobrepeso' : 'Obeso'
+    }
+
+    const polygons = regions.map(r => {
+      const morphed = morphPts(r.pts, bf, g)
+      const hasVal = r.val != null && Number(r.val) > 0
+      const fill = hasVal ? r.color : '#1e293b'
+      const opacity = hasVal ? '0.85' : '0.3'
+      return `<polygon points="${morphed}" fill="${fill}" fill-opacity="${opacity}" stroke="#0f172a" stroke-width="0.5"/>`
     }).join('')
-    return `<svg viewBox="0 0 200 440" width="130" height="286" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="100" cy="32" rx="${isFemale?18:20}" ry="22" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
-      <rect x="${isFemale?93:91}" y="52" width="${isFemale?14:18}" height="16" rx="4" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
-      <path d="${bp}" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.2"/>
-      ${hs}
+
+    // Labels — only for regions with values
+    const labels = regions.map(r => {
+      if (!r.val || Number(r.val) <= 0) return ''
+      const pts = morphPts(r.pts, bf, g).split(/\s+/)
+      const xs = [], ys = []
+      for (let i = 0; i < pts.length; i += 2) { xs.push(parseFloat(pts[i])); ys.push(parseFloat(pts[i + 1])) }
+      const cx = xs.reduce((a, b) => a + b, 0) / xs.length
+      const cy = ys.reduce((a, b) => a + b, 0) / ys.length
+      return `<text x="${cx.toFixed(1)}" y="${(cy + 1).toFixed(1)}" font-size="4" fill="white" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700">${Number(r.val).toFixed(0)}</text>`
+    }).join('')
+
+    // Silhouette outline — head + neck + body morphed
+    const headX = 50, headY = 10, headRx = bf ? Math.min(14, 10 + bf * 0.08) : 10, headRy = 11
+    const neckPts = morphPts('44 22 56 22 55 32 45 32', bf, g)
+
+    const bodyPath = g === 'F'
+      ? morphPts('38 32 62 32 68 55 74 90 79 125 72 165 68 200 32 200 28 165 21 125 21 90 26 55 32 32', bf, g)
+      : morphPts('36 32 64 32 70 55 76 90 80 125 74 165 68 200 32 200 26 165 20 125 24 90 30 55 36 32', bf, g)
+
+    const h = width * (220 / 100)
+    return `<svg viewBox="0 0 100 220" width="${width}" height="${h.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" style="background:#0f172a;border-radius:4px">
+      <defs>
+        <radialGradient id="bg" cx="50%" cy="0%" r="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#0f172a"/>
+        </radialGradient>
+      </defs>
+      <rect width="100" height="220" fill="url(#bg)"/>
+      <!-- Body outline -->
+      <polygon points="${bodyPath}" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
+      <!-- Head -->
+      <ellipse cx="${headX}" cy="${headY + headRy}" rx="${headRx}" ry="${headRy}" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
+      <!-- Neck -->
+      <polygon points="${neckPts}" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+      <!-- Muscle regions -->
+      ${polygons}
+      <!-- Measurement labels -->
+      ${labels}
+      <!-- Biotype label -->
+      ${bf ? `<text x="50" y="215" font-size="4.5" fill="#f59e0b" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700">${getPheno()}</text>` : ''}
     </svg>`
   }
 
@@ -524,7 +614,7 @@ export async function generateBodyCompositionPDF(
 
   let circumSection = ''
   if (measurements.length > 0) {
-    const bodySVG = generateBodySVG(gender, data)
+    const bodySVG = generateBodySVGForPDF(gender, bodyFat, data)
     circumSection = `
     <div style="border:1px solid #93c5fd;border-radius:2mm;overflow:hidden;margin-bottom:3mm">
       <div style="background:#eff6ff;padding:2mm 3mm;border-bottom:0.5px solid #93c5fd">
@@ -554,29 +644,68 @@ export async function generateBodyCompositionPDF(
     const metrics = [
       { label: 'Peso', key: 'weight', unit: 'kg', lowerBetter: false },
       { label: '% Gordura', key: 'bodyFat', unit: '%', lowerBetter: true },
+      { label: 'Massa Magra', key: 'leanMassKg', unit: 'kg', lowerBetter: false },
+      { label: '% Magra', key: 'leanMassPct', unit: '%', lowerBetter: false },
       { label: 'Peitoral', key: 'chest', unit: 'cm', lowerBetter: false },
       { label: 'Cintura', key: 'waist', unit: 'cm', lowerBetter: true },
       { label: 'Quadril', key: 'hip', unit: 'cm', lowerBetter: false },
       { label: 'Abdômen', key: 'abdomen', unit: 'cm', lowerBetter: true },
-      { label: 'Braço D', key: 'arm_right', unit: 'cm', lowerBetter: false },
-      { label: 'Braço E', key: 'arm_left', unit: 'cm', lowerBetter: false },
-      { label: 'Coxa D', key: 'thigh_right', unit: 'cm', lowerBetter: false },
-      { label: 'Coxa E', key: 'thigh_left', unit: 'cm', lowerBetter: false },
-      { label: 'Pant. D', key: 'calf_right', unit: 'cm', lowerBetter: false },
-      { label: 'Pant. E', key: 'calf_left', unit: 'cm', lowerBetter: false },
+      { label: 'Braço D', key: 'armRight', unit: 'cm', lowerBetter: false },
+      { label: 'Braço E', key: 'armLeft', unit: 'cm', lowerBetter: false },
+      { label: 'Coxa D', key: 'thighRight', unit: 'cm', lowerBetter: false },
+      { label: 'Coxa E', key: 'thighLeft', unit: 'cm', lowerBetter: false },
+      { label: 'Pant. D', key: 'calfRight', unit: 'cm', lowerBetter: false },
+      { label: 'Pant. E', key: 'calfLeft', unit: 'cm', lowerBetter: false },
       { label: 'DC Tríceps', key: 'sfTriceps', unit: 'mm', lowerBetter: true },
       { label: 'DC Suprail.', key: 'sfSuprailiac', unit: 'mm', lowerBetter: true },
       { label: 'DC Coxa', key: 'sfThigh', unit: 'mm', lowerBetter: true },
       { label: 'DC Peito', key: 'sfChest', unit: 'mm', lowerBetter: true },
       { label: 'DC Abdômen', key: 'sfAbdomen', unit: 'mm', lowerBetter: true },
     ]
-    const active = metrics.filter(m => comparison.dataA[m.key] != null || comparison.dataB[m.key] != null)
+
+    // Compute lean mass for comparison datasets
+    const enrichLean = (d: Record<string, number>) => {
+      if (d.weight && d.bodyFat != null) {
+        d.leanMassKg = d.weight - (d.weight * d.bodyFat / 100)
+        d.leanMassPct = 100 - d.bodyFat
+      }
+      return d
+    }
+    const dA = enrichLean({ ...comparison.dataA })
+    const dB = enrichLean({ ...comparison.dataB })
+
+    const active = metrics.filter(m => dA[m.key] != null || dB[m.key] != null)
 
     if (active.length > 0) {
+      // Generate two body SVGs for comparison
+      const svgA = generateBodySVGForPDF(gender, dA.bodyFat ?? null, {
+        chest: dA.chest, waist: dA.waist, hip: dA.hip, abdomen: dA.abdomen,
+        armRight: dA.armRight, armLeft: dA.armLeft, forearmRight: dA.forearmRight, forearmLeft: dA.forearmLeft,
+        thighRight: dA.thighRight, thighLeft: dA.thighLeft, calfRight: dA.calfRight, calfLeft: dA.calfLeft,
+      }, 110)
+      const svgB = generateBodySVGForPDF(gender, dB.bodyFat ?? null, {
+        chest: dB.chest, waist: dB.waist, hip: dB.hip, abdomen: dB.abdomen,
+        armRight: dB.armRight, armLeft: dB.armLeft, forearmRight: dB.forearmRight, forearmLeft: dB.forearmLeft,
+        thighRight: dB.thighRight, thighLeft: dB.thighLeft, calfRight: dB.calfRight, calfLeft: dB.calfLeft,
+      }, 110)
+
       comparisonSection = `
       <div style="border:1px solid #c4b5fd;border-radius:2mm;overflow:hidden;margin-top:3mm">
         <div style="background:#ede9fe;padding:2mm 3mm;border-bottom:0.5px solid #c4b5fd;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:8pt;font-weight:700;color:#5b21b6">📊 Comparação: ${comparison.labelA} → ${comparison.labelB}</span>
+        </div>
+        <!-- Side-by-side 3D avatars -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4mm;padding:3mm;background:#0f172a">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2mm">
+            <div style="font-size:7pt;font-weight:700;color:#60a5fa;text-align:center">${comparison.labelA}</div>
+            ${svgA}
+            ${dA.bodyFat ? `<div style="font-size:6pt;color:#60a5fa;text-align:center">${dA.bodyFat.toFixed(1)}% Gordura</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2mm">
+            <div style="font-size:7pt;font-weight:700;color:#fbbf24;text-align:center">${comparison.labelB}</div>
+            ${svgB}
+            ${dB.bodyFat ? `<div style="font-size:6pt;color:#fbbf24;text-align:center">${dB.bodyFat.toFixed(1)}% Gordura</div>` : ''}
+          </div>
         </div>
         <div style="padding:2mm 3mm">
           <table style="width:100%;border-collapse:collapse;font-size:8pt">
@@ -587,8 +716,8 @@ export async function generateBodyCompositionPDF(
               <th style="padding:1.5mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#666">Δ</th>
             </tr>
             ${active.map(m => {
-              const vA = comparison.dataA[m.key]
-              const vB = comparison.dataB[m.key]
+              const vA = dA[m.key]
+              const vB = dB[m.key]
               const delta = (vB ?? 0) - (vA ?? 0)
               const isGood = m.lowerBetter ? delta <= 0 : delta >= 0
               const deltaColor = vA != null && vB != null && delta !== 0 ? (isGood ? '#22c55e' : '#ef4444') : '#888'
@@ -605,7 +734,7 @@ export async function generateBodyCompositionPDF(
     }
   }
 
-  // ===== ASSEMBLE HTML =====
+
   const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Composição Corporal — ${clientName}</title>
 <style>
