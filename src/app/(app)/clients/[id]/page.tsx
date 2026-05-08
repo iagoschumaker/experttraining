@@ -63,7 +63,8 @@ interface Assessment {
   confidence: number | null
   createdAt: string
   completedAt: string | null
-  bodyMetricsJson: Record<string, number> | null
+  bodyMetricsJson: Record<string, any> | null
+  computedJson: Record<string, any> | null
 }
 
 interface Workout {
@@ -133,6 +134,7 @@ export default function ClientDetailPage() {
   const [fabOpen, setFabOpen] = useState(false)
   const [compareIdxA, setCompareIdxA] = useState(0) // first assessment
   const [compareIdxB, setCompareIdxB] = useState(0) // will be set to last when evals load
+  const [bodyCompEvalIdx, setBodyCompEvalIdx] = useState(-1) // -1 = última avaliação
 
   // Manual check-in state
   const [isCheckinOpen, setIsCheckinOpen] = useState(false)
@@ -984,30 +986,67 @@ export default function ClientDetailPage() {
 
           {/* ========== POLLOCK: PIE CHART + DADOS ========== */}
           {(() => {
-            // Compute Pollock client-side from skinfold data
-            const w = client.weight ? Number(client.weight) : null
+            // Avaliações com dados corporais, ordenadas da mais antiga para a mais recente
+            const compEvals = (client.assessments || [])
+              .filter(a => a.bodyMetricsJson)
+              .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+            // Índice efetivo: -1 = última (default), ou índice na lista
+            const effectiveIdx = bodyCompEvalIdx === -1
+              ? compEvals.length - 1
+              : Math.min(bodyCompEvalIdx, compEvals.length - 1)
+
+            const selectedEval = compEvals[effectiveIdx] ?? null
+
+            // Extrai métricas do assessment selecionado (fallback para dados flat do client)
+            const bm = selectedEval?.bodyMetricsJson as any
+            const computed = selectedEval?.computedJson as any
+
+            const flatM = bm ? {
+              weight: bm.weight ?? client.weight,
+              height: bm.height ?? client.height,
+              bodyFat: computed?.pollock?.bodyFatPercent ?? computed?.juba?.fatPercentage ?? bm.bodyFat,
+              sfChest: bm.skinfolds?.chest ?? bm.sfChest,
+              sfAbdomen: bm.skinfolds?.abdomen ?? bm.sfAbdomen,
+              sfThigh: bm.skinfolds?.thigh ?? bm.sfThigh,
+              sfTriceps: bm.skinfolds?.triceps ?? bm.sfTriceps,
+              sfSuprailiac: bm.skinfolds?.suprailiac ?? bm.sfSuprailiac,
+              sfSubscapular: bm.skinfolds?.subscapular ?? bm.sfSubscapular,
+              sfMidaxillary: bm.skinfolds?.midaxillary ?? bm.sfMidaxillary,
+            } : {
+              weight: client.weight,
+              height: client.height,
+              bodyFat: client.bodyFat,
+              sfChest: client.sfChest,
+              sfAbdomen: client.sfAbdomen,
+              sfThigh: client.sfThigh,
+              sfTriceps: client.sfTriceps,
+              sfSuprailiac: client.sfSuprailiac,
+              sfSubscapular: client.sfSubscapular,
+              sfMidaxillary: client.sfMidaxillary,
+            }
+
+            const w = flatM.weight ? Number(flatM.weight) : null
             const gender = client.gender as 'M' | 'F' | null
             const birthDate = client.birthDate
 
-            let bf: number | null = null
+            let bf: number | null = flatM.bodyFat ? Number(flatM.bodyFat) : null
 
-            if (w && gender && (gender === 'M' || gender === 'F') && birthDate) {
+            // Recalcula Pollock client-side se tiver dobras e faltarem dados computados
+            if (bf == null && w && gender && (gender === 'M' || gender === 'F') && birthDate) {
               const sfInput: SkinfoldsInput = {
-                chest: client.sfChest ? Number(client.sfChest) : undefined,
-                abdomen: client.sfAbdomen ? Number(client.sfAbdomen) : undefined,
-                thigh: client.sfThigh ? Number(client.sfThigh) : undefined,
-                triceps: client.sfTriceps ? Number(client.sfTriceps) : undefined,
-                suprailiac: client.sfSuprailiac ? Number(client.sfSuprailiac) : undefined,
-                subscapular: client.sfSubscapular ? Number(client.sfSubscapular) : undefined,
-                midaxillary: client.sfMidaxillary ? Number(client.sfMidaxillary) : undefined,
+                chest: flatM.sfChest ? Number(flatM.sfChest) : undefined,
+                abdomen: flatM.sfAbdomen ? Number(flatM.sfAbdomen) : undefined,
+                thigh: flatM.sfThigh ? Number(flatM.sfThigh) : undefined,
+                triceps: flatM.sfTriceps ? Number(flatM.sfTriceps) : undefined,
+                suprailiac: flatM.sfSuprailiac ? Number(flatM.sfSuprailiac) : undefined,
+                subscapular: flatM.sfSubscapular ? Number(flatM.sfSubscapular) : undefined,
+                midaxillary: flatM.sfMidaxillary ? Number(flatM.sfMidaxillary) : undefined,
               }
               const age = ageFromBirthDate(birthDate)
               const result = computePollock(sfInput, age, w, gender)
               if (result) bf = result.bodyFatPercent
             }
-
-            // Fall back to saved bodyFat if Pollock can't compute
-            if (bf == null && client.bodyFat) bf = Number(client.bodyFat)
 
             // Show helpful message when data is incomplete
             if (!w || bf == null) {
@@ -1015,9 +1054,9 @@ export default function ClientDetailPage() {
               if (!w) missing.push('Peso')
               if (!gender || (gender !== 'M' && gender !== 'F')) missing.push('Sexo')
               if (!birthDate) missing.push('Data de Nascimento')
-              if (gender === 'F' && (!client.sfTriceps || !client.sfSuprailiac || !client.sfThigh))
+              if (gender === 'F' && (!flatM.sfTriceps || !flatM.sfSuprailiac || !flatM.sfThigh))
                 missing.push('Dobras: Tríceps, Suprailíaca, Coxa')
-              if (gender === 'M' && (!client.sfChest || !client.sfAbdomen || !client.sfThigh))
+              if (gender === 'M' && (!flatM.sfChest || !flatM.sfAbdomen || !flatM.sfThigh))
                 missing.push('Dobras: Peitoral, Abdômen, Coxa')
               if (bf == null && !missing.some(m => m.startsWith('Dobras')))
                 missing.push(gender === 'F' ? 'Dobras: Tríceps, Suprailíaca, Coxa' : 'Dobras: Peitoral, Abdômen, Coxa')
@@ -1044,7 +1083,27 @@ export default function ClientDetailPage() {
 
             return (
               <div className="space-y-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Análise Pollock — {gender === 'M' ? '3 Dobras Masculino' : '3 Dobras Feminino'}</p>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Análise Pollock — {gender === 'M' ? '3 Dobras Masculino' : '3 Dobras Feminino'}
+                  </p>
+                  {/* Select de avaliação */}
+                  {compEvals.length > 1 && (
+                    <select
+                      className="text-xs rounded-md border bg-background px-2 py-1 max-w-[200px]"
+                      value={bodyCompEvalIdx}
+                      onChange={e => setBodyCompEvalIdx(Number(e.target.value))}
+                    >
+                      <option value={-1}>Última avaliação</option>
+                      {compEvals.map((ev, i) => (
+                        <option key={ev.id} value={i}>
+                          {new Date(ev.createdAt).toLocaleDateString('pt-BR')}
+                          {i === 0 ? ' (1ª)' : i === compEvals.length - 1 ? ' (última)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
 
                 {/* Pie Chart + Data Grid */}
                 <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -1074,7 +1133,7 @@ export default function ClientDetailPage() {
                       <div className="text-xs text-muted-foreground">Peso</div>
                     </div>
                     <div className="rounded-xl border p-3 text-center">
-                      <div className="text-xl font-bold text-purple-400">{client.height ? Number(client.height).toFixed(0) : '—'}<span className="text-xs">cm</span></div>
+                      <div className="text-xl font-bold text-purple-400">{flatM.height ? Number(flatM.height).toFixed(0) : '—'}<span className="text-xs">cm</span></div>
                       <div className="text-xs text-muted-foreground">Altura</div>
                     </div>
                     <div className="rounded-xl border p-3 text-center bg-cyan-500/5">
@@ -1251,12 +1310,25 @@ export default function ClientDetailPage() {
 
             const dataA = flattenMetrics(evals[idxA]?.bodyMetricsJson, evals[idxA]?.computedJson)
             const dataB = flattenMetrics(evals[idxB]?.bodyMetricsJson, evals[idxB]?.computedJson)
+
+            // Inject computed lean mass
+            const calcLean = (d: any) => {
+              if (d.weight && d.bodyFat != null) {
+                d.leanMassKg = d.weight - (d.weight * d.bodyFat / 100)
+                d.leanMassPct = 100 - d.bodyFat
+              }
+            }
+            calcLean(dataA)
+            calcLean(dataB)
+
             const labelA = new Date(evals[idxA]?.createdAt).toLocaleDateString('pt-BR')
             const labelB = new Date(evals[idxB]?.createdAt).toLocaleDateString('pt-BR')
 
             const metrics = [
               { label: 'Peso', key: 'weight', unit: 'kg', lowerBetter: false },
               { label: '% Gordura', key: 'bodyFat', unit: '%', lowerBetter: true },
+              { label: 'Massa Magra', key: 'leanMassKg', unit: 'kg', lowerBetter: false },
+              { label: '% Magra', key: 'leanMassPct', unit: '%', lowerBetter: false },
               { label: 'Peitoral', key: 'chest', unit: 'cm', lowerBetter: false },
               { label: 'Cintura', key: 'waist', unit: 'cm', lowerBetter: true },
               { label: 'Quadril', key: 'hip', unit: 'cm', lowerBetter: false },
