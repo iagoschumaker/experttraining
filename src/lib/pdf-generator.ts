@@ -466,7 +466,7 @@ export async function generateBodyCompositionPDF(
     </div>`
   }
 
-  // ===== BODY SILHOUETTE SVG (inline for PDF) — matches screen BodySilhouette =====
+  // ===== BODY SILHOUETTE SVG — exact anteriorData polygons, matches screen =====
   function getMorphMult(y: number, bf: number | null, gender: 'M' | 'F' | null): number {
     if (!bf) return 1.0
     type Phenotype = 'definido' | 'magro' | 'normal' | 'sobrepeso' | 'obeso'
@@ -518,83 +518,124 @@ export async function generateBodyCompositionPDF(
     return out.join(' ')
   }
 
-  function generateBodySVGForPDF(g: 'M' | 'F' | null, bf: number | null, measurements: {
+  function generateBodySVGForPDF(g: 'M' | 'F' | null, bf: number | null, m: {
     chest?: number | null, waist?: number | null, hip?: number | null, abdomen?: number | null,
     armRight?: number | null, armLeft?: number | null, forearmRight?: number | null, forearmLeft?: number | null,
     thighRight?: number | null, thighLeft?: number | null, calfRight?: number | null, calfLeft?: number | null,
-  }, width = 130): string {
-    // Muscle region polygons (same as body-svg-data used in screen)
-    const regions: { key: string; pts: string; color: string; label: string; val?: number | null }[] = [
-      { key: 'chest',       pts: '38 55 62 55 65 75 60 80 40 80 35 75', color: '#0e7490', label: 'Peitoral',   val: measurements.chest },
-      { key: 'core',        pts: '38 80 62 80 63 108 37 108',            color: '#7c3aed', label: 'Cintura',    val: measurements.waist ?? measurements.abdomen },
-      { key: 'gluteal',     pts: '34 108 66 108 68 125 32 125',          color: '#be185d', label: 'Quadril',    val: measurements.hip },
-      { key: 'arm-right',   pts: '26 55 35 55 33 95 24 95',              color: '#0369a1', label: 'Braço D',    val: measurements.armRight },
-      { key: 'arm-left',    pts: '65 55 74 55 76 95 67 95',              color: '#0369a1', label: 'Braço E',    val: measurements.armLeft },
-      { key: 'forearm-right', pts:'21 95 32 95 30 130 19 130',           color: '#0891b2', label: 'Anteb.D',   val: measurements.forearmRight },
-      { key: 'forearm-left',  pts:'68 95 79 95 81 130 70 130',           color: '#0891b2', label: 'Anteb.E',   val: measurements.forearmLeft },
-      { key: 'thigh-right', pts: '33 125 50 125 48 165 31 165',          color: '#059669', label: 'Coxa D',    val: measurements.thighRight },
-      { key: 'thigh-left',  pts: '50 125 67 125 69 165 52 165',          color: '#059669', label: 'Coxa E',    val: measurements.thighLeft },
-      { key: 'calf-right',  pts: '33 165 48 165 46 200 31 200',          color: '#16a34a', label: 'Pant.D',    val: measurements.calfRight },
-      { key: 'calf-left',   pts: '52 165 67 165 65 200 50 200',          color: '#16a34a', label: 'Pant.E',    val: measurements.calfLeft },
+  }, width = 120): string {
+    // Exact anteriorData polygons from body-svg-data.ts — keyed by body part
+    // Points format: "x1 y1 x2 y2 ..." in viewBox 0 0 100 220
+    const anteriorPolygons: { key: string; pts: string[] }[] = [
+      { key: 'chest', pts: [
+        '51.8367347 41.6326531 51.0204082 55.1020408 57.9591837 57.9591837 67.755102 55.5102041 70.6122449 47.3469388 62.0408163 41.6326531',
+        '29.7959184 46.5306122 31.4285714 55.5102041 40.8163265 57.9591837 48.1632653 55.1020408 47.755102 42.0408163 37.5510204 42.0408163',
+      ]},
+      { key: 'core', pts: [
+        '56.3265306 59.1836735 57.9591837 64.0816327 58.3673469 77.9591837 58.3673469 92.6530612 56.3265306 98.3673469 55.1020408 104.081633 51.4285714 107.755102 51.0204082 84.4897959 50.6122449 67.3469388 51.0204082 57.1428571',
+        '43.6734694 58.7755102 48.5714286 57.1428571 48.9795918 67.3469388 48.5714286 84.4897959 48.1632653 107.346939 44.4897959 103.673469 40.8163265 91.4285714 40.8163265 78.3673469 41.2244898 64.4897959',
+        '68.5714286 63.2653061 67.3469388 57.1428571 58.7755102 59.5918367 60 64.0816327 60.4081633 83.2653061 65.7142857 78.7755102 66.5306122 69.7959184',
+        '33.877551 78.3673469 33.0612245 71.8367347 31.0204082 63.2653061 32.244898 57.1428571 40.8163265 59.1836735 39.1836735 63.2653061 39.1836735 83.6734694',
+      ]},
+      { key: 'gluteal', pts: [
+        '52.6530612 110.204082 54.2857143 124.897959 60 110.204082 62.0408163 100 64.8979592 94.2857143 60 92.6530612 56.7346939 104.489796',
+        '47.755102 110.612245 44.8979592 125.306122 42.0408163 115.918367 40.4081633 113.061224 39.5918367 107.346939 37.9591837 102.44898 34.6938776 93.877551 39.5918367 92.244898 41.6326531 99.1836735 43.6734694 105.306122',
+      ]},
+      { key: 'arm-right', pts: [
+        '16.7346939 68.1632653 17.9591837 71.4285714 22.8571429 66.122449 28.9795918 53.877551 27.755102 49.3877551 20.4081633 55.9183673',
+        '22.4489796 69.3877551 29.7959184 55.5102041 29.7959184 60.8163265 22.8571429 73.0612245',
+      ]},
+      { key: 'arm-left', pts: [
+        '71.4285714 49.3877551 70.2040816 54.6938776 76.3265306 66.122449 81.6326531 71.8367347 82.8571429 68.9795918 78.7755102 55.5102041',
+        '69.3877551 55.5102041 69.3877551 61.6326531 75.9183673 72.6530612 77.5510204 70.2040816 75.5102041 67.3469388',
+      ]},
+      { key: 'forearm-right', pts: [
+        '6.12244898 88.5714286 10.2040816 75.1020408 14.6938776 70.2040816 16.3265306 74.2857143 19.1836735 73.4693878 4.48979592 97.5510204 0 100',
+        '6.93877551 101.22449 13.4693878 90.6122449 18.7755102 84.0816327 21.6326531 77.1428571 21.2244898 71.8367347 4.89795918 98.7755102',
+      ]},
+      { key: 'forearm-left', pts: [
+        '84.4897959 69.7959184 83.2653061 73.4693878 80 73.0612245 95.1020408 98.3673469 100 100.408163 93.4693878 89.3877551 89.7959184 76.3265306',
+        '77.5510204 72.244898 77.5510204 77.5510204 80.4081633 84.0816327 85.3061224 89.7959184 92.244898 101.22449 94.6938776 99.5918367',
+      ]},
+      { key: 'thigh-right', pts: [
+        '34.6938776 98.7755102 37.1428571 108.163265 37.1428571 127.755102 34.2857143 137.142857 31.0204082 132.653061 29.3877551 120 28.1632653 111.428571 29.3877551 100.816327 32.244898 94.6938776',
+        '38.7755102 129.387755 38.3673469 112.244898 41.2244898 118.367347 44.4897959 129.387755 42.8571429 135.102041 40 146.122449 36.3265306 146.530612 35.5102041 140',
+        '32.6530612 138.367347 26.5306122 145.714286 25.7142857 136.734694 25.7142857 127.346939 26.9387755 114.285714 29.3877551 133.469388',
+      ]},
+      { key: 'thigh-left', pts: [
+        '63.2653061 105.714286 64.4897959 100 66.9387755 94.6938776 70.2040816 101.22449 71.0204082 111.836735 68.1632653 133.061224 65.3061224 137.55102 62.4489796 128.571429 62.0408163 111.428571',
+        '59.5918367 145.714286 55.5102041 128.979592 60.8163265 113.877551 61.2244898 130.204082 64.0816327 139.591837 62.8571429 146.530612',
+        '71.8367347 113.061224 73.877551 124.081633 73.877551 140.408163 72.6530612 145.714286 66.5306122 138.367347 70.2040816 133.469388',
+      ]},
+      { key: 'calf-right', pts: [
+        '24.8979592 194.693878 27.755102 164.897959 28.1632653 160.408163 26.122449 154.285714 24.8979592 157.55102 22.4489796 161.632653 20.8163265 167.755102 22.0408163 188.163265 20.8163265 195.510204',
+        '35.5102041 158.367347 35.9183673 162.44898 35.9183673 166.938776 35.1020408 172.244898 35.1020408 176.734694 32.244898 182.040816 30.6122449 187.346939 26.9387755 194.693878 27.3469388 187.755102 28.1632653 180.408163 28.5714286 175.510204 28.9795918 169.795918 29.7959184 164.081633 30.2040816 158.77551',
+      ]},
+      { key: 'calf-left', pts: [
+        '71.4285714 160.408163 73.4693878 153.469388 76.7346939 161.22449 79.5918367 167.755102 78.3673469 187.755102 79.5918367 195.510204 74.6938776 195.510204',
+        '72.6530612 195.102041 69.7959184 159.183673 65.3061224 158.367347 64.0816327 162.44898 64.0816327 165.306122 65.7142857 177.142857',
+      ]},
     ]
 
-    // Biótype label
+    // Which keys have data
+    const dataMap: Record<string, number | null | undefined> = {
+      'chest': m.chest, 'core': m.waist ?? m.abdomen, 'gluteal': m.hip,
+      'arm-right': m.armRight, 'arm-left': m.armLeft,
+      'forearm-right': m.forearmRight, 'forearm-left': m.forearmLeft,
+      'thigh-right': m.thighRight, 'thigh-left': m.thighLeft,
+      'calf-right': m.calfRight, 'calf-left': m.calfLeft,
+    }
+
     const getPheno = () => {
       if (!bf) return 'Normal'
       if (g === 'F') return bf < 20 ? 'Definida' : bf < 24 ? 'Magra' : bf < 30 ? 'Normal' : bf < 35 ? 'Sobrepeso' : 'Obesa'
       return bf < 12 ? 'Definido' : bf < 15 ? 'Magro' : bf < 20 ? 'Normal' : bf < 25 ? 'Sobrepeso' : 'Obeso'
     }
 
-    const polygons = regions.map(r => {
-      const morphed = morphPts(r.pts, bf, g)
-      const hasVal = r.val != null && Number(r.val) > 0
-      const fill = hasVal ? r.color : '#1e293b'
-      const opacity = hasVal ? '0.85' : '0.3'
-      return `<polygon points="${morphed}" fill="${fill}" fill-opacity="${opacity}" stroke="#0f172a" stroke-width="0.5"/>`
+    const polygonsHtml = anteriorPolygons.map(region => {
+      const hasVal = dataMap[region.key] != null && Number(dataMap[region.key]) > 0
+      return region.pts.map(pts => {
+        const morphed = morphPts(pts, bf, g)
+        if (hasVal) {
+          return `<polygon points="${morphed}" fill="#3b82f6" fill-opacity="0.5" stroke="#1d4ed8" stroke-width="0.3"/>`
+        }
+        return `<polygon points="${morphed}" fill="#e5e7eb" fill-opacity="0.7" stroke="#d1d5db" stroke-width="0.2"/>`
+      }).join('')
     }).join('')
 
-    // Labels — only for regions with values
-    const labels = regions.map(r => {
-      if (!r.val || Number(r.val) <= 0) return ''
-      const pts = morphPts(r.pts, bf, g).split(/\s+/)
-      const xs = [], ys = []
-      for (let i = 0; i < pts.length; i += 2) { xs.push(parseFloat(pts[i])); ys.push(parseFloat(pts[i + 1])) }
-      const cx = xs.reduce((a, b) => a + b, 0) / xs.length
-      const cy = ys.reduce((a, b) => a + b, 0) / ys.length
-      return `<text x="${cx.toFixed(1)}" y="${(cy + 1).toFixed(1)}" font-size="4" fill="white" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700">${Number(r.val).toFixed(0)}</text>`
-    }).join('')
+    // Head shape same as screen
+    const headPts = morphPts('42.4489796 2.85714286 40 11.8367347 42.0408163 19.5918367 46.122449 23.2653061 49.7959184 25.3061224 54.6938776 22.4489796 57.5510204 19.1836735 59.1836735 10.2040816 57.1428571 2.44897959 49.7959184 0', bf, g)
+    // Neck
+    const neckRPts = morphPts('55.5102041 23.6734694 50.6122449 33.4693878 50.6122449 39.1836735 61.6326531 40 70.6122449 44.8979592 69.3877551 36.7346939 63.2653061 35.1020408 58.3673469 30.6122449', bf, g)
+    const neckLPts = morphPts('28.9795918 44.8979592 30.2040816 37.1428571 36.3265306 35.1020408 41.2244898 30.2040816 44.4897959 24.4897959 48.9795918 33.877551 48.5714286 39.1836735 37.9591837 39.5918367', bf, g)
+    // Front deltoids
+    const dR = morphPts('78.3673469 53.0612245 79.5918367 47.755102 79.1836735 41.2244898 75.9183673 37.9591837 71.0204082 36.3265306 72.244898 42.8571429 71.4285714 47.3469388', bf, g)
+    const dL = morphPts('28.1632653 47.3469388 21.2244898 53.0612245 20 47.755102 20.4081633 40.8163265 24.4897959 37.1428571 28.5714286 37.1428571 26.9387755 43.2653061', bf, g)
+    // Knees
+    const kR = morphPts('33.877551 140 34.6938776 143.265306 35.5102041 147.346939 36.3265306 151.020408 35.1020408 156.734694 29.7959184 156.734694 27.3469388 152.653061 27.3469388 147.346939 30.2040816 144.081633', bf, g)
+    const kL = morphPts('65.7142857 140 72.244898 147.755102 72.244898 152.244898 69.7959184 157.142857 64.8979592 156.734694 62.8571429 151.020408', bf, g)
+    // Abductors
+    const abR = morphPts('52.6530612 110.204082 54.2857143 124.897959 60 110.204082 62.0408163 100 64.8979592 94.2857143 60 92.6530612 56.7346939 104.489796', bf, g)
+    const abL = morphPts('47.755102 110.612245 44.8979592 125.306122 42.0408163 115.918367 40.4081633 113.061224 39.5918367 107.346939 37.9591837 102.44898 34.6938776 93.877551 39.5918367 92.244898 41.6326531 99.1836735 43.6734694 105.306122', bf, g)
 
-    // Silhouette outline — head + neck + body morphed
-    const headX = 50, headY = 10, headRx = bf ? Math.min(14, 10 + bf * 0.08) : 10, headRy = 11
-    const neckPts = morphPts('44 22 56 22 55 32 45 32', bf, g)
-
-    const bodyPath = g === 'F'
-      ? morphPts('38 32 62 32 68 55 74 90 79 125 72 165 68 200 32 200 28 165 21 125 21 90 26 55 32 32', bf, g)
-      : morphPts('36 32 64 32 70 55 76 90 80 125 74 165 68 200 32 200 26 165 20 125 24 90 30 55 36 32', bf, g)
-
-    const h = width * (220 / 100)
-    return `<svg viewBox="0 0 100 220" width="${width}" height="${h.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" style="background:#0f172a;border-radius:4px">
-      <defs>
-        <radialGradient id="bg" cx="50%" cy="0%" r="100%">
-          <stop offset="0%" stop-color="#1e293b"/>
-          <stop offset="100%" stop-color="#0f172a"/>
-        </radialGradient>
-      </defs>
-      <rect width="100" height="220" fill="url(#bg)"/>
-      <!-- Body outline -->
-      <polygon points="${bodyPath}" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
-      <!-- Head -->
-      <ellipse cx="${headX}" cy="${headY + headRy}" rx="${headRx}" ry="${headRy}" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
-      <!-- Neck -->
-      <polygon points="${neckPts}" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+    const h = Math.round(width * 2.2)
+    return `<svg viewBox="0 0 100 220" width="${width}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <!-- Base body shapes -->
+      <polygon points="${headPts}" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.5"/>
+      <polygon points="${neckRPts}" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${neckLPts}" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${dR}" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${dL}" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${kR}" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${kL}" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${abR}" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.3"/>
+      <polygon points="${abL}" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.3"/>
       <!-- Muscle regions -->
-      ${polygons}
-      <!-- Measurement labels -->
-      ${labels}
-      <!-- Biotype label -->
-      ${bf ? `<text x="50" y="215" font-size="4.5" fill="#f59e0b" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700">${getPheno()}</text>` : ''}
+      ${polygonsHtml}
+      <!-- Biotype -->
+      ${bf ? `<text x="50" y="213" font-size="4" fill="#6b7280" text-anchor="middle" font-family="Arial,sans-serif">${getPheno()} • ${bf.toFixed(1)}%G</text>` : ''}
     </svg>`
   }
+
 
   // ===== CIRCUMFERENCES SECTION =====
   const measurements = [
@@ -690,30 +731,31 @@ export async function generateBodyCompositionPDF(
       }, 110)
 
       comparisonSection = `
-      <div style="border:1px solid #c4b5fd;border-radius:2mm;overflow:hidden;margin-top:3mm">
-        <div style="background:#ede9fe;padding:2mm 3mm;border-bottom:0.5px solid #c4b5fd;display:flex;justify-content:space-between;align-items:center">
+      <div style="page-break-before:always;border:1px solid #c4b5fd;border-radius:2mm;overflow:hidden">
+        <div style="background:#ede9fe;padding:2mm 3mm;border-bottom:0.5px solid #c4b5fd">
           <span style="font-size:8pt;font-weight:700;color:#5b21b6">📊 Comparação: ${comparison.labelA} → ${comparison.labelB}</span>
         </div>
-        <!-- Side-by-side 3D avatars -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4mm;padding:3mm;background:#0f172a">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2mm">
-            <div style="font-size:7pt;font-weight:700;color:#60a5fa;text-align:center">${comparison.labelA}</div>
+        <!-- 2 SVGs side by side — page-break-inside:avoid keeps them on same page -->
+        <div style="page-break-inside:avoid;display:grid;grid-template-columns:1fr 1fr;gap:3mm;padding:3mm;background:#f8fafc;border-bottom:0.5px solid #e5e7eb">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:1mm">
+            <div style="font-size:7pt;font-weight:700;color:#1d4ed8;text-align:center">${comparison.labelA}</div>
             ${svgA}
-            ${dA.bodyFat ? `<div style="font-size:6pt;color:#60a5fa;text-align:center">${dA.bodyFat.toFixed(1)}% Gordura</div>` : ''}
+            ${dA.bodyFat != null ? `<div style="font-size:6pt;color:#3b82f6;text-align:center">${dA.bodyFat.toFixed(1)}% Gordura</div>` : ''}
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2mm">
-            <div style="font-size:7pt;font-weight:700;color:#fbbf24;text-align:center">${comparison.labelB}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:1mm">
+            <div style="font-size:7pt;font-weight:700;color:#b45309;text-align:center">${comparison.labelB}</div>
             ${svgB}
-            ${dB.bodyFat ? `<div style="font-size:6pt;color:#fbbf24;text-align:center">${dB.bodyFat.toFixed(1)}% Gordura</div>` : ''}
+            ${dB.bodyFat != null ? `<div style="font-size:6pt;color:#d97706;text-align:center">${dB.bodyFat.toFixed(1)}% Gordura</div>` : ''}
           </div>
         </div>
+        <!-- Metrics table -->
         <div style="padding:2mm 3mm">
-          <table style="width:100%;border-collapse:collapse;font-size:8pt">
+          <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
             <tr style="background:#f8fafc">
-              <th style="padding:1.5mm 2mm;text-align:left;border-bottom:1px solid #e5e5e5;font-weight:600;color:#666">Medida</th>
-              <th style="padding:1.5mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#3b82f6">${comparison.labelA}</th>
-              <th style="padding:1.5mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#f59e0b">${comparison.labelB}</th>
-              <th style="padding:1.5mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#666">Δ</th>
+              <th style="padding:1.2mm 2mm;text-align:left;border-bottom:1px solid #e5e5e5;font-weight:600;color:#666">Medida</th>
+              <th style="padding:1.2mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#1d4ed8">${comparison.labelA}</th>
+              <th style="padding:1.2mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#b45309">${comparison.labelB}</th>
+              <th style="padding:1.2mm 2mm;text-align:right;border-bottom:1px solid #e5e5e5;font-weight:600;color:#666">Δ</th>
             </tr>
             ${active.map(m => {
               const vA = dA[m.key]
@@ -722,10 +764,10 @@ export async function generateBodyCompositionPDF(
               const isGood = m.lowerBetter ? delta <= 0 : delta >= 0
               const deltaColor = vA != null && vB != null && delta !== 0 ? (isGood ? '#22c55e' : '#ef4444') : '#888'
               return `<tr>
-                <td style="padding:1.2mm 2mm;border-bottom:0.3px solid #f3f4f6;color:#555">${m.label}</td>
-                <td style="padding:1.2mm 2mm;text-align:right;border-bottom:0.3px solid #f3f4f6;font-weight:600">${vA != null ? vA.toFixed(1) : '—'} <span style="color:#999;font-weight:400">${m.unit}</span></td>
-                <td style="padding:1.2mm 2mm;text-align:right;border-bottom:0.3px solid #f3f4f6;font-weight:600">${vB != null ? vB.toFixed(1) : '—'} <span style="color:#999;font-weight:400">${m.unit}</span></td>
-                <td style="padding:1.2mm 2mm;text-align:right;border-bottom:0.3px solid #f3f4f6;font-weight:700;color:${deltaColor}">${vA != null && vB != null ? `${delta > 0 ? '+' : ''}${delta.toFixed(1)}` : '—'}</td>
+                <td style="padding:1mm 2mm;border-bottom:0.3px solid #f3f4f6;color:#555">${m.label}</td>
+                <td style="padding:1mm 2mm;text-align:right;border-bottom:0.3px solid #f3f4f6;font-weight:600">${vA != null ? vA.toFixed(1) : '—'} <span style="color:#999;font-weight:400">${m.unit}</span></td>
+                <td style="padding:1mm 2mm;text-align:right;border-bottom:0.3px solid #f3f4f6;font-weight:600">${vB != null ? vB.toFixed(1) : '—'} <span style="color:#999;font-weight:400">${m.unit}</span></td>
+                <td style="padding:1mm 2mm;text-align:right;border-bottom:0.3px solid #f3f4f6;font-weight:700;color:${deltaColor}">${vA != null && vB != null ? `${delta > 0 ? '+' : ''}${delta.toFixed(1)}` : '—'}</td>
               </tr>`
             }).join('')}
           </table>
