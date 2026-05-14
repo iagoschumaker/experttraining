@@ -105,6 +105,11 @@ export default function SuperAdminStudiosPage() {
   const [resetPassword, setResetPassword] = useState(false)
   const [studioAdmins, setStudioAdmins] = useState<Array<{id: string, name: string, email: string}>>([])
   const [selectedAdminId, setSelectedAdminId] = useState('')
+  const [linkAdminEmail, setLinkAdminEmail] = useState('')
+  const [linkAdminPassword, setLinkAdminPassword] = useState('')
+  const [linkAdminName, setLinkAdminName] = useState('')
+  const [linkEmailExists, setLinkEmailExists] = useState(false)
+  const [linkExistingName, setLinkExistingName] = useState('')
 
   const fetchStudios = async () => {
     setLoading(true)
@@ -205,6 +210,11 @@ export default function SuperAdminStudiosPage() {
     })
     setResetPassword(false)
     setSelectedAdminId('')
+    setLinkAdminEmail('')
+    setLinkAdminPassword('')
+    setLinkAdminName('')
+    setLinkEmailExists(false)
+    setLinkExistingName('')
     
     // Carregar admins do studio
     try {
@@ -238,16 +248,24 @@ export default function SuperAdminStudiosPage() {
       const updateData: any = {
         name: formData.name,
         slug: formData.slug,
-        planId: formData.planId || null,
         status: formData.status,
         modules: formData.modules,
       }
+      // Only include planId if it has a value
+      if (formData.planId) updateData.planId = formData.planId
       
-      // Adicionar dados de reset de senha se marcado
+      // Reset password
       if (resetPassword && selectedAdminId && formData.adminPassword) {
         updateData.resetPassword = true
         updateData.adminUserId = selectedAdminId
         updateData.newPassword = formData.adminPassword
+      }
+
+      // Link new admin
+      if (linkAdminEmail) {
+        updateData.linkAdminEmail = linkAdminEmail
+        if (linkAdminName) updateData.linkAdminName = linkAdminName
+        if (linkAdminPassword) updateData.linkAdminPassword = linkAdminPassword
       }
       
       const res = await fetch(`/api/superadmin/studios/${selectedStudio.id}`, {
@@ -259,6 +277,9 @@ export default function SuperAdminStudiosPage() {
       if (data.success) {
         setIsEditOpen(false)
         setResetPassword(false)
+        setLinkAdminEmail('')
+        setLinkAdminPassword('')
+        setLinkAdminName('')
         fetchStudios()
       } else {
         alert(data.error)
@@ -611,6 +632,67 @@ export default function SuperAdminStudiosPage() {
                 </div>
               </div>
               
+              {/* --- Vincular Novo Administrador --- */}
+              <div className="border-t border-border pt-4 mt-4">
+                <h4 className="text-sm font-medium text-foreground mb-3">Vincular Administrador</h4>
+                <p className="text-xs text-muted-foreground mb-3">Crie ou vincule um usuário como dono do studio. Se o e-mail já existir, ele será vinculado. Se não existir, será criado com a senha informada.</p>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">E-mail do Administrador</Label>
+                    <Input
+                      type="email"
+                      value={linkAdminEmail}
+                      onChange={async (e) => {
+                        setLinkAdminEmail(e.target.value)
+                        if (e.target.value.includes('@')) {
+                          try {
+                            const res = await fetch(`/api/superadmin/users/check-email?email=${encodeURIComponent(e.target.value)}`)
+                            const d = await res.json()
+                            setLinkEmailExists(d.exists)
+                            setLinkExistingName(d.exists ? d.user.name : '')
+                          } catch {}
+                        } else { setLinkEmailExists(false); setLinkExistingName('') }
+                      }}
+                      className="bg-background border-border text-foreground"
+                      placeholder="dono@studio.com (opcional)"
+                    />
+                    {linkEmailExists && linkAdminEmail && (
+                      <div className="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20">
+                        <UserCheck className="h-4 w-4 text-blue-400" />
+                        <p className="text-xs text-blue-400">Usuário <strong>{linkExistingName}</strong> já existe e será vinculado</p>
+                      </div>
+                    )}
+                  </div>
+                  {linkAdminEmail && (
+                    <>
+                      {!linkEmailExists && (
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Nome do Administrador</Label>
+                          <Input
+                            value={linkAdminName}
+                            onChange={(e) => setLinkAdminName(e.target.value)}
+                            className="bg-background border-border text-foreground"
+                            placeholder="Nome completo"
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">{linkEmailExists ? 'Nova Senha (opcional)' : 'Senha Inicial *'}</Label>
+                        <Input
+                          type="password"
+                          value={linkAdminPassword}
+                          onChange={(e) => setLinkAdminPassword(e.target.value)}
+                          className="bg-background border-border text-foreground"
+                          placeholder="Mínimo 6 caracteres"
+                          minLength={6}
+                          required={!!linkAdminEmail && !linkEmailExists}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
               {studioAdmins.length > 0 && (
                 <div className="border-t border-border pt-4 mt-4">
                   <div className="flex items-center justify-between mb-3">

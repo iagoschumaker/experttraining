@@ -16,12 +16,16 @@ import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
 const updateStudioSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().regex(/^[a-z0-9-]+$/).optional(),
-  planId: z.string().min(1, 'Plano é obrigatório').optional(),
+  planId: z.string().min(1).nullable().optional(),
   status: z.enum(['ACTIVE', 'SUSPENDED']).optional(),
   modules: z.array(z.string()).optional(),
   resetPassword: z.boolean().optional(),
   adminUserId: z.string().optional(),
   newPassword: z.string().min(6).optional(),
+  // Link a new owner to the studio
+  linkAdminEmail: z.string().email().optional(),
+  linkAdminPassword: z.string().min(6).optional(),
+  linkAdminName: z.string().optional(),
 })
 
 // Middleware to check superadmin
@@ -239,7 +243,7 @@ export async function PUT(
       )
     }
 
-    const { name, slug, planId, status, modules, resetPassword, adminUserId, newPassword } = validation.data
+    const { name, slug, planId, status, modules, resetPassword, adminUserId, newPassword, linkAdminEmail, linkAdminPassword, linkAdminName } = validation.data
 
     // Check slug uniqueness if changing
     if (slug && slug !== existingStudio.slug) {
@@ -254,17 +258,58 @@ export async function PUT(
       }
     }
 
-    // Update studio data
+    // Update studio data — only include planId if it is a non-null string
+    const studioUpdateData: any = { name, slug, status, modules }
+    if (planId !== null && planId !== undefined) studioUpdateData.planId = planId
+
     const studio = await prisma.studio.update({
       where: { id: params.id },
-      data: {
-        name,
-        slug,
-        planId,
-        status,
-        modules,
-      },
+      data: studioUpdateData,
     })
+
+    // --- Link new admin email to studio ---
+    let adminLinked = false
+    if (linkAdminEmail) {
+      let adminUser = await prisma.user.findUnique({ where: { email: linkAdminEmail } })
+
+      if (!adminUser) {
+        if (!linkAdminPassword) {
+          return NextResponse.json(
+            { success: false, error: 'Senha obrigatória para novo usuário' },
+            { status: 400 }
+          )
+        }
+        const passwordHash = await bcrypt.hash(linkAdminPassword, 10)
+        adminUser = await prisma.user.create({
+          data: {
+            name: linkAdminName || name || linkAdminEmail,
+            email: linkAdminEmail,
+            passwordHash,
+            isSuperAdmin: false,
+          },
+        })
+      } else if (linkAdminPassword) {
+        // Update password if provided
+        const passwordHash = await bcrypt.hash(linkAdminPassword, 10)
+        await prisma.user.update({ where: { id: adminUser.id }, data: { passwordHash } })
+      }
+
+      // Check if already linked
+      const existing = await prisma.userStudio.findFirst({
+        where: { userId: adminUser.id, studioId: params.id },
+      })
+      if (!existing) {
+        await prisma.userStudio.create({
+          data: { userId: adminUser.id, studioId: params.id, role: 'STUDIO_ADMIN' },
+        })
+      } else if (existing.role !== 'STUDIO_ADMIN') {
+        await prisma.userStudio.update({
+          where: { id: existing.id },
+          data: { role: 'STUDIO_ADMIN' },
+        })
+      }
+      adminLinked = true
+    }
 
     // Reset password if requested
     let passwordReset = false
@@ -305,6 +350,8 @@ export async function PUT(
         metadata: {
           passwordReset,
           adminUserId: passwordReset ? adminUserId : undefined,
+          adminLinked,
+          linkAdminEmail: adminLinked ? linkAdminEmail : undefined,
         },
       },
     })
@@ -314,6 +361,7 @@ export async function PUT(
       data: {
         studio,
         passwordReset,
+        adminLinked,
       },
     })
   } catch (error) {
