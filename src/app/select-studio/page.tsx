@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -49,16 +49,13 @@ export default function SelectStudioPage() {
         setUser(data.data.user)
         setStudios(data.data.studios || [])
 
-        // SuperAdmin sees their linked studios (where they are STUDIO_ADMIN or TRAINER)
-        // They don't need to see all studios here, only the ones they have a role in
-        // The SuperAdmin dashboard option will always be available
-
         // Regular user with only one studio - auto-select
         // EXCEPT for TRAINER role - they need to see this screen to access password change
         if (!data.data.user.isSuperAdmin && 
             data.data.user.role !== 'TRAINER' && 
             data.data.studios?.length === 1) {
           console.log('Single studio user (non-trainer), auto-selecting')
+          setIsLoading(false)  // Show UI in case auto-select fails
           handleSelectStudio(data.data.studios[0].studioId)
           return
         }
@@ -69,6 +66,7 @@ export default function SelectStudioPage() {
         }
 
         setIsLoading(false)
+
       } catch (err) {
         console.error('Error fetching user data:', err)
         window.location.href = '/login'
