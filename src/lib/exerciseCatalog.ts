@@ -144,14 +144,21 @@ export const ALL_EXERCISES = [...POSITION_0, ...POSITION_1, ...POSITION_2]
  * Returns exercises appropriate for the given block position.
  * position 0 → motor pattern, position 1 → complementary, position 2 → core
  * pillar filters to treino type (PERNA, EMPURRA, PUXA)
+ * Normalizes pillar string to handle any casing from DB/template.
  */
 export function getExercisesForPosition(
   position: 0 | 1 | 2,
   pillar: string
 ): ExerciseCatalogEntry[] {
-  return ALL_EXERCISES.filter(
-    e => e.position === position && (e.pillar === 'ALL' || e.pillar === pillar)
+  const normalizedPillar = (pillar || '').trim().toUpperCase() as 'PERNA' | 'EMPURRA' | 'PUXA' | 'ALL'
+  const specific = ALL_EXERCISES.filter(
+    e => e.position === position && (e.pillar === 'ALL' || e.pillar === normalizedPillar)
   )
+  // Fallback: if nothing found (unknown pillar), return all for that position
+  if (specific.length === 0) {
+    return ALL_EXERCISES.filter(e => e.position === position)
+  }
+  return specific
 }
 
 export const POSITION_LABELS: Record<number, { label: string; icon: string; color: string }> = {

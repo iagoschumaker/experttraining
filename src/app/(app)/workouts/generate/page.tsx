@@ -50,6 +50,7 @@ import {
   POSITION_LABELS,
   PREP_EXERCISES,
   FINAL_PROTOCOL_OPTIONS,
+  ALL_EXERCISES,
   ExerciseCatalogEntry,
 } from '@/lib/exerciseCatalog'
 
@@ -1288,14 +1289,25 @@ function GenerateWorkoutPage() {
                                               : 'border-border'
                                           }`}
                                         >
-                                          <option value="">Selecionar exercício...</option>
-                                          <optgroup label={`Sugeridos para posição ${eIdx + 1}`}>
+                                        <option value="">Selecionar exercício...</option>
+                                          <optgroup label={`Sugeridos — ${treino.pillarLabel}`}>
                                             {catalogOptions.map(opt => (
                                               <option key={opt.name} value={opt.name}>{opt.name}</option>
                                             ))}
                                           </optgroup>
-                                          {ex.name && !catalogOptions.find(o => o.name === ex.name) && (
-                                            <optgroup label="Atual">
+                                          {/* All exercises for this position — shown if not already in catalogOptions */}
+                                          {(() => {
+                                            const allForPos = ALL_EXERCISES.filter(e => e.position === posIdx && !catalogOptions.find(c => c.name === e.name))
+                                            return allForPos.length > 0 ? (
+                                              <optgroup label="Outros exercícios">
+                                                {allForPos.map(opt => (
+                                                  <option key={opt.name} value={opt.name}>{opt.name}</option>
+                                                ))}
+                                              </optgroup>
+                                            ) : null
+                                          })()}
+                                          {ex.name && ![...catalogOptions, ...ALL_EXERCISES.filter(e => e.position === posIdx)].find(o => o.name === ex.name) && (
+                                            <optgroup label="Atual (personalizado)">
                                               <option value={ex.name}>{ex.name}</option>
                                             </optgroup>
                                           )}
