@@ -803,13 +803,17 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         const week1 = schedule.weeks[0]
 
         // Detect format: new has session.treino, old has session.blocks
-        const isNewFormat = !!week1?.sessions?.[0]?.treino
+        // Check across all weeks in case week1 has an unusual first session
+        const isNewFormat = schedule.weeks?.some((w: any) => w.sessions?.some((s: any) => !!s.treino)) ?? false
 
-        // Collect one session per pillar — sorted by treino number (Treino 1, 2, 3)
+        // Collect one session per pillar — scan ALL weeks to handle 2-day rotations
+        // (with 2 days/week over 3 pillars, Perna may only appear in week 2 or 3)
         const pillarMap: Record<string, any> = {}
-        week1?.sessions?.forEach((s: any) => {
-          const key = s.pillar || 'UNKNOWN'
-          if (!pillarMap[key]) pillarMap[key] = s
+        schedule.weeks?.forEach((w: any) => {
+          w.sessions?.forEach((s: any) => {
+            const key = s.pillar || 'UNKNOWN'
+            if (!pillarMap[key]) pillarMap[key] = s
+          })
         })
 
         // Sort: extract number from pillarLabel ("Treino 1: Perna" → 1)
@@ -836,8 +840,9 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         })
 
         const pillarMeta = (p: string) => {
-          if (p === 'LOWER') return { border: 'border-amber-500/30', bg: 'bg-amber-500/10', text: 'text-amber-600', pill: 'bg-amber-500/20 text-amber-600 border-amber-500/30' }
-          if (p === 'PUSH') return { border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-500', pill: 'bg-blue-500/20 text-blue-500 border-blue-500/30' }
+          // Support both old format (LOWER/PUSH/PULL) and new format (PERNA/EMPURRA/PUXA)
+          if (p === 'LOWER' || p === 'PERNA') return { border: 'border-amber-500/30', bg: 'bg-amber-500/10', text: 'text-amber-600', pill: 'bg-amber-500/20 text-amber-600 border-amber-500/30' }
+          if (p === 'PUSH' || p === 'EMPURRA') return { border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-500', pill: 'bg-blue-500/20 text-blue-500 border-blue-500/30' }
           return { border: 'border-purple-500/30', bg: 'bg-purple-500/10', text: 'text-purple-500', pill: 'bg-purple-500/20 text-purple-500 border-purple-500/30' }
         }
 
