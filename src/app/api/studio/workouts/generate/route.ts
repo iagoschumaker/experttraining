@@ -423,7 +423,7 @@ export async function POST(request: NextRequest) {
           assessmentId,
           blocksUsed: [],
           scheduleJson: schedule,
-          templateJson: phaseTemplate as any,
+          templateJson: finalTemplate as any,  // finalTemplate = customized in manual mode, same as phaseTemplate in auto mode
           targetWeeks: PHASE_DURATION_WEEKS,
           sessionsPerWeek: weeklyFrequency,
           sessionsCompleted: 0,
