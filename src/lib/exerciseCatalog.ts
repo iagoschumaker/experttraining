@@ -53,6 +53,9 @@ const POSITION_0: ExerciseCatalogEntry[] = [
 
 // ============ POSIÇÃO 1 — Complementar / Acessório ============
 const POSITION_1: ExerciseCatalogEntry[] = [
+  // PERNA — acessórios específicos
+  { name: 'Cadeira Extensora', pillar: 'PERNA', position: 1 },
+  { name: 'Cadeira Flexora', pillar: 'PERNA', position: 1 },
   // Universal
   { name: 'TRX', pillar: 'ALL', position: 1, tip: 'Regulagem por inclinação corporal' },
   { name: 'Carry K.B', pillar: 'ALL', position: 1 },

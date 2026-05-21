@@ -304,11 +304,44 @@ export async function GET(
             select: { id: true, date: true, focus: true, sessionIndex: true },
         })
 
-        const { session, progress } = getNextSessionWithPeriodization(
+        const { session: templateSession, progress } = getNextSessionWithPeriodization(
             template,
             workout.sessionsCompleted,
             workout.startDate,
         )
+
+        // ====================================================================
+        // RESOLVE CORRECT SESSION FROM SCHEDULE (fixes weeklyFrequency != 3)
+        // ====================================================================
+        // The templateJson has 3 sessions [PERNA, EMPURRA, PUXA].
+        // sessionsCompleted % 3 only works when weeklyFrequency = 3.
+        // For other frequencies (e.g. 2), the actual rotation is in scheduleJson
+        // — the Nth session completed maps to the Nth item in the flat schedule.
+        //
+        // Algorithm: flatten all sessions from scheduleJson into an ordered list,
+        // pick index = sessionsCompleted. If scheduleJson is absent, fall back.
+        function resolveSessionFromSchedule(sc: any, sessCompleted: number): any | null {
+            if (!sc?.weeks) return null
+            const flat: any[] = []
+            for (const week of sc.weeks) {
+                for (const s of (week.sessions || [])) {
+                    flat.push(s)
+                }
+            }
+            if (flat.length === 0) return null
+            const idx = sessCompleted % flat.length
+            const sched = flat[idx]
+            if (!sched) return null
+            // sched has { pillar, treino: { blocos, ... }, preparation, ... }
+            // Map it to the normalized session format used by the card
+            const treinoType = sched.treino?.pillar || sched.pillar
+            const templateSess = template.sessions.find(s => s.pillar === treinoType)
+            return templateSess ? JSON.parse(JSON.stringify(templateSess)) : null
+        }
+
+        const rawSchedule = workout.scheduleJson as any
+        const resolvedFromSchedule = resolveSessionFromSchedule(rawSchedule, workout.sessionsCompleted)
+        const session = resolvedFromSchedule || templateSession
 
         // Check if a specific session index was requested (pillar selector)
         const url = new URL(request.url)
@@ -317,16 +350,21 @@ export async function GET(
         // Se já fez check-in hoje, mostrar a sessão que completou (não a próxima)
         let displaySession = session
         if (requestedIndex !== null) {
-            // Trainer manually selected a pillar/session
+            // Trainer manually selected a pillar/session — use template index directly
             const idx = parseInt(requestedIndex, 10)
             if (idx >= 0 && idx < template.sessions.length) {
                 displaySession = JSON.parse(JSON.stringify(template.sessions[idx]))
             }
         } else if (checkedInToday) {
             // sessionsCompleted já foi incrementado, então a sessão de hoje é a anterior
-            const completedIdx = (workout.sessionsCompleted - 1) % template.sessions.length
-            if (completedIdx >= 0 && completedIdx < template.sessions.length) {
-                displaySession = template.sessions[completedIdx]
+            const prevResolved = resolveSessionFromSchedule(rawSchedule, workout.sessionsCompleted - 1)
+            if (prevResolved) {
+                displaySession = prevResolved
+            } else {
+                const completedIdx = (workout.sessionsCompleted - 1) % template.sessions.length
+                if (completedIdx >= 0 && completedIdx < template.sessions.length) {
+                    displaySession = template.sessions[completedIdx]
+                }
             }
         }
 
