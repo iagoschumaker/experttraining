@@ -22,6 +22,7 @@ import {
   BarChart2,
   FolderTree,
   CreditCard,
+  BadgeDollarSign,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -75,6 +76,12 @@ const sidebarLinks: SidebarLink[] = [
     href: '/financeiro/lancamentos',
     label: 'Lançamentos',
     icon: <FileText className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/mensalidades',
+    label: 'Mensalidades',
+    icon: <BadgeDollarSign className="w-5 h-5" />,
     module: 'FINANCEIRO',
   },
   {
