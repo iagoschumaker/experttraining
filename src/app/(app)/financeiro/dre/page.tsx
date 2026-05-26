@@ -24,6 +24,7 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface DRENode {
   id: string
@@ -63,7 +64,7 @@ export default function DREPage() {
     try {
       setLoading(true)
       const params = new URLSearchParams({ month: String(month), year: String(year), period })
-      const res = await fetch(`/api/studio/financeiro/dre?${params}`)
+      const res = await fetchWithAuth(`/api/studio/financeiro/dre?${params}`)
       const result = await res.json()
       if (result.success) {
         setData(result.data)

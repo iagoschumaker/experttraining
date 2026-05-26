@@ -42,6 +42,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface Entry {
   id: string
@@ -105,7 +106,7 @@ export default function LancamentosPage() {
 
   // Form
   const [form, setForm] = useState({
-    type: 'DESPESA' as 'RECEITA' | 'DESPESA',
+    type: 'DESPESA' as 'RECEITA' | 'CUSTO' | 'DESPESA',
     categoryId: '',
     description: '',
     amount: '',
@@ -126,7 +127,7 @@ export default function LancamentosPage() {
       if (filterType) params.set('type', filterType)
       if (filterStatus) params.set('status', filterStatus)
 
-      const res = await fetch(`/api/studio/financeiro/entries?${params}`)
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries?${params}`)
       const result = await res.json()
       if (result.success) {
         setEntries(result.data.entries)
@@ -141,7 +142,7 @@ export default function LancamentosPage() {
 
   const loadCategories = async () => {
     try {
-      const res = await fetch('/api/studio/financeiro/categories')
+      const res = await fetchWithAuth('/api/studio/financeiro/categories')
       const result = await res.json()
       if (result.success) {
         setCategories(result.data.flat)
@@ -187,7 +188,7 @@ export default function LancamentosPage() {
         }
       }
 
-      const res = await fetch('/api/studio/financeiro/entries', {
+      const res = await fetchWithAuth('/api/studio/financeiro/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -211,7 +212,7 @@ export default function LancamentosPage() {
 
   const handleMarkPaid = async (id: string, method?: string) => {
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, {
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PAID', paymentMethod: method || 'PIX' }),
@@ -228,7 +229,7 @@ export default function LancamentosPage() {
 
   const handleRevertToPending = async (id: string) => {
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, {
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PENDING' }),
@@ -246,7 +247,7 @@ export default function LancamentosPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este lançamento?')) return
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, { method: 'DELETE' })
       const result = await res.json()
       if (result.success) {
         toast.success('Excluído!')
@@ -260,7 +261,7 @@ export default function LancamentosPage() {
   const handleCancelRecurrence = async (recurrenceId: string) => {
     if (!confirm('Cancelar todos os lançamentos pendentes desta recorrência?')) return
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
       const result = await res.json()
       if (result.success) { toast.success(result.message); loadEntries() }
       else toast.error(result.error)
@@ -290,9 +291,12 @@ export default function LancamentosPage() {
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-BR')
 
+  // Filtrar categorias conforme tipo selecionado
+  // RECEITA → só categorias RECEITA
+  // CUSTO   → só categorias CUSTO
+  // DESPESA → categorias DESPESA
   const filteredCategories = categories.filter(c =>
-    !form.type || c.type === (form.type === 'RECEITA' ? 'RECEITA' : form.type === 'DESPESA' ? 'DESPESA' : c.type) ||
-    c.type === 'CUSTO'
+    c.type === form.type
   )
 
   return (
@@ -324,6 +328,7 @@ export default function LancamentosPage() {
           <SelectContent>
             <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value="RECEITA">Receita</SelectItem>
+            <SelectItem value="CUSTO">Custo</SelectItem>
             <SelectItem value="DESPESA">Despesa</SelectItem>
           </SelectContent>
         </Select>
@@ -368,7 +373,7 @@ export default function LancamentosPage() {
             const [yr, mo] = key.split('-').map(Number)
             const monthEntries = grouped[key]
             const monthReceita = monthEntries.filter(e => e.type === 'RECEITA' && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
-            const monthDespesa = monthEntries.filter(e => e.type === 'DESPESA' && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
+            const monthDespesa = monthEntries.filter(e => (e.type === 'DESPESA' || e.type === 'CUSTO') && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
 
             return (
               <Card key={key} className="bg-card border-border">
@@ -393,9 +398,15 @@ export default function LancamentosPage() {
                     {monthEntries.map(entry => (
                       <div key={entry.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 group">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className={`p-1.5 rounded-md flex-shrink-0 ${entry.type === 'RECEITA' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                          <div className={`p-1.5 rounded-md flex-shrink-0 ${
+                            entry.type === 'RECEITA' ? 'bg-emerald-500/10' :
+                            entry.type === 'CUSTO' ? 'bg-orange-500/10' :
+                            'bg-red-500/10'
+                          }`}>
                             {entry.type === 'RECEITA'
                               ? <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                              : entry.type === 'CUSTO'
+                              ? <ArrowDownRight className="h-4 w-4 text-orange-500" />
                               : <ArrowDownRight className="h-4 w-4 text-red-500" />
                             }
                           </div>
@@ -429,13 +440,17 @@ export default function LancamentosPage() {
                           </Badge>
                           {/* Valor */}
                           <span className={`text-sm font-semibold whitespace-nowrap min-w-[90px] text-right ${
-                            entry.type === 'RECEITA' ? 'text-emerald-400' : 'text-red-400'
+                            entry.type === 'RECEITA' ? 'text-emerald-400' :
+                            entry.type === 'CUSTO' ? 'text-orange-400' :
+                            'text-red-400'
                           }`}>
-                            {entry.type === 'DESPESA' ? '-' : '+'}{fmt(entry.amount)}
+                            {entry.type !== 'RECEITA' ? '-' : '+'}{fmt(entry.amount)}
                           </span>
                           {/* Ações sempre visíveis */}
-                          {entry.status === 'PENDING' && (
-                            <Button size="sm" className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-xs"
+                          {(entry.status === 'PENDING' || entry.status === 'OVERDUE') && (
+                            <Button size="sm" className={`h-7 px-2 text-xs ${
+                              entry.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                            }`}
                               onClick={() => handleMarkPaid(entry.id)} title="Marcar como pago">
                               <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
                             </Button>
@@ -483,6 +498,14 @@ export default function LancamentosPage() {
                 onClick={() => setForm(f => ({ ...f, type: 'DESPESA', categoryId: '' }))}
               >
                 <ArrowDownRight className="h-4 w-4 mr-1" /> Despesa
+              </Button>
+              <Button
+                type="button"
+                variant={form.type === 'CUSTO' ? 'default' : 'outline'}
+                className={form.type === 'CUSTO' ? 'bg-orange-600 hover:bg-orange-700 flex-1' : 'flex-1'}
+                onClick={() => setForm(f => ({ ...f, type: 'CUSTO', categoryId: '' }))}
+              >
+                <ArrowDownRight className="h-4 w-4 mr-1" /> Custo
               </Button>
               <Button
                 type="button"

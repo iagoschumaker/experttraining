@@ -23,6 +23,16 @@ export async function GET(request: NextRequest) {
   const endDate = new Date(year, month, 0, 23, 59, 59)
 
   try {
+    // Auto-OVERDUE: marcar lançamentos PENDING com dueDate vencido como OVERDUE
+    await prisma.financialEntry.updateMany({
+      where: {
+        studioId,
+        status: 'PENDING',
+        dueDate: { lt: new Date() },
+      },
+      data: { status: 'OVERDUE' },
+    })
+
     // Buscar todos os lançamentos do período
     const entries = await prisma.financialEntry.findMany({
       where: {
@@ -49,17 +59,17 @@ export async function GET(request: NextRequest) {
       if (entry.type === 'RECEITA') {
         totalReceita += amount
       } else {
+        // CUSTO e DESPESA somam no total de despesas
         totalDespesa += amount
       }
 
       if (entry.status === 'PAID') {
         totalPago += amount
+      } else if (entry.status === 'OVERDUE') {
+        // OVERDUE já foi atualizado automaticamente acima
+        totalVencido += amount
       } else if (entry.status === 'PENDING') {
-        if (entry.dueDate && entry.dueDate < now) {
-          totalVencido += amount
-        } else {
-          totalPendente += amount
-        }
+        totalPendente += amount
       }
     }
 

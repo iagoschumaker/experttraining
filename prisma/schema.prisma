@@ -640,6 +640,7 @@ enum FinancialCategoryType {
 
 enum FinancialEntryType {
   RECEITA
+  CUSTO
   DESPESA
 }
 

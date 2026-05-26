@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { generateMonthlyReportPDF } from '@/lib/financial-pdf-generator'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface DashboardData {
   period: { month: number; year: number }
@@ -73,7 +74,7 @@ export default function FinanceiroDashboardPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/studio/financeiro/dashboard')
+      const res = await fetchWithAuth('/api/studio/financeiro/dashboard')
       const result = await res.json()
       if (result.success) {
         setData(result.data)
@@ -136,7 +137,7 @@ export default function FinanceiroDashboardPage() {
         <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
           onClick={async () => {
             try {
-              const entriesRes = await fetch(`/api/studio/financeiro/entries?limit=200&page=1`)
+              const entriesRes = await fetchWithAuth(`/api/studio/financeiro/entries?limit=200&page=1`)
               const entriesData = await entriesRes.json()
               const allEntries = entriesData.success ? entriesData.data.entries : []
               await generateMonthlyReportPDF({
