@@ -36,6 +36,8 @@ import {
 } from 'lucide-react'
 import { computePollock, ageFromBirthDate } from '@/services/pollock'
 import type { SkinfoldsInput, PollockResult } from '@/services/pollock'
+import { computeAllBMR } from '@/services/bmr'
+import { BMRCard } from '@/components/bmr-card'
 
 
 
@@ -373,6 +375,45 @@ export default function AssessmentInputPage() {
       if (bodyMetrics.height) cleanBodyMetrics.height = bodyMetrics.height
       if (bodyMetrics.notes) cleanBodyMetrics.notes = bodyMetrics.notes
 
+      // Compute BMR for saving
+      let computedBMR: object | undefined
+      const gender = assessment?.client.gender as 'M' | 'F' | undefined
+      const birthDate = assessment?.client.birthDate
+      if (bodyMetrics.weight && bodyMetrics.height && gender && birthDate &&
+          (gender === 'M' || gender === 'F')) {
+        const age = ageFromBirthDate(birthDate)
+        if (age > 0) {
+          let leanMassKg: number | undefined
+          let inBodyBMR: number | undefined
+          if (compMethod === 'inbody' && bodyMetrics.inbody?.bmr) {
+            inBodyBMR = bodyMetrics.inbody.bmr
+          } else if (compMethod === 'inbody' && bodyMetrics.inbody?.leanMassKg) {
+            leanMassKg = bodyMetrics.inbody.leanMassKg
+          } else if (compMethod === 'pollock' && bodyMetrics.skinfolds) {
+            const pollockResult = computePollock(
+              bodyMetrics.skinfolds as SkinfoldsInput, age, bodyMetrics.weight, gender
+            )
+            if (pollockResult) leanMassKg = pollockResult.leanKg
+          }
+          const bmrResults = computeAllBMR(
+            { weight: bodyMetrics.weight, height: bodyMetrics.height, age, gender, leanMassKg },
+            inBodyBMR
+          )
+          if (bmrResults?.best) {
+            computedBMR = {
+              method: bmrResults.best.method,
+              methodLabel: bmrResults.best.methodLabel,
+              kcal: bmrResults.best.kcal,
+              tdee: bmrResults.best.tdee,
+              leanMassKg: bmrResults.best.leanMassKg,
+              harris: bmrResults.harris ? { kcal: bmrResults.harris.kcal } : undefined,
+              mifflin: bmrResults.mifflin ? { kcal: bmrResults.mifflin.kcal } : undefined,
+              katch: bmrResults.katch ? { kcal: bmrResults.katch.kcal } : undefined,
+            }
+          }
+        }
+      }
+
       // Handle body composition method
       if (compMethod === 'inbody' && bodyMetrics.inbody) {
         const inbody: BodyMetrics['inbody'] = {}
@@ -439,6 +480,7 @@ export default function AssessmentInputPage() {
           inputJson: formData,
           bodyMetrics: Object.keys(cleanBodyMetrics).length > 0 ? cleanBodyMetrics : undefined,
           assessmentDate,
+          computedBMR,
         }),
       })
 
@@ -789,6 +831,42 @@ export default function AssessmentInputPage() {
                 </span>
               </div>
             )}
+
+            {/* ---- TMB / Metabolismo Basal em tempo real ---- */}
+            {(() => {
+              if (!bodyMetrics.weight || !bodyMetrics.height) return null
+              if (!assessment?.client.gender || !assessment?.client.birthDate) return null
+              const gender = assessment.client.gender as 'M' | 'F'
+              if (gender !== 'M' && gender !== 'F') return null
+              const age = ageFromBirthDate(assessment.client.birthDate)
+              if (age <= 0) return null
+
+              // Detectar massa magra do método ativo
+              let leanMassKg: number | undefined
+              let inBodyBMR: number | undefined
+
+              if (compMethod === 'inbody' && bodyMetrics.inbody?.bmr) {
+                inBodyBMR = bodyMetrics.inbody.bmr
+              } else if (compMethod === 'inbody' && bodyMetrics.inbody?.leanMassKg) {
+                leanMassKg = bodyMetrics.inbody.leanMassKg
+              } else if (compMethod === 'pollock' && bodyMetrics.skinfolds) {
+                const pollockResult = computePollock(
+                  bodyMetrics.skinfolds as SkinfoldsInput,
+                  age,
+                  bodyMetrics.weight,
+                  gender
+                )
+                if (pollockResult) leanMassKg = pollockResult.leanKg
+              }
+
+              const bmrResults = computeAllBMR(
+                { weight: bodyMetrics.weight, height: bodyMetrics.height, age, gender, leanMassKg },
+                inBodyBMR
+              )
+              if (!bmrResults) return null
+
+              return <BMRCard results={bmrResults} gender={gender} showComparison={true} />
+            })()}
 
             {/* ================================================================
                 MÉTODO DE COMPOSIÇÃO CORPORAL

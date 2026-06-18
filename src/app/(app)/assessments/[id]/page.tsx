@@ -34,7 +34,10 @@ import {
   Ruler,
   Layers,
   Award,
+  Flame,
 } from 'lucide-react'
+import { BMRCard } from '@/components/bmr-card'
+import type { AllBMRResults } from '@/services/bmr'
 
 // Labels para fases e objetivos
 const PHASE_LABELS: Record<string, string> = {
@@ -76,6 +79,7 @@ interface Assessment {
   objective?: string | null
   inputJson: any
   bodyMetricsJson?: any
+  computedJson?: any
   resultJson: any
   client: {
     id: string
@@ -85,6 +89,7 @@ interface Assessment {
     level?: string
     objective?: string
     currentPhase?: string
+    gender?: string | null
   }
 }
 
@@ -699,7 +704,52 @@ export default function AssessmentResultPage() {
             </Card>
           )}
 
-          {/* Input Data - Queixas, Dores, Testes */}
+          {/* ── METABOLISMO BASAL ── */}
+          {assessment.computedJson?.bmr && (() => {
+            const bmrData = assessment.computedJson.bmr
+            const gender = assessment.client.gender as 'M' | 'F' | undefined
+            if (!gender || (gender !== 'M' && gender !== 'F')) return null
+            if (!bmrData.kcal || !bmrData.tdee) return null
+
+            // Reconstrói o objeto AllBMRResults a partir do que foi salvo
+            const reconstructed: AllBMRResults = {
+              best: {
+                method: bmrData.method,
+                methodLabel: bmrData.methodLabel,
+                methodDescription: '',
+                kcal: bmrData.kcal,
+                tdee: bmrData.tdee,
+                leanMassKg: bmrData.leanMassKg,
+              },
+              harris: bmrData.harris ? {
+                method: 'harris', methodLabel: 'Harris-Benedict', methodDescription: '',
+                kcal: bmrData.harris.kcal, tdee: bmrData.tdee,
+              } : undefined,
+              mifflin: bmrData.mifflin ? {
+                method: 'mifflin', methodLabel: 'Mifflin-St Jeor', methodDescription: '',
+                kcal: bmrData.mifflin.kcal, tdee: bmrData.tdee,
+              } : undefined,
+              katch: bmrData.katch ? {
+                method: 'katch', methodLabel: 'Katch-McArdle', methodDescription: '',
+                kcal: bmrData.katch.kcal, tdee: bmrData.tdee, leanMassKg: bmrData.leanMassKg,
+              } : undefined,
+            }
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Flame className="h-5 w-5 text-orange-500" />
+                    Metabolismo Basal (TMB)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BMRCard results={reconstructed} gender={gender} showComparison={true} />
+                </CardContent>
+              </Card>
+            )
+          })()}
+
           {assessment.inputJson && (
             <Card>
               <CardHeader>
