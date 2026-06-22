@@ -53,10 +53,11 @@ export async function DELETE(request: NextRequest) {
       where: {
         studioId: auth.studioId,
         recurrenceId,
-        status: 'PENDING',
+        status: { in: ['PENDING', 'OVERDUE'] }, // ✅ Fix: cancelar PENDING e OVERDUE
       },
       data: { status: 'CANCELED' },
     })
+
 
     return NextResponse.json({
       success: true,

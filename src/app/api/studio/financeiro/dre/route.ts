@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
   const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1))
   const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
   const period = searchParams.get('period') || 'month' // month | quarter | year
+  const basis = searchParams.get('basis') || 'cash' // cash = só PAID | accrual = PAID + PENDING
 
   // Calcular período
   let startDate: Date, endDate: Date
@@ -41,12 +42,18 @@ export async function GET(request: NextRequest) {
       orderBy: { code: 'asc' },
     })
 
-    // Buscar lançamentos pagos do período
+    // Regime de caixa (cash): apenas PAID
+    // Regime de competência (accrual): PAID + PENDING
+    const statusFilter = basis === 'accrual'
+      ? { in: ['PAID', 'PENDING'] as const }
+      : { in: ['PAID'] as const }
+
+    // Buscar lançamentos do período
     const entries = await prisma.financialEntry.findMany({
       where: {
         studioId,
         date: { gte: startDate, lte: endDate },
-        status: { in: ['PAID', 'PENDING'] },
+        status: statusFilter,
       },
       select: {
         categoryId: true,
@@ -55,6 +62,7 @@ export async function GET(request: NextRequest) {
         status: true,
       },
     })
+
 
     // Agrupar valores por categoria
     const categoryTotals: Record<string, { paid: number; pending: number }> = {}

@@ -32,6 +32,16 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '50')
 
   try {
+    // Auto-OVERDUE: marcar lançamentos PENDING com dueDate vencido como OVERDUE
+    await prisma.financialEntry.updateMany({
+      where: {
+        studioId,
+        status: 'PENDING',
+        dueDate: { lt: new Date() },
+      },
+      data: { status: 'OVERDUE' },
+    })
+
     const where: any = { studioId }
 
     if (type) where.type = type
@@ -105,6 +115,13 @@ export async function POST(request: NextRequest) {
     if (!categoryId || !type || !description || !amount || !date) {
       return NextResponse.json(
         { success: false, error: 'Campos obrigatórios: categoryId, type, description, amount, date' },
+        { status: 400 }
+      )
+    }
+
+    if (!['RECEITA', 'CUSTO', 'DESPESA'].includes(type)) {
+      return NextResponse.json(
+        { success: false, error: 'Tipo inválido. Use: RECEITA, CUSTO ou DESPESA' },
         { status: 400 }
       )
     }

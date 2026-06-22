@@ -18,6 +18,7 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface Entry {
   id: string
@@ -40,7 +41,7 @@ export default function ContasPagarPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/studio/financeiro/entries?type=DESPESA&limit=100')
+      const res = await fetchWithAuth('/api/studio/financeiro/entries?type=DESPESA&limit=100')
       const result = await res.json()
       if (result.success) {
         setEntries(result.data.entries.filter((e: Entry) => e.status !== 'CANCELED'))
@@ -51,7 +52,7 @@ export default function ContasPagarPage() {
 
   const handleMarkPaid = async (id: string) => {
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, {
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PAID' }),

@@ -982,7 +982,7 @@ function ExerciseRow({ ex, savingKey, uniqueKey, onSave }: {
         <div className="flex items-center gap-1.5 py-1">
             <span className="text-[10px] w-3">{icon}</span>
             <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate leading-tight" title={ex.name}>{ex.name}</p>
+                <p className="text-xs font-medium leading-tight break-words" title={ex.name}>{ex.name}</p>
                 <p className="text-[10px] text-muted-foreground">{ex.sets}×{ex.reps} · {ex.rest}</p>
             </div>
             {editing ? (

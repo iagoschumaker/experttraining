@@ -24,6 +24,7 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface DRENode {
   id: string
@@ -55,15 +56,16 @@ export default function DREPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
   const [period, setPeriod] = useState('month')
+  const [basis, setBasis] = useState('cash') // cash = só PAID | accrual = PAID+PENDING
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  useEffect(() => { loadDRE() }, [month, year, period])
+  useEffect(() => { loadDRE() }, [month, year, period, basis])
 
   const loadDRE = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({ month: String(month), year: String(year), period })
-      const res = await fetch(`/api/studio/financeiro/dre?${params}`)
+      const params = new URLSearchParams({ month: String(month), year: String(year), period, basis })
+      const res = await fetchWithAuth(`/api/studio/financeiro/dre?${params}`)
       const result = await res.json()
       if (result.success) {
         setData(result.data)
@@ -188,7 +190,22 @@ export default function DREPage() {
               ))}
             </SelectContent>
           </Select>
+          {/* Regime contábil */}
+          <Select value={basis} onValueChange={setBasis}>
+            <SelectTrigger className="w-36 bg-card"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cash">💰 Caixa (Pago)</SelectItem>
+              <SelectItem value="accrual">📋 Competência</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+      </div>
+
+      {/* Regime badge */}
+      <div className={`text-xs px-3 py-1.5 rounded-md w-fit ${basis === 'cash' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+        {basis === 'cash'
+          ? '💰 Regime de Caixa — exibindo apenas lançamentos efetivamente PAGOS'
+          : '📋 Regime de Competência — inclui lançamentos PENDENTES'}
       </div>
 
       {/* Resumo */}

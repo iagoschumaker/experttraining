@@ -39,6 +39,11 @@ interface WorkoutData {
     daysSinceLastAssessment: number | null
     lastAssessmentDate: string | null
   }
+  payment?: {
+    status: 'OK' | 'OVERDUE' | 'PENDING'
+    overdueAmount: number
+    overdueDate: string | null
+  }
 }
 
 export default function TreinoAlunoPage() {
@@ -441,6 +446,34 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-6 pb-20">
+        {/* Aviso de Inadimplência */}
+        {data.payment && data.payment.status === 'OVERDUE' && (
+          <Card className="border-red-500/50 bg-red-500/10">
+            <CardContent className="py-3 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-400">
+                  Mensalidade em atraso
+                </p>
+                <p className="text-xs text-red-400/70 mt-0.5">
+                  Você possui {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.payment.overdueAmount)} em atraso.
+                  Entre em contato com o studio para regularizar sua situação.
+                </p>
+                {data.studio.phone && (
+                  <a
+                    href={`https://wa.me/55${data.studio.phone.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 text-xs text-red-400 font-semibold underline"
+                  >
+                    📱 Falar com o studio via WhatsApp
+                  </a>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Aviso de Reavaliação */}
         {data.reassessment.needed && (
           <Card className="border-amber-500/50 bg-amber-500/10">

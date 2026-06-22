@@ -211,10 +211,97 @@ export async function GET(
       }
     }
 
+    // ========================================================================
+    // STATUS FINANCEIRO DO ALUNO
+    // ========================================================================
+    // Auto-OVERDUE: marcar lançamentos vencidos
+    await prisma.financialEntry.updateMany({
+      where: { studioId, status: 'PENDING', dueDate: { lt: new Date() } },
+      data: { status: 'OVERDUE' },
+    })
+
+    // Buscar lançamentos de receita vinculados a este cliente
+    const clientEntries = await prisma.financialEntry.findMany({
+      where: {
+        studioId,
+        clientId,
+        type: 'RECEITA',
+        status: { not: 'CANCELED' },
+      },
+      orderBy: { date: 'asc' },
+      select: {
+        id: true,
+        status: true,
+        amount: true,
+        date: true,
+        dueDate: true,
+        paidAt: true,
+        description: true,
+      },
+    })
+
+    let financialStatus: string = 'SEM_MENSALIDADE'
+    let totalOverdue = 0
+    let totalPending = 0
+    let nextDueDate: string | null = null
+    let lastPaymentDate: string | null = null
+    let creditMonths = 0
+
+    if (clientEntries.length > 0) {
+      const now = new Date()
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+      const pending = clientEntries.filter(e => e.status === 'PENDING')
+      const overdue = clientEntries.filter(e => e.status === 'OVERDUE')
+      const paid = clientEntries.filter(e => e.status === 'PAID')
+
+      totalOverdue = overdue.reduce((s, e) => s + parseFloat(e.amount.toString()), 0)
+      totalPending = pending.reduce((s, e) => s + parseFloat(e.amount.toString()), 0)
+
+      const currentMonthPaid = paid.some(e => {
+        const d = new Date(e.date)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === currentMonth
+      })
+
+      creditMonths = paid.filter(e => {
+        const d = new Date(e.date)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` > currentMonth
+      }).length
+
+      const unpaid = [...overdue, ...pending].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      nextDueDate = unpaid[0]?.dueDate?.toISOString() ?? unpaid[0]?.date?.toISOString() ?? null
+
+      const lastPaid = paid.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+      lastPaymentDate = lastPaid?.paidAt?.toISOString() ?? lastPaid?.date?.toISOString() ?? null
+
+      if (overdue.length > 0) {
+        financialStatus = 'INADIMPLENTE'
+      } else if (creditMonths >= 2) {
+        financialStatus = 'ADIANTADO'
+      } else if (currentMonthPaid) {
+        financialStatus = 'ADIMPLENTE'
+      } else if (pending.length > 0) {
+        financialStatus = 'PENDENTE'
+      } else {
+        financialStatus = 'ADIMPLENTE'
+      }
+    }
+
+    const financialData = {
+      status: financialStatus,
+      totalOverdue,
+      totalPending,
+      nextDueDate,
+      lastPaymentDate,
+      creditMonths,
+      hasEntries: clientEntries.length > 0,
+    }
+
     return NextResponse.json({
       success: true,
-      data: { ...client, trainer, attendanceStats, checkInHistory: enrichedHistory, availablePillars },
+      data: { ...client, trainer, attendanceStats, checkInHistory: enrichedHistory, availablePillars, financial: financialData },
     })
+
   } catch (error) {
     console.error('Get client error:', error)
     return NextResponse.json(

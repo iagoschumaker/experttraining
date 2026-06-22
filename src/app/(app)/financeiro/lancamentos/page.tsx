@@ -42,6 +42,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface Entry {
   id: string
@@ -98,6 +99,21 @@ export default function LancamentosPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Editar lançamento
+  const [editEntry, setEditEntry] = useState<Entry | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    description: '',
+    amount: '',
+    date: '',
+    dueDate: '',
+    categoryId: '',
+    paymentMethod: '',
+    notes: '',
+    status: '',
+  })
+  const [savingEdit, setSavingEdit] = useState(false)
+
   // Filtros
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -105,7 +121,7 @@ export default function LancamentosPage() {
 
   // Form
   const [form, setForm] = useState({
-    type: 'DESPESA' as 'RECEITA' | 'DESPESA',
+    type: 'DESPESA' as 'RECEITA' | 'CUSTO' | 'DESPESA',
     categoryId: '',
     description: '',
     amount: '',
@@ -126,7 +142,7 @@ export default function LancamentosPage() {
       if (filterType) params.set('type', filterType)
       if (filterStatus) params.set('status', filterStatus)
 
-      const res = await fetch(`/api/studio/financeiro/entries?${params}`)
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries?${params}`)
       const result = await res.json()
       if (result.success) {
         setEntries(result.data.entries)
@@ -141,7 +157,7 @@ export default function LancamentosPage() {
 
   const loadCategories = async () => {
     try {
-      const res = await fetch('/api/studio/financeiro/categories')
+      const res = await fetchWithAuth('/api/studio/financeiro/categories')
       const result = await res.json()
       if (result.success) {
         setCategories(result.data.flat)
@@ -187,7 +203,7 @@ export default function LancamentosPage() {
         }
       }
 
-      const res = await fetch('/api/studio/financeiro/entries', {
+      const res = await fetchWithAuth('/api/studio/financeiro/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -211,7 +227,7 @@ export default function LancamentosPage() {
 
   const handleMarkPaid = async (id: string, method?: string) => {
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, {
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PAID', paymentMethod: method || 'PIX' }),
@@ -228,7 +244,7 @@ export default function LancamentosPage() {
 
   const handleRevertToPending = async (id: string) => {
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, {
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PENDING' }),
@@ -246,7 +262,7 @@ export default function LancamentosPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este lançamento?')) return
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/${id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, { method: 'DELETE' })
       const result = await res.json()
       if (result.success) {
         toast.success('Excluído!')
@@ -257,10 +273,63 @@ export default function LancamentosPage() {
     }
   }
 
+  const handleOpenEdit = (entry: Entry) => {
+    setEditEntry(entry)
+    setEditForm({
+      description: entry.description,
+      amount: String(entry.amount),
+      date: entry.date ? entry.date.split('T')[0] : '',
+      dueDate: entry.dueDate ? entry.dueDate.split('T')[0] : '',
+      categoryId: entry.category.id,
+      paymentMethod: entry.paymentMethod || '',
+      notes: entry.notes || '',
+      status: entry.status,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editEntry) return
+    setSavingEdit(true)
+    try {
+      const body: any = {
+        description: editForm.description,
+        amount: parseFloat(editForm.amount),
+        date: editForm.date || undefined,
+        dueDate: editForm.dueDate || null,
+        categoryId: editForm.categoryId || undefined,
+        paymentMethod: editForm.paymentMethod || null,
+        notes: editForm.notes || null,
+        status: editForm.status,
+      }
+      if (editForm.status === 'PAID' && editEntry.status !== 'PAID') {
+        body.paidAt = new Date().toISOString()
+      }
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${editEntry.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const result = await res.json()
+      if (result.success) {
+        toast.success('Lançamento atualizado!')
+        setEditDialogOpen(false)
+        setEditEntry(null)
+        loadEntries()
+      } else {
+        toast.error(result.error)
+      }
+    } catch {
+      toast.error('Erro ao editar')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const handleCancelRecurrence = async (recurrenceId: string) => {
     if (!confirm('Cancelar todos os lançamentos pendentes desta recorrência?')) return
     try {
-      const res = await fetch(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
       const result = await res.json()
       if (result.success) { toast.success(result.message); loadEntries() }
       else toast.error(result.error)
@@ -290,9 +359,12 @@ export default function LancamentosPage() {
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-BR')
 
+  // Filtrar categorias conforme tipo selecionado
+  // RECEITA → só categorias RECEITA
+  // CUSTO   → só categorias CUSTO
+  // DESPESA → categorias DESPESA
   const filteredCategories = categories.filter(c =>
-    !form.type || c.type === (form.type === 'RECEITA' ? 'RECEITA' : form.type === 'DESPESA' ? 'DESPESA' : c.type) ||
-    c.type === 'CUSTO'
+    c.type === form.type
   )
 
   return (
@@ -324,6 +396,7 @@ export default function LancamentosPage() {
           <SelectContent>
             <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value="RECEITA">Receita</SelectItem>
+            <SelectItem value="CUSTO">Custo</SelectItem>
             <SelectItem value="DESPESA">Despesa</SelectItem>
           </SelectContent>
         </Select>
@@ -368,7 +441,7 @@ export default function LancamentosPage() {
             const [yr, mo] = key.split('-').map(Number)
             const monthEntries = grouped[key]
             const monthReceita = monthEntries.filter(e => e.type === 'RECEITA' && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
-            const monthDespesa = monthEntries.filter(e => e.type === 'DESPESA' && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
+            const monthDespesa = monthEntries.filter(e => (e.type === 'DESPESA' || e.type === 'CUSTO') && e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
 
             return (
               <Card key={key} className="bg-card border-border">
@@ -393,9 +466,15 @@ export default function LancamentosPage() {
                     {monthEntries.map(entry => (
                       <div key={entry.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 group">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className={`p-1.5 rounded-md flex-shrink-0 ${entry.type === 'RECEITA' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                          <div className={`p-1.5 rounded-md flex-shrink-0 ${
+                            entry.type === 'RECEITA' ? 'bg-emerald-500/10' :
+                            entry.type === 'CUSTO' ? 'bg-orange-500/10' :
+                            'bg-red-500/10'
+                          }`}>
                             {entry.type === 'RECEITA'
                               ? <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                              : entry.type === 'CUSTO'
+                              ? <ArrowDownRight className="h-4 w-4 text-orange-500" />
                               : <ArrowDownRight className="h-4 w-4 text-red-500" />
                             }
                           </div>
@@ -429,13 +508,17 @@ export default function LancamentosPage() {
                           </Badge>
                           {/* Valor */}
                           <span className={`text-sm font-semibold whitespace-nowrap min-w-[90px] text-right ${
-                            entry.type === 'RECEITA' ? 'text-emerald-400' : 'text-red-400'
+                            entry.type === 'RECEITA' ? 'text-emerald-400' :
+                            entry.type === 'CUSTO' ? 'text-orange-400' :
+                            'text-red-400'
                           }`}>
-                            {entry.type === 'DESPESA' ? '-' : '+'}{fmt(entry.amount)}
+                            {entry.type !== 'RECEITA' ? '-' : '+'}{fmt(entry.amount)}
                           </span>
                           {/* Ações sempre visíveis */}
-                          {entry.status === 'PENDING' && (
-                            <Button size="sm" className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-xs"
+                          {(entry.status === 'PENDING' || entry.status === 'OVERDUE') && (
+                            <Button size="sm" className={`h-7 px-2 text-xs ${
+                              entry.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                            }`}
                               onClick={() => handleMarkPaid(entry.id)} title="Marcar como pago">
                               <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
                             </Button>
@@ -446,12 +529,16 @@ export default function LancamentosPage() {
                               <Undo2 className="h-3.5 w-3.5 mr-1" /> Desfazer
                             </Button>
                           )}
-                          {entry.recurrenceId && entry.status === 'PENDING' && (
+                          {entry.recurrenceId && entry.status !== 'CANCELED' && (
                             <Button variant="ghost" size="sm" className="h-7 px-1.5 text-orange-500"
                               onClick={() => handleCancelRecurrence(entry.recurrenceId!)} title="Cancelar recorrência">
                               <XCircle className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-blue-400 opacity-0 group-hover:opacity-100"
+                            onClick={() => handleOpenEdit(entry)} title="Editar lançamento">
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="sm" className="h-7 px-1.5 text-red-500 opacity-0 group-hover:opacity-100"
                             onClick={() => handleDelete(entry.id)} title="Excluir">
                             <Trash2 className="h-4 w-4" />
@@ -483,6 +570,14 @@ export default function LancamentosPage() {
                 onClick={() => setForm(f => ({ ...f, type: 'DESPESA', categoryId: '' }))}
               >
                 <ArrowDownRight className="h-4 w-4 mr-1" /> Despesa
+              </Button>
+              <Button
+                type="button"
+                variant={form.type === 'CUSTO' ? 'default' : 'outline'}
+                className={form.type === 'CUSTO' ? 'bg-orange-600 hover:bg-orange-700 flex-1' : 'flex-1'}
+                onClick={() => setForm(f => ({ ...f, type: 'CUSTO', categoryId: '' }))}
+              >
+                <ArrowDownRight className="h-4 w-4 mr-1" /> Custo
               </Button>
               <Button
                 type="button"
@@ -643,6 +738,122 @@ export default function LancamentosPage() {
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Editar Lançamento */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Lançamento</DialogTitle>
+          </DialogHeader>
+          {editEntry && (
+            <div className="space-y-4">
+              {/* Descrição */}
+              <div>
+                <Label>Descrição *</Label>
+                <Input
+                  value={editForm.description}
+                  onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+
+              {/* Valor + Data */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Valor (R$) *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editForm.amount}
+                    onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Data *</Label>
+                  <Input
+                    type="date"
+                    value={editForm.date}
+                    onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Vencimento + Status */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Vencimento</Label>
+                  <Input
+                    type="date"
+                    value={editForm.dueDate}
+                    onChange={e => setEditForm(f => ({ ...f, dueDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">Pendente</SelectItem>
+                      <SelectItem value="PAID">Pago</SelectItem>
+                      <SelectItem value="OVERDUE">Vencido</SelectItem>
+                      <SelectItem value="CANCELED">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <Label>Categoria</Label>
+                <Select value={editForm.categoryId} onValueChange={v => setEditForm(f => ({ ...f, categoryId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories
+                      .filter(c => c.type === editEntry.type)
+                      .map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Forma de pagamento */}
+              <div>
+                <Label>Forma de Pagamento</Label>
+                <Select value={editForm.paymentMethod || 'none'} onValueChange={v => setEditForm(f => ({ ...f, paymentMethod: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {PAYMENT_METHODS.map(m => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Observações */}
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={editForm.notes}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Opcional..."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={savingEdit}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>

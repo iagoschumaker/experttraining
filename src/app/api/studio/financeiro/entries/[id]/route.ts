@@ -132,6 +132,25 @@ export async function DELETE(
       )
     }
 
+    // Registrar audit log antes de excluir
+    await prisma.auditLog.create({
+      data: {
+        userId: auth.userId,
+        studioId: auth.studioId,
+        action: 'DELETE',
+        entity: 'FinancialEntry',
+        entityId: params.id,
+        oldData: {
+          description: existing.description,
+          amount: existing.amount.toString(),
+          type: existing.type,
+          status: existing.status,
+          date: existing.date,
+          categoryId: existing.categoryId,
+        },
+      },
+    })
+
     await prisma.financialEntry.delete({
       where: { id: params.id },
     })
