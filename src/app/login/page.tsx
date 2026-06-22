@@ -64,13 +64,20 @@ function LoginForm() {
     <div className="w-full max-w-md space-y-8">
       {/* Logo */}
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl mb-6 shadow-lg overflow-hidden">
-          <img src="/kinex-logo.jpg" alt="Kinex Performance" className="w-full h-full object-cover" />
+        <div className="inline-flex items-center justify-center mb-6">
+          <picture>
+            <source srcSet="/kinex-logo-dark.png" media="(prefers-color-scheme: dark)" />
+            <img
+              src="/kinex-logo-light.png"
+              alt="Kinex Performance"
+              className="h-16 w-auto object-contain"
+            />
+          </picture>
         </div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+        <h1 className="text-2xl font-bold text-foreground mb-1 tracking-tight">
           Kinex Performance
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Plataforma de gestão para studios e personal trainers
         </p>
       </div>

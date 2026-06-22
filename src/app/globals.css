@@ -14,18 +14,18 @@
 @layer base {
   :root {
     /* Light Theme — Kinex Performance */
-    --background: 220 20% 94%;        /* #EDF0F5 — fundo cinza claro */
-    --foreground: 220 30% 10%;        /* #111824 — texto quase preto */
-    --card: 0 0% 100%;                /* #FFFFFF — cards brancos */
+    --background: 220 20% 94%;        /* #EDF0F5 */
+    --foreground: 220 30% 10%;        /* #111824 */
+    --card: 0 0% 100%;                /* #FFFFFF */
     --card-foreground: 220 30% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 30% 10%;
 
-    /* Primary: Gold Kinex */
-    --primary: 38 95% 54%;            /* #F5A623 — dourado da logo */
-    --primary-foreground: 0 0% 0%;    /* texto preto sobre dourado */
+    /* Primary: Dark Yellow Kinex — amarelo escuro, sem laranja */
+    --primary: 47 100% 40%;           /* #CC9900 — amarelo dourado escuro */
+    --primary-foreground: 0 0% 100%;  /* texto branco sobre amarelo escuro */
 
-    /* Accent: Dark Charcoal */
+    /* Accent */
     --accent: 220 20% 88%;            /* #D8DDE8 — cinza suave */
     --accent-foreground: 220 30% 10%;
 
@@ -36,7 +36,7 @@
     --muted-foreground: 215 20% 35%;  /* #465162 */
     --border: 220 13% 88%;            /* #DDDFE7 */
     --input: 0 0% 100%;
-    --ring: 38 95% 54%;               /* dourado */
+    --ring: 47 100% 40%;              /* amarelo escuro */
 
     /* Status */
     --destructive: 0 84% 60%;
@@ -47,19 +47,19 @@
 
   .dark {
     /* Dark Theme — Kinex Performance */
-    --background: 220 18% 8%;         /* #111620 — quase preto com toque azul */
-    --foreground: 216 20% 91%;        /* #E6EAF0 — texto claro */
-    --card: 220 18% 12%;              /* #181E2B — card escuro */
+    --background: 220 18% 8%;         /* #111620 */
+    --foreground: 216 20% 91%;        /* #E6EAF0 */
+    --card: 220 18% 12%;              /* #181E2B */
     --card-foreground: 216 20% 91%;
     --popover: 220 18% 12%;
     --popover-foreground: 216 20% 91%;
 
-    /* Primary: Gold Kinex */
-    --primary: 38 95% 54%;            /* #F5A623 — dourado da logo */
-    --primary-foreground: 0 0% 0%;    /* texto preto sobre dourado */
+    /* Primary: Dark Yellow Kinex — amarelo escuro, sem laranja */
+    --primary: 47 100% 40%;           /* #CC9900 — amarelo dourado escuro */
+    --primary-foreground: 0 0% 100%;  /* texto branco sobre amarelo escuro */
 
-    /* Accent: Lighter Gold */
-    --accent: 220 18% 18%;            /* #232B3A — hover/accent escuro */
+    /* Accent */
+    --accent: 220 18% 18%;            /* #232B3A */
     --accent-foreground: 216 20% 91%;
 
     /* UI Elements */
@@ -69,7 +69,7 @@
     --muted-foreground: 214 14% 60%;  /* #8E9AAD */
     --border: 220 18% 18%;            /* #232B3A */
     --input: 220 18% 18%;
-    --ring: 38 95% 54%;               /* dourado */
+    --ring: 47 100% 40%;              /* amarelo escuro */
 
     /* Status */
     --destructive: 0 63% 31%;

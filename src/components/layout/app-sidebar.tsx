@@ -205,14 +205,14 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
         <div className="flex items-center justify-between h-16 px-4 relative z-50">
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
-              <img
-                src="/kinex-logo.jpg"
-                alt="Kinex Performance"
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-              <span className="font-bold text-foreground text-sm leading-tight tracking-wide">
-                KINEX PERFORMANCE
-              </span>
+              <picture>
+                <source srcSet="/kinex-logo-dark.png" media="(prefers-color-scheme: dark)" />
+                <img
+                  src="/kinex-logo-light.png"
+                  alt="Kinex Performance"
+                  className="h-7 w-auto object-contain"
+                />
+              </picture>
             </Link>
           )}
           <Button

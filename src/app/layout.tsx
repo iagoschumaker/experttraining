@@ -15,7 +15,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#F5A623',
+  themeColor: '#CC9900',
 }
 
 export const metadata: Metadata = {
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
     title: 'Kinex Performance',
   },
   icons: {
-    icon: '/kinex-logo.jpg',
-    apple: '/kinex-logo.jpg',
+    icon: ['/favicon.png'],
+    apple: '/kinex-logo-dark.png',
   },
 }
 
@@ -46,8 +46,9 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#F5A623" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="theme-color" content="#CC9900" />
+        <link rel="icon" type="image/png" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/kinex-logo-dark.png" />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
