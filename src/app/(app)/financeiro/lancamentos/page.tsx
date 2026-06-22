@@ -99,6 +99,21 @@ export default function LancamentosPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Editar lançamento
+  const [editEntry, setEditEntry] = useState<Entry | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    description: '',
+    amount: '',
+    date: '',
+    dueDate: '',
+    categoryId: '',
+    paymentMethod: '',
+    notes: '',
+    status: '',
+  })
+  const [savingEdit, setSavingEdit] = useState(false)
+
   // Filtros
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -255,6 +270,59 @@ export default function LancamentosPage() {
       }
     } catch {
       toast.error('Erro ao excluir')
+    }
+  }
+
+  const handleOpenEdit = (entry: Entry) => {
+    setEditEntry(entry)
+    setEditForm({
+      description: entry.description,
+      amount: String(entry.amount),
+      date: entry.date ? entry.date.split('T')[0] : '',
+      dueDate: entry.dueDate ? entry.dueDate.split('T')[0] : '',
+      categoryId: entry.category.id,
+      paymentMethod: entry.paymentMethod || '',
+      notes: entry.notes || '',
+      status: entry.status,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editEntry) return
+    setSavingEdit(true)
+    try {
+      const body: any = {
+        description: editForm.description,
+        amount: parseFloat(editForm.amount),
+        date: editForm.date || undefined,
+        dueDate: editForm.dueDate || null,
+        categoryId: editForm.categoryId || undefined,
+        paymentMethod: editForm.paymentMethod || null,
+        notes: editForm.notes || null,
+        status: editForm.status,
+      }
+      if (editForm.status === 'PAID' && editEntry.status !== 'PAID') {
+        body.paidAt = new Date().toISOString()
+      }
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${editEntry.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const result = await res.json()
+      if (result.success) {
+        toast.success('Lançamento atualizado!')
+        setEditDialogOpen(false)
+        setEditEntry(null)
+        loadEntries()
+      } else {
+        toast.error(result.error)
+      }
+    } catch {
+      toast.error('Erro ao editar')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -461,12 +529,16 @@ export default function LancamentosPage() {
                               <Undo2 className="h-3.5 w-3.5 mr-1" /> Desfazer
                             </Button>
                           )}
-                          {entry.recurrenceId && entry.status === 'PENDING' && (
+                          {entry.recurrenceId && entry.status !== 'CANCELED' && (
                             <Button variant="ghost" size="sm" className="h-7 px-1.5 text-orange-500"
                               onClick={() => handleCancelRecurrence(entry.recurrenceId!)} title="Cancelar recorrência">
                               <XCircle className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-blue-400 opacity-0 group-hover:opacity-100"
+                            onClick={() => handleOpenEdit(entry)} title="Editar lançamento">
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="sm" className="h-7 px-1.5 text-red-500 opacity-0 group-hover:opacity-100"
                             onClick={() => handleDelete(entry.id)} title="Excluir">
                             <Trash2 className="h-4 w-4" />
@@ -666,6 +738,122 @@ export default function LancamentosPage() {
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Editar Lançamento */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Lançamento</DialogTitle>
+          </DialogHeader>
+          {editEntry && (
+            <div className="space-y-4">
+              {/* Descrição */}
+              <div>
+                <Label>Descrição *</Label>
+                <Input
+                  value={editForm.description}
+                  onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+
+              {/* Valor + Data */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Valor (R$) *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editForm.amount}
+                    onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Data *</Label>
+                  <Input
+                    type="date"
+                    value={editForm.date}
+                    onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Vencimento + Status */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Vencimento</Label>
+                  <Input
+                    type="date"
+                    value={editForm.dueDate}
+                    onChange={e => setEditForm(f => ({ ...f, dueDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">Pendente</SelectItem>
+                      <SelectItem value="PAID">Pago</SelectItem>
+                      <SelectItem value="OVERDUE">Vencido</SelectItem>
+                      <SelectItem value="CANCELED">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <Label>Categoria</Label>
+                <Select value={editForm.categoryId} onValueChange={v => setEditForm(f => ({ ...f, categoryId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories
+                      .filter(c => c.type === editEntry.type)
+                      .map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Forma de pagamento */}
+              <div>
+                <Label>Forma de Pagamento</Label>
+                <Select value={editForm.paymentMethod || 'none'} onValueChange={v => setEditForm(f => ({ ...f, paymentMethod: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {PAYMENT_METHODS.map(m => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Observações */}
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={editForm.notes}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Opcional..."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={savingEdit}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>
