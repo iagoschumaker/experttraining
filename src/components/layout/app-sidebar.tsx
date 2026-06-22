@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { KinexLogo } from '@/components/kinex-logo'
+import { useTheme } from '@/contexts/ThemeContext'
 import {
   LayoutDashboard,
   Users,
@@ -140,6 +140,7 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
 
   const isMobileOpen = externalMobileOpen ?? internalMobileOpen
   const setIsMobileOpen = onMobileOpenChange ?? setInternalMobileOpen
+  const { theme } = useTheme()
 
   // Buscar role do usuário e módulos do studio
   useEffect(() => {
@@ -206,7 +207,11 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
         <div className="flex items-center justify-between h-16 px-4 relative z-50">
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center">
-              <KinexLogo height={32} />
+              <img
+                src={theme === 'dark' ? '/kinex-sidebar-dark.png' : '/kinex-sidebar-light.png'}
+                alt="Kinex Performance"
+                style={{ height: '28px', width: 'auto', objectFit: 'contain' }}
+              />
             </Link>
           )}
           <Button
