@@ -13,66 +13,66 @@
 
 @layer base {
   :root {
-    /* Light Theme — Apple-style clean */
-    --background: 0 0% 96%;           /* #F5F5F7 — exato cinza Apple */
-    --foreground: 0 0% 7%;            /* #111111 — texto Apple quase preto */
-    --card: 0 0% 100%;                /* #FFFFFF — cards Apple brancos */
+    /* Light Theme — Kinex Performance */
+    --background: 0 0% 96%;           /* #F5F5F5 */
+    --foreground: 0 0% 7%;            /* #111111 */
+    --card: 0 0% 100%;                /* #FFFFFF */
     --card-foreground: 0 0% 7%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 7%;
 
-    /* Primary: Dark Yellow — amarelo escuro Kinex */
-    --primary: 47 100% 38%;           /* #C29000 — amarelo escuro */
-    --primary-foreground: 0 0% 100%;  /* branco sobre amarelo */
+    /* Primary: Gold Kinex #d4a830 */
+    --primary: 42 64% 51%;            /* #d4a830 */
+    --primary-foreground: 0 0% 7%;    /* preto sobre dourado */
 
     /* Accent */
-    --accent: 0 0% 92%;               /* #EBEBEB — hover sutil */
+    --accent: 0 0% 91%;
     --accent-foreground: 0 0% 7%;
 
     /* UI Elements */
-    --secondary: 0 0% 94%;            /* #F0F0F0 */
-    --secondary-foreground: 0 0% 25%; /* #404040 */
-    --muted: 0 0% 90%;                /* #E5E5E5 */
-    --muted-foreground: 0 0% 40%;     /* #666666 — texto secário Apple */
-    --border: 0 0% 88%;               /* #E0E0E0 — borda sutil Apple */
+    --secondary: 0 0% 93%;
+    --secondary-foreground: 0 0% 25%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 42%;     /* #6b6b6b da proposta */
+    --border: 0 0% 87%;
     --input: 0 0% 100%;
-    --ring: 47 100% 38%;
+    --ring: 42 64% 51%;
 
     /* Status */
-    --destructive: 0 79% 55%;         /* vermelho Apple */
+    --destructive: 0 79% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.625rem;               /* bordas Apple levemente arredondadas */
+    --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark Theme — Apple-style (macOS Sequoia dark) */
-    --background: 0 0% 7%;            /* #111111 — preto puro Apple */
-    --foreground: 0 0% 96%;           /* #F5F5F7 — texto branco Apple */
-    --card: 0 0% 12%;                 /* #1E1E1E — card Apple dark */
-    --card-foreground: 0 0% 96%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 96%;
+    /* Dark Theme — Kinex Premium (baseado na proposta-juba) */
+    --background: 0 0% 4%;            /* #0a0a0a — black-deep da proposta */
+    --foreground: 0 0% 94%;           /* #f0f0f0 — white-soft da proposta */
+    --card: 0 0% 9%;                  /* #161616 — black-card da proposta */
+    --card-foreground: 0 0% 94%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 94%;
 
-    /* Primary: Dark Yellow — amarelo escuro Kinex */
-    --primary: 47 100% 38%;           /* #C29000 — amarelo escuro */
-    --primary-foreground: 0 0% 100%;  /* branco sobre amarelo */
+    /* Primary: Gold #d4a830 — exato da proposta */
+    --primary: 42 64% 51%;            /* #d4a830 */
+    --primary-foreground: 0 0% 7%;    /* texto preto sobre gold */
 
     /* Accent */
-    --accent: 0 0% 18%;               /* #2D2D2D — hover Apple dark */
-    --accent-foreground: 0 0% 96%;
+    --accent: 0 0% 13%;               /* #222222 — black-border da proposta */
+    --accent-foreground: 0 0% 94%;
 
     /* UI Elements */
-    --secondary: 0 0% 16%;            /* #282828 — Apple elevated */
-    --secondary-foreground: 0 0% 75%; /* #BFBFBF */
-    --muted: 0 0% 18%;                /* #2D2D2D */
-    --muted-foreground: 0 0% 55%;     /* #8C8C8C — texto secário Apple dark */
-    --border: 0 0% 20%;               /* #333333 — borda Apple dark */
-    --input: 0 0% 16%;
-    --ring: 47 100% 38%;
+    --secondary: 0 0% 11%;            /* entre black-card e black-border */
+    --secondary-foreground: 0 0% 61%; /* #9a9a9a — gray-light da proposta */
+    --muted: 0 0% 13%;                /* #222222 */
+    --muted-foreground: 0 0% 42%;     /* #6b6b6b — gray-muted da proposta */
+    --border: 0 0% 13%;               /* #222222 — black-border da proposta */
+    --input: 0 0% 11%;
+    --ring: 42 64% 51%;               /* gold */
 
     /* Status */
-    --destructive: 0 72% 51%;         /* vermelho Apple dark */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
   }
 }
