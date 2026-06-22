@@ -116,7 +116,6 @@ export async function GET(
             level: true,
             objective: true,
             currentPhase: true,
-            computedJson: true,
             workouts: {
               where: { phase: { not: null } },
               select: {
