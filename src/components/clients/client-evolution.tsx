@@ -152,7 +152,7 @@ const GOAL_LABELS: Record<string, string> = {
 }
 
 const CHART_COLORS = {
-  cyan: '#06b6d4',
+  cyan: '#CA8A04',
   amber: '#f59e0b',
   green: '#10b981',
   red: '#ef4444',
@@ -355,7 +355,7 @@ export function ClientEvolution({ clientId }: ClientEvolutionProps) {
             value={latestComputed.ratioCurrent?.toFixed(1) ?? '—'}
             subtitle={`Alvo: ${latestComputed.ratioTarget}:1`}
             icon={Target}
-            color="text-cyan-500"
+            color="text-yellow-600"
           />
           <StatCard
             label="Massa Magra"

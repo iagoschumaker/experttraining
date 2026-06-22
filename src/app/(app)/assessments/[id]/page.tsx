@@ -553,7 +553,7 @@ export default function AssessmentResultPage() {
                       {[
                         { key: 'fatPct', label: '% Gordura', unit: '%', color: 'text-red-400' },
                         { key: 'fatMassKg', label: 'Massa Gorda', unit: 'kg', color: 'text-red-300' },
-                        { key: 'leanMassKg', label: 'Massa Magra', unit: 'kg', color: 'text-cyan-400' },
+                        { key: 'leanMassKg', label: 'Massa Magra', unit: 'kg', color: 'text-yellow-600' },
                         { key: 'muscleMassKg', label: 'Musc. Esq.', unit: 'kg', color: 'text-blue-400' },
                       ].map(({ key, label, unit, color }) => {
                         const val = assessment.bodyMetricsJson.inbody?.[key]

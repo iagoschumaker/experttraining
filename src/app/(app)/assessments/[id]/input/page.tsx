@@ -961,7 +961,7 @@ export default function AssessmentInputPage() {
                             <div className="text-xs text-muted-foreground">Massa Gorda</div>
                           </div>
                           <div className="text-center bg-background rounded-lg p-3">
-                            <div className="text-2xl font-bold text-cyan-400">{result.leanKg.toFixed(1)} kg</div>
+                            <div className="text-2xl font-bold text-yellow-600">{result.leanKg.toFixed(1)} kg</div>
                             <div className="text-xs text-muted-foreground">Massa Magra</div>
                           </div>
                         </div>
@@ -1071,7 +1071,7 @@ export default function AssessmentInputPage() {
                         {[
                           { val: `${bodyMetrics.inbody.fatPct?.toFixed(1)}%`, label: '% Gordura', color: 'text-red-400' },
                           { val: bodyMetrics.inbody.fatMassKg ? `${bodyMetrics.inbody.fatMassKg.toFixed(1)} kg` : '—', label: 'Massa Gorda', color: 'text-red-300' },
-                          { val: bodyMetrics.inbody.leanMassKg ? `${bodyMetrics.inbody.leanMassKg.toFixed(1)} kg` : '—', label: 'Massa Magra', color: 'text-cyan-400' },
+                          { val: bodyMetrics.inbody.leanMassKg ? `${bodyMetrics.inbody.leanMassKg.toFixed(1)} kg` : '—', label: 'Massa Magra', color: 'text-yellow-600' },
                           { val: bodyMetrics.inbody.muscleMassKg ? `${bodyMetrics.inbody.muscleMassKg.toFixed(1)} kg` : '—', label: 'Musc. Esq.', color: 'text-blue-400' },
                         ].map(({ val, label, color }) => (
                           <div key={label} className="text-center bg-background rounded-lg p-3">

@@ -3,8 +3,9 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button, Input, Label, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui'
-import { Loader2, AlertCircle, Dumbbell, Eye, EyeOff } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { KinexLogo } from '@/components/kinex-logo'
 
 function LoginForm() {
   const router = useRouter()
@@ -65,14 +66,7 @@ function LoginForm() {
       {/* Logo */}
       <div className="text-center">
         <div className="inline-flex items-center justify-center mb-6">
-          <picture>
-            <source srcSet="/kinex-logo-dark.png" media="(prefers-color-scheme: dark)" />
-            <img
-              src="/kinex-logo-light.png"
-              alt="Kinex Performance"
-              className="h-16 w-auto object-contain"
-            />
-          </picture>
+          <KinexLogo height={64} />
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-1 tracking-tight">
           Kinex Performance

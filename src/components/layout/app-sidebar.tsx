@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { KinexLogo } from '@/components/kinex-logo'
 import {
   LayoutDashboard,
   Users,
@@ -204,15 +205,8 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-4 relative z-50">
           {!isCollapsed && (
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <picture>
-                <source srcSet="/kinex-logo-dark.png" media="(prefers-color-scheme: dark)" />
-                <img
-                  src="/kinex-logo-light.png"
-                  alt="Kinex Performance"
-                  className="h-7 w-auto object-contain"
-                />
-              </picture>
+            <Link href="/dashboard" className="flex items-center">
+              <KinexLogo height={32} />
             </Link>
           )}
           <Button

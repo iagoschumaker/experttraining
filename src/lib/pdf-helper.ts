@@ -53,7 +53,7 @@ export async function getStudioPdfHeader(studioId: string): Promise<StudioPdfHea
       zipCode: settings.zipCode || null,
       website: settings.website || null,
       primaryColor: settings.primaryColor || '#F2B705',
-      secondaryColor: settings.secondaryColor || '#00C2D1',
+      secondaryColor: settings.secondaryColor || '#CC9900',
     }
   } catch (error) {
     console.error('Error fetching studio PDF header:', error)

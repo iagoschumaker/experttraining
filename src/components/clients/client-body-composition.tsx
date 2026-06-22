@@ -108,7 +108,7 @@ export function ClientBodyComposition({ weight, bodyFat, height }: ClientBodyCom
   // Dados para PieChart — usa percentuais para exibição exata no label
   const pieData = [
     { name: 'Massa Gorda', value: bodyFat, kg: fatKg, color: '#ef4444' },
-    { name: 'Massa Magra', value: leanPercent, kg: leanKg, color: '#06b6d4' },
+    { name: 'Massa Magra', value: leanPercent, kg: leanKg, color: '#CA8A04' },
   ]
 
   // -------------------------------------------------------------------------
@@ -152,10 +152,10 @@ export function ClientBodyComposition({ weight, bodyFat, height }: ClientBodyCom
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Peso Magro</p>
-                <p className="text-2xl font-bold text-cyan-400">{leanKg.toFixed(1)} <span className="text-sm font-normal">kg</span></p>
+                <p className="text-2xl font-bold text-yellow-600">{leanKg.toFixed(1)} <span className="text-sm font-normal">kg</span></p>
               </div>
-              <div className="rounded-lg bg-cyan-500/10 p-2">
-                <Dumbbell className="h-5 w-5 text-cyan-400" />
+              <div className="rounded-lg bg-yellow-500/10 p-2">
+                <Dumbbell className="h-5 w-5 text-yellow-600" />
               </div>
             </div>
           </CardContent>
@@ -204,7 +204,7 @@ export function ClientBodyComposition({ weight, bodyFat, height }: ClientBodyCom
               <span>Gorda {fatKg.toFixed(1)} kg ({bodyFat.toFixed(1)}%)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-cyan-400 inline-block" />
+              <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" />
               <span>Magra {leanKg.toFixed(1)} kg ({leanPercent.toFixed(1)}%)</span>
             </div>
           </div>

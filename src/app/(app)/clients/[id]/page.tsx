@@ -1274,8 +1274,8 @@ export default function ClientDetailPage() {
                       <div className="text-xl font-bold text-purple-400">{flatM.height ? Number(flatM.height).toFixed(0) : '—'}<span className="text-xs">cm</span></div>
                       <div className="text-xs text-muted-foreground">Altura</div>
                     </div>
-                    <div className="rounded-xl border p-3 text-center bg-cyan-500/5">
-                      <div className="text-xl font-bold text-cyan-400">{leanKg.toFixed(1)}<span className="text-xs">kg</span></div>
+                    <div className="rounded-xl border p-3 text-center bg-yellow-500/5">
+                      <div className="text-xl font-bold text-yellow-600">{leanKg.toFixed(1)}<span className="text-xs">kg</span></div>
                       <div className="text-xs text-muted-foreground">Massa Magra ({leanPct.toFixed(0)}%)</div>
                     </div>
                     <div className="rounded-xl border p-3 text-center bg-red-500/5">
@@ -1287,7 +1287,7 @@ export default function ClientDetailPage() {
 
                 {/* Massa Magra vs Gorda — Bar */}
                 <div className="w-full h-5 rounded-full overflow-hidden flex shadow-inner bg-muted/30">
-                  <div className="bg-gradient-to-r from-cyan-400 to-cyan-500 h-full transition-all relative" style={{ width: `${leanPct}%` }}>
+                  <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full transition-all relative" style={{ width: `${leanPct}%` }}>
                     <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">Magra {leanPct.toFixed(0)}%</span>
                   </div>
                   <div className="bg-gradient-to-r from-red-400 to-red-500 h-full transition-all relative" style={{ width: `${bf}%` }}>
@@ -1353,8 +1353,8 @@ export default function ClientDetailPage() {
               { label: 'Cintura', val: client.waist, color: 'from-purple-400 to-purple-500' },
               { label: 'Quadril', val: client.hip, color: 'from-pink-400 to-pink-500' },
               { label: 'Abdômen', val: client.abdomen, color: 'from-indigo-400 to-indigo-500' },
-              { label: 'Braço Dir.', val: client.armRight, color: 'from-cyan-400 to-cyan-500' },
-              { label: 'Braço Esq.', val: client.armLeft, color: 'from-cyan-400 to-cyan-500' },
+              { label: 'Braço Dir.', val: client.armRight, color: 'from-yellow-500 to-yellow-600' },
+              { label: 'Braço Esq.', val: client.armLeft, color: 'from-yellow-500 to-yellow-600' },
               { label: 'Anteb. Dir.', val: client.forearmRight, color: 'from-teal-400 to-teal-500' },
               { label: 'Anteb. Esq.', val: client.forearmLeft, color: 'from-teal-400 to-teal-500' },
               { label: 'Coxa Dir.', val: client.thighRight, color: 'from-emerald-400 to-emerald-500' },

@@ -13,66 +13,66 @@
 
 @layer base {
   :root {
-    /* Light Theme — Kinex Performance */
-    --background: 220 20% 94%;        /* #EDF0F5 */
-    --foreground: 220 30% 10%;        /* #111824 */
-    --card: 0 0% 100%;                /* #FFFFFF */
-    --card-foreground: 220 30% 10%;
+    /* Light Theme — Apple-style clean */
+    --background: 0 0% 96%;           /* #F5F5F7 — exato cinza Apple */
+    --foreground: 0 0% 7%;            /* #111111 — texto Apple quase preto */
+    --card: 0 0% 100%;                /* #FFFFFF — cards Apple brancos */
+    --card-foreground: 0 0% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 10%;
+    --popover-foreground: 0 0% 7%;
 
-    /* Primary: Dark Yellow Kinex — amarelo escuro, sem laranja */
-    --primary: 47 100% 40%;           /* #CC9900 — amarelo dourado escuro */
-    --primary-foreground: 0 0% 100%;  /* texto branco sobre amarelo escuro */
+    /* Primary: Dark Yellow — amarelo escuro Kinex */
+    --primary: 47 100% 38%;           /* #C29000 — amarelo escuro */
+    --primary-foreground: 0 0% 100%;  /* branco sobre amarelo */
 
     /* Accent */
-    --accent: 220 20% 88%;            /* #D8DDE8 — cinza suave */
-    --accent-foreground: 220 30% 10%;
+    --accent: 0 0% 92%;               /* #EBEBEB — hover sutil */
+    --accent-foreground: 0 0% 7%;
 
     /* UI Elements */
-    --secondary: 220 15% 92%;         /* #E8ECF3 */
-    --secondary-foreground: 220 30% 10%;
-    --muted: 220 14% 85%;             /* #D3D9E5 */
-    --muted-foreground: 215 20% 35%;  /* #465162 */
-    --border: 220 13% 88%;            /* #DDDFE7 */
+    --secondary: 0 0% 94%;            /* #F0F0F0 */
+    --secondary-foreground: 0 0% 25%; /* #404040 */
+    --muted: 0 0% 90%;                /* #E5E5E5 */
+    --muted-foreground: 0 0% 40%;     /* #666666 — texto secário Apple */
+    --border: 0 0% 88%;               /* #E0E0E0 — borda sutil Apple */
     --input: 0 0% 100%;
-    --ring: 47 100% 40%;              /* amarelo escuro */
+    --ring: 47 100% 38%;
 
     /* Status */
-    --destructive: 0 84% 60%;
+    --destructive: 0 79% 55%;         /* vermelho Apple */
     --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;               /* bordas Apple levemente arredondadas */
   }
 
   .dark {
-    /* Dark Theme — Kinex Performance */
-    --background: 220 18% 8%;         /* #111620 */
-    --foreground: 216 20% 91%;        /* #E6EAF0 */
-    --card: 220 18% 12%;              /* #181E2B */
-    --card-foreground: 216 20% 91%;
-    --popover: 220 18% 12%;
-    --popover-foreground: 216 20% 91%;
+    /* Dark Theme — Apple-style (macOS Sequoia dark) */
+    --background: 0 0% 7%;            /* #111111 — preto puro Apple */
+    --foreground: 0 0% 96%;           /* #F5F5F7 — texto branco Apple */
+    --card: 0 0% 12%;                 /* #1E1E1E — card Apple dark */
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 96%;
 
-    /* Primary: Dark Yellow Kinex — amarelo escuro, sem laranja */
-    --primary: 47 100% 40%;           /* #CC9900 — amarelo dourado escuro */
-    --primary-foreground: 0 0% 100%;  /* texto branco sobre amarelo escuro */
+    /* Primary: Dark Yellow — amarelo escuro Kinex */
+    --primary: 47 100% 38%;           /* #C29000 — amarelo escuro */
+    --primary-foreground: 0 0% 100%;  /* branco sobre amarelo */
 
     /* Accent */
-    --accent: 220 18% 18%;            /* #232B3A */
-    --accent-foreground: 216 20% 91%;
+    --accent: 0 0% 18%;               /* #2D2D2D — hover Apple dark */
+    --accent-foreground: 0 0% 96%;
 
     /* UI Elements */
-    --secondary: 220 18% 18%;         /* #232B3A */
-    --secondary-foreground: 216 20% 91%;
-    --muted: 220 16% 20%;             /* #273040 */
-    --muted-foreground: 214 14% 60%;  /* #8E9AAD */
-    --border: 220 18% 18%;            /* #232B3A */
-    --input: 220 18% 18%;
-    --ring: 47 100% 40%;              /* amarelo escuro */
+    --secondary: 0 0% 16%;            /* #282828 — Apple elevated */
+    --secondary-foreground: 0 0% 75%; /* #BFBFBF */
+    --muted: 0 0% 18%;                /* #2D2D2D */
+    --muted-foreground: 0 0% 55%;     /* #8C8C8C — texto secário Apple dark */
+    --border: 0 0% 20%;               /* #333333 — borda Apple dark */
+    --input: 0 0% 16%;
+    --ring: 47 100% 38%;
 
     /* Status */
-    --destructive: 0 63% 31%;
+    --destructive: 0 72% 51%;         /* vermelho Apple dark */
     --destructive-foreground: 0 0% 100%;
   }
 }

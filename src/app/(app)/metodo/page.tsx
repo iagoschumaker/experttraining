@@ -83,7 +83,7 @@ const OBJECTIVES = [
     name: 'Performance',
     icon: '⚡',
     fases: ['Condicionamento', 'Hipertrofia', 'Força', 'Potência', 'Resistência'],
-    color: 'border-cyan-500/30 bg-cyan-500/5',
+    color: 'border-yellow-500/30 bg-yellow-500/5',
   },
   {
     name: 'Reabilitação',
