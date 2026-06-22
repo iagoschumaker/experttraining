@@ -13,64 +13,64 @@
 
 @layer base {
   :root {
-    /* Light Theme (Secondary - Reports & Readability) */
-    --background: 220 15% 92%; /* #E4E9EF - Noticeably gray background */
-    --foreground: 222 47% 11%; /* #090F1A - Almost black for maximum contrast */
-    --card: 0 0% 100%; /* #FFFFFF - Pure white cards for strong separation */
-    --card-foreground: 222 47% 11%;
+    /* Light Theme — Kinex Performance */
+    --background: 220 20% 94%;        /* #EDF0F5 — fundo cinza claro */
+    --foreground: 220 30% 10%;        /* #111824 — texto quase preto */
+    --card: 0 0% 100%;                /* #FFFFFF — cards brancos */
+    --card-foreground: 220 30% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    
-    /* Primary: Cyan Expert Training */
-    --primary: 187 100% 41%; /* #00C2D1 */
-    --primary-foreground: 0 0% 100%;
-    
-    /* Accent: Mustard Yellow */
-    --accent: 44 97% 48%; /* #F2B705 */
-    --accent-foreground: 0 0% 0%;
-    
+    --popover-foreground: 220 30% 10%;
+
+    /* Primary: Gold Kinex */
+    --primary: 38 95% 54%;            /* #F5A623 — dourado da logo */
+    --primary-foreground: 0 0% 0%;    /* texto preto sobre dourado */
+
+    /* Accent: Dark Charcoal */
+    --accent: 220 20% 88%;            /* #D8DDE8 — cinza suave */
+    --accent-foreground: 220 30% 10%;
+
     /* UI Elements */
-    --secondary: 220 13% 94%; /* #F2F5F8 */
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 85%; /* #D2D9E1 - Much darker muted for strong visibility */
-    --muted-foreground: 215 25% 25%; /* #303D4F - Very dark secondary text */
-    --border: 220 13% 90%; /* #E3E8EF - Subtle borders */
+    --secondary: 220 15% 92%;         /* #E8ECF3 */
+    --secondary-foreground: 220 30% 10%;
+    --muted: 220 14% 85%;             /* #D3D9E5 */
+    --muted-foreground: 215 20% 35%;  /* #465162 */
+    --border: 220 13% 88%;            /* #DDDFE7 */
     --input: 0 0% 100%;
-    --ring: 187 100% 41%;
-    
+    --ring: 38 95% 54%;               /* dourado */
+
     /* Status */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark Theme (Primary - Main Interface) */
-    --background: 216 20% 7%; /* #0F1215 */
-    --foreground: 216 20% 91%; /* #E6EAF0 */
-    --card: 216 20% 13%; /* #1C232B */
+    /* Dark Theme — Kinex Performance */
+    --background: 220 18% 8%;         /* #111620 — quase preto com toque azul */
+    --foreground: 216 20% 91%;        /* #E6EAF0 — texto claro */
+    --card: 220 18% 12%;              /* #181E2B — card escuro */
     --card-foreground: 216 20% 91%;
-    --popover: 216 20% 13%;
+    --popover: 220 18% 12%;
     --popover-foreground: 216 20% 91%;
-    
-    /* Primary: Cyan Expert Training */
-    --primary: 187 100% 41%; /* #00C2D1 */
-    --primary-foreground: 0 0% 100%;
-    
-    /* Accent: Mustard Yellow */
-    --accent: 44 97% 48%; /* #F2B705 */
-    --accent-foreground: 0 0% 0%;
-    
+
+    /* Primary: Gold Kinex */
+    --primary: 38 95% 54%;            /* #F5A623 — dourado da logo */
+    --primary-foreground: 0 0% 0%;    /* texto preto sobre dourado */
+
+    /* Accent: Lighter Gold */
+    --accent: 220 18% 18%;            /* #232B3A — hover/accent escuro */
+    --accent-foreground: 216 20% 91%;
+
     /* UI Elements */
-    --secondary: 216 20% 20%; /* #2A333D */
+    --secondary: 220 18% 18%;         /* #232B3A */
     --secondary-foreground: 216 20% 91%;
-    --muted: 216 17% 22%; /* #323C47 */
-    --muted-foreground: 214 14% 69%; /* #AEB6C2 */
-    --border: 216 20% 20%; /* #2A333D */
-    --input: 216 20% 20%;
-    --ring: 187 100% 41%;
-    
+    --muted: 220 16% 20%;             /* #273040 */
+    --muted-foreground: 214 14% 60%;  /* #8E9AAD */
+    --border: 220 18% 18%;            /* #232B3A */
+    --input: 220 18% 18%;
+    --ring: 38 95% 54%;               /* dourado */
+
     /* Status */
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
