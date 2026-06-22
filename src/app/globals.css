@@ -116,6 +116,57 @@
   }
 }
 
+/* ================================================
+   KINEX PERFORMANCE - Component Styles
+   Baseado na proposta-juba/style.css
+   ================================================ */
+@layer components {
+
+  /* Section label dourado (.section-label da proposta) */
+  .kinex-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #d4a830;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Card glass estilo proposta (.glass-card) */
+  .kinex-glass-card {
+    background: rgba(22, 22, 22, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid #222222;
+    border-radius: 16px;
+    transition: all 300ms ease;
+  }
+
+  .kinex-glass-card:hover {
+    background: rgba(22, 22, 22, 0.85);
+    border-color: rgba(212, 168, 48, 0.35);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(212, 168, 48, 0.08);
+  }
+
+  /* Badge gold */
+  .kinex-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 1rem;
+    background: rgba(212, 168, 48, 0.15);
+    border: 1px solid rgba(212, 168, 48, 0.35);
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #f0d060;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+}
+
 /* Custom scrollbar */
 @layer utilities {
   .scrollbar-thin {
