@@ -60,8 +60,8 @@ export default function SuperAdminDashboardPage() {
       title: 'Usuários',
       value: stats?.totalUsers ?? 0,
       icon: <Users className="w-5 h-5" />,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-400/10',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-600/10',
       href: '/superadmin/users',
     },
     {

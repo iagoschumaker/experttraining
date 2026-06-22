@@ -261,9 +261,9 @@ export default function SelectStudioPage() {
                     className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${(studio as any).studioType === 'PERSONAL_EXTERNO' ? 'bg-indigo-500/10' : 'bg-primary/10'}`}>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${(studio as any).studioType === 'PERSONAL_EXTERNO' ? 'bg-yellow-600/10' : 'bg-primary/10'}`}>
                         {(studio as any).studioType === 'PERSONAL_EXTERNO'
-                          ? <User className="w-6 h-6 text-indigo-500" />
+                          ? <User className="w-6 h-6 text-yellow-600" />
                           : <Building2 className="w-6 h-6 text-primary" />
                         }
                       </div>
@@ -273,7 +273,7 @@ export default function SelectStudioPage() {
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
                           {(studio as any).studioType === 'PERSONAL_EXTERNO' ? (
-                            <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Personal Externo</Badge>
+                            <Badge className="bg-yellow-600/20 text-yellow-600 border-indigo-500/30">Personal Externo</Badge>
                           ) : (
                             <Badge variant={studio.role === 'STUDIO_ADMIN' ? 'default' : 'secondary'}>
                               {studio.role === 'STUDIO_ADMIN' ? 'Admin' : 'Treinador'}

@@ -200,13 +200,13 @@ export function bmrCategory(kcal: number, gender: 'M' | 'F'): {
     if (kcal < 1400) return { label: 'Muito Baixo', color: 'text-red-400', description: 'Abaixo do esperado para adulto masculino' }
     if (kcal < 1700) return { label: 'Baixo', color: 'text-orange-400', description: 'Levemente abaixo da média' }
     if (kcal < 2100) return { label: 'Normal', color: 'text-emerald-400', description: 'Dentro da faixa esperada' }
-    if (kcal < 2500) return { label: 'Alto', color: 'text-blue-400', description: 'Metabolismo acelerado' }
+    if (kcal < 2500) return { label: 'Alto', color: 'text-yellow-600', description: 'Metabolismo acelerado' }
     return { label: 'Muito Alto', color: 'text-purple-400', description: 'Metabolismo muito acelerado (atleta)' }
   } else {
     if (kcal < 1100) return { label: 'Muito Baixo', color: 'text-red-400', description: 'Abaixo do esperado para adulto feminino' }
     if (kcal < 1350) return { label: 'Baixo', color: 'text-orange-400', description: 'Levemente abaixo da média' }
     if (kcal < 1700) return { label: 'Normal', color: 'text-emerald-400', description: 'Dentro da faixa esperada' }
-    if (kcal < 2000) return { label: 'Alto', color: 'text-blue-400', description: 'Metabolismo acelerado' }
+    if (kcal < 2000) return { label: 'Alto', color: 'text-yellow-600', description: 'Metabolismo acelerado' }
     return { label: 'Muito Alto', color: 'text-purple-400', description: 'Metabolismo muito acelerado' }
   }
 }

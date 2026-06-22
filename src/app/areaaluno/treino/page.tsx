@@ -628,12 +628,12 @@ ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.week
                                   const isNew = !!session.treino
                                   const blocos = isNew ? (session.treino?.blocos || []) : (session.blocks || [])
                                   return blocos.map((b: any, idx: number) => (
-                                    <div key={idx} className="p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                                    <div key={idx} className="p-2 bg-yellow-500/15 border border-yellow-500/30 rounded-lg">
                                       <div className="flex items-center justify-between mb-1.5">
                                         <span className="text-xs font-semibold text-white">
                                           {b.name || `Bloco ${idx + 1}`}
                                         </span>
-                                        <span className="text-[10px] text-blue-400 font-mono">
+                                        <span className="text-[10px] text-yellow-600 font-mono">
                                           {b.restAfterBlock || ''}
                                         </span>
                                       </div>

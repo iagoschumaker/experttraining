@@ -284,7 +284,7 @@ export default function MensalidadesPage() {
       case 'ADIMPLENTE':
         return <Badge className="bg-emerald-500/20 text-emerald-400 border-0">✓ Adimplente</Badge>
       case 'ADIANTADO':
-        return <Badge className="bg-blue-500/20 text-blue-400 border-0"><Star className="h-3 w-3 mr-1" />Adiantado</Badge>
+        return <Badge className="bg-yellow-500/15 text-yellow-600 border-0"><Star className="h-3 w-3 mr-1" />Adiantado</Badge>
       case 'INADIMPLENTE':
         return <Badge className="bg-red-500/20 text-red-400 border-0">⚠ Inadimplente</Badge>
       case 'PENDENTE':
@@ -438,7 +438,7 @@ export default function MensalidadesPage() {
           const borderColor = client.status === 'INADIMPLENTE'
             ? 'border-red-500/30'
             : client.status === 'ADIANTADO'
-            ? 'border-blue-500/20'
+            ? 'border-yellow-500/30'
             : 'border-border'
 
           return (
@@ -449,7 +449,7 @@ export default function MensalidadesPage() {
                   {/* Avatar */}
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                     client.status === 'INADIMPLENTE' ? 'bg-red-500/20 text-red-400' :
-                    client.status === 'ADIANTADO' ? 'bg-blue-500/20 text-blue-400' :
+                    client.status === 'ADIANTADO' ? 'bg-yellow-500/15 text-yellow-600' :
                     client.status === 'ADIMPLENTE' ? 'bg-emerald-500/20 text-emerald-400' :
                     client.status === 'PENDENTE' ? 'bg-amber-500/20 text-amber-400' :
                     'bg-muted text-muted-foreground'
@@ -463,7 +463,7 @@ export default function MensalidadesPage() {
                       <p className="text-sm font-semibold text-foreground">{client.name}</p>
                       {statusBadge(client.status)}
                       {client.creditMonths >= 2 && (
-                        <span className="text-xs text-blue-400">
+                        <span className="text-xs text-yellow-600">
                           {client.creditMonths} meses adiantados
                         </span>
                       )}

@@ -109,8 +109,8 @@ export default function ResultsPage() {
           title="Total Avaliações"
           value={assessments.length}
           icon={<BarChart3 className="h-4 w-4" />}
-          iconColor="text-blue-500"
-          iconBgColor="bg-blue-500/10"
+          iconColor="text-yellow-600"
+          iconBgColor="bg-yellow-500/15"
         />
         <StatsCard
           title="Este Mês"

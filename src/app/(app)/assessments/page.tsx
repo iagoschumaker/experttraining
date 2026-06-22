@@ -188,8 +188,8 @@ export default function AssessmentsPage() {
           title="Total"
           value={total}
           icon={<ClipboardCheck className="h-4 w-4" />}
-          iconColor="text-blue-500"
-          iconBgColor="bg-blue-500/10"
+          iconColor="text-yellow-600"
+          iconBgColor="bg-yellow-500/15"
         />
         <StatsCard
           title="Pendentes"
@@ -307,7 +307,7 @@ export default function AssessmentsPage() {
                               href={`/assessments/${assessment.id}/input`}
                             >
                               <Button variant="ghost" size="icon" title="Editar">
-                                <Pencil className="h-4 w-4 text-blue-500" />
+                                <Pencil className="h-4 w-4 text-yellow-600" />
                               </Button>
                             </Link>
                             <Button

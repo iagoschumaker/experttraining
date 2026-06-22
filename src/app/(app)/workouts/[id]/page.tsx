@@ -674,8 +674,8 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Evolution note */}
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">📈 Evolução do Programa</p>
+              <div className="p-3 bg-yellow-500/15 border border-yellow-500/30 rounded-lg">
+                <p className="text-xs font-semibold text-yellow-600 dark:text-yellow-600 mb-1">📈 Evolução do Programa</p>
                 <p className="text-[11px] text-muted-foreground">
                   Ao completar este cronograma, gere um novo treino informando a semana gestacional atual.
                   O sistema selecionará automaticamente a fase correta: {' '}
@@ -724,12 +724,12 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
 
                   {/* Exercise Blocks */}
                   {session.blocks?.map((block: any, bIdx: number) => (
-                    <div key={bIdx} className="rounded-lg border border-blue-500/20 overflow-hidden">
-                      <div className="flex items-center justify-between px-2.5 py-1.5 bg-blue-500/5 border-b border-blue-500/15">
+                    <div key={bIdx} className="rounded-lg border border-yellow-500/30 overflow-hidden">
+                      <div className="flex items-center justify-between px-2.5 py-1.5 bg-yellow-500/15 border-b border-yellow-500/30">
                         <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
                           <span>{block.icon}</span> {block.name}
                         </span>
-                        <span className="text-[10px] text-blue-500 font-mono">{block.duration}</span>
+                        <span className="text-[10px] text-yellow-600 font-mono">{block.duration}</span>
                       </div>
                       <div className="divide-y divide-border/30">
                         {block.exercises?.map((ex: any, exIdx: number) => (
@@ -739,7 +739,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
                               <span className="text-[10px] font-mono text-muted-foreground">{ex.reps}</span>
                             </div>
                             {ex.notes && (
-                              <p className="text-[10px] text-blue-500 mt-0.5">💡 {ex.notes}</p>
+                              <p className="text-[10px] text-yellow-600 mt-0.5">💡 {ex.notes}</p>
                             )}
                             {ex.caution && (
                               <p className="text-[10px] text-red-400 mt-0.5">⚠️ {ex.caution}</p>
@@ -842,7 +842,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
         const pillarMeta = (p: string) => {
           // Support both old format (LOWER/PUSH/PULL) and new format (PERNA/EMPURRA/PUXA)
           if (p === 'LOWER' || p === 'PERNA') return { border: 'border-amber-500/30', bg: 'bg-amber-500/10', text: 'text-amber-600', pill: 'bg-amber-500/20 text-amber-600 border-amber-500/30' }
-          if (p === 'PUSH' || p === 'EMPURRA') return { border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-500', pill: 'bg-blue-500/20 text-blue-500 border-blue-500/30' }
+          if (p === 'PUSH' || p === 'EMPURRA') return { border: 'border-yellow-500/30', bg: 'bg-yellow-500/15', text: 'text-yellow-600', pill: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30' }
           return { border: 'border-purple-500/30', bg: 'bg-purple-500/10', text: 'text-purple-500', pill: 'bg-purple-500/20 text-purple-500 border-purple-500/30' }
         }
 
@@ -991,12 +991,12 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
                             {blocos.map((b: any, bIdx: number) => {
                               const exercises = b.exercises || []
                               return (
-                                <div key={bIdx} className="rounded-lg border border-blue-500/20 overflow-hidden">
+                                <div key={bIdx} className="rounded-lg border border-yellow-500/30 overflow-hidden">
                                   {/* Block header */}
-                                  <div className="flex items-center justify-between px-2.5 py-1.5 bg-blue-500/5 border-b border-blue-500/15">
+                                  <div className="flex items-center justify-between px-2.5 py-1.5 bg-yellow-500/15 border-b border-yellow-500/30">
                                     <span className="text-[11px] font-semibold text-foreground">{b.name || `Bloco ${bIdx + 1}`}</span>
                                     {b.restAfterBlock && (
-                                      <span className="text-[10px] text-blue-500 font-mono">{b.restAfterBlock}</span>
+                                      <span className="text-[10px] text-yellow-600 font-mono">{b.restAfterBlock}</span>
                                     )}
                                   </div>
                                   <div className="divide-y divide-border/30">

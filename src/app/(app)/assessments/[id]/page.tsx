@@ -294,15 +294,15 @@ export default function AssessmentResultPage() {
         <>
           {/* Summary Card - Nível */}
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-l-4 border-l-blue-500">
+            <Card className="border-l-4 border-l-yellow-500">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Nível Avaliado
                 </CardTitle>
-                <Award className="h-4 w-4 text-blue-500" />
+                <Award className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-500">
+                <div className="text-2xl font-bold text-yellow-600">
                   {LEVEL_LABELS[clientLevel?.toUpperCase()] || translateDifficulty(clientLevel)}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -355,7 +355,7 @@ export default function AssessmentResultPage() {
                     {evolution.body.compMethod && (
                       <span className={`ml-auto text-xs font-normal px-2 py-0.5 rounded-full border ${
                         evolution.body.compMethod === 'inbody'
-                          ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                          ? 'bg-yellow-500/15 border-yellow-500/30 text-yellow-600'
                           : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                       }`}>
                         {evolution.body.compMethod === 'inbody' ? '⚡ InBody H20' : '📐 Pollock'}
@@ -403,8 +403,8 @@ export default function AssessmentResultPage() {
 
                 {/* InBody H20 Evolution */}
                 {evolution.body.inbody && (
-                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-3">
-                    <h4 className="font-medium text-sm text-blue-400 flex items-center gap-2">
+                  <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 p-4 space-y-3">
+                    <h4 className="font-medium text-sm text-yellow-600 flex items-center gap-2">
                       ⚡ InBody H20 — Evolução
                     </h4>
                     <div className="grid gap-3 md:grid-cols-4">
@@ -504,7 +504,7 @@ export default function AssessmentResultPage() {
                   {assessment.bodyMetricsJson.compMethod && (
                     <span className={`ml-auto text-xs font-normal px-2 py-0.5 rounded-full border ${
                       assessment.bodyMetricsJson.compMethod === 'inbody'
-                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                        ? 'bg-yellow-500/15 border-yellow-500/30 text-yellow-600'
                         : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                     }`}>
                       {assessment.bodyMetricsJson.compMethod === 'inbody' ? '⚡ InBody H20' : '📐 Pollock'}
@@ -545,8 +545,8 @@ export default function AssessmentResultPage() {
 
                 {/* InBody H20 full display */}
                 {assessment.bodyMetricsJson.inbody && Object.values(assessment.bodyMetricsJson.inbody).some(Boolean) && (
-                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-4">
-                    <h4 className="font-semibold text-sm text-blue-400">⚡ InBody H20 — Composição Corporal</h4>
+                  <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 p-4 space-y-4">
+                    <h4 className="font-semibold text-sm text-yellow-600">⚡ InBody H20 — Composição Corporal</h4>
 
                     {/* Main composition */}
                     <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -554,7 +554,7 @@ export default function AssessmentResultPage() {
                         { key: 'fatPct', label: '% Gordura', unit: '%', color: 'text-red-400' },
                         { key: 'fatMassKg', label: 'Massa Gorda', unit: 'kg', color: 'text-red-300' },
                         { key: 'leanMassKg', label: 'Massa Magra', unit: 'kg', color: 'text-yellow-600' },
-                        { key: 'muscleMassKg', label: 'Musc. Esq.', unit: 'kg', color: 'text-blue-400' },
+                        { key: 'muscleMassKg', label: 'Musc. Esq.', unit: 'kg', color: 'text-yellow-600' },
                       ].map(({ key, label, unit, color }) => {
                         const val = assessment.bodyMetricsJson.inbody?.[key]
                         if (!val) return null
@@ -573,10 +573,10 @@ export default function AssessmentResultPage() {
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Água Corporal</p>
                         <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
                           {[
-                            { key: 'totalWaterL', label: 'Total', unit: 'L', color: 'text-sky-400' },
-                            { key: 'intracellularWaterL', label: 'Intracelular', unit: 'L', color: 'text-sky-300' },
-                            { key: 'extracellularWaterL', label: 'Extracelular', unit: 'L', color: 'text-sky-200' },
-                            { key: 'ecwRatio', label: 'ECW/TBW', unit: '', color: 'text-sky-100' },
+                            { key: 'totalWaterL', label: 'Total', unit: 'L', color: 'text-yellow-500' },
+                            { key: 'intracellularWaterL', label: 'Intracelular', unit: 'L', color: 'text-yellow-500' },
+                            { key: 'extracellularWaterL', label: 'Extracelular', unit: 'L', color: 'text-yellow-500' },
+                            { key: 'ecwRatio', label: 'ECW/TBW', unit: '', color: 'text-yellow-500' },
                           ].map(({ key, label, unit, color }) => {
                             const val = assessment.bodyMetricsJson.inbody?.[key]
                             if (!val) return null
@@ -685,7 +685,7 @@ export default function AssessmentResultPage() {
                         ))}
                       </div>
                       {items.length === 3 && (
-                        <div className="mt-2 rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 flex items-center justify-between">
+                        <div className="mt-2 rounded-lg bg-yellow-500/15 border border-yellow-500/30 p-3 flex items-center justify-between">
                           <span className="text-sm font-medium">Soma das 3 Dobras:</span>
                           <span className="font-bold">{soma.toFixed(1)} mm</span>
                         </div>

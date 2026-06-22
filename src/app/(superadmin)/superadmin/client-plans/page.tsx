@@ -184,7 +184,7 @@ export default function SuperAdminClientPlansPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                   <div className="flex items-center gap-1">
-                    {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs">Trial</Badge>}
+                    {plan.isTrial && <Badge className="bg-yellow-500/15 text-yellow-600 text-xs">Trial</Badge>}
                     <Badge className={plan.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}>
                       {plan.isActive ? 'Ativo' : 'Inativo'}
                     </Badge>
@@ -211,7 +211,7 @@ export default function SuperAdminClientPlansPage() {
                     <span>{plan.activeSubscriptions} assinaturas ativas</span>
                   </div>
                   {plan.isTrial && plan.trialDays && (
-                    <div className="flex items-center gap-2 text-blue-400">
+                    <div className="flex items-center gap-2 text-yellow-600">
                       <CreditCard className="h-4 w-4" />
                       <span>Trial: {plan.trialDays} dias</span>
                     </div>

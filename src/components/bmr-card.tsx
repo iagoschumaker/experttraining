@@ -27,7 +27,7 @@ export function BMRCard({ results, gender, showComparison = true, compact = fals
 
   const methodBadge = (method: string) => {
     switch (method) {
-      case 'inbody': return <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-medium">InBody</span>
+      case 'inbody': return <span className="text-[10px] bg-yellow-500/15 text-yellow-600 px-2 py-0.5 rounded-full font-medium">InBody</span>
       case 'katch': return <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-medium">Katch-McArdle</span>
       case 'mifflin': return <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">Mifflin-St Jeor</span>
       case 'harris': return <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">Harris-Benedict</span>

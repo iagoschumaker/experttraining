@@ -83,7 +83,7 @@ export default function StudioBlockedMessage({
                     <p className="text-xs text-gray-500">Email</p>
                     <a 
                       href={`mailto:${contactEmail}`}
-                      className="text-sm font-medium text-blue-600 hover:underline"
+                      className="text-sm font-medium text-yellow-600 hover:underline"
                     >
                       {contactEmail}
                     </a>
@@ -96,7 +96,7 @@ export default function StudioBlockedMessage({
                     <p className="text-xs text-gray-500">Telefone</p>
                     <a 
                       href={`tel:${contactPhone}`}
-                      className="text-sm font-medium text-blue-600 hover:underline"
+                      className="text-sm font-medium text-yellow-600 hover:underline"
                     >
                       {contactPhone}
                     </a>

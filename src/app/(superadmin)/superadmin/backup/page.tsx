@@ -339,8 +339,8 @@ export default function SuperAdminBackupPage() {
           title="Espaço Utilizado"
           value={`${(totalSize / (1024 * 1024)).toFixed(2)} MB`}
           icon={<HardDrive className="w-4 h-4" />}
-          iconColor="text-blue-500"
-          iconBgColor="bg-blue-500/10"
+          iconColor="text-yellow-600"
+          iconBgColor="bg-yellow-500/15"
         />
         <StatsCard
           title="Último Backup"
@@ -359,12 +359,12 @@ export default function SuperAdminBackupPage() {
       </StatsGrid>
 
       {/* Info Card */}
-      <Card className="border-blue-500/50 bg-blue-500/5">
+      <Card className="border-yellow-500/30 bg-yellow-500/15">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+            <Info className="w-5 h-5 text-yellow-600 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-blue-500">Sobre os Backups</h3>
+              <h3 className="font-semibold text-yellow-600">Sobre os Backups</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Os backups são salvos em formato JSON e incluem todos os dados do sistema: 
                 usuários, studios, clientes, avaliações, treinos, aulas, planos, faturas e mais.

@@ -47,7 +47,7 @@ export default function LessonsDeprecatedPage() {
           
           <div className="bg-card border border-border rounded-lg p-4 text-left mb-6">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+              <Info className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-muted-foreground">
                 <p className="font-medium text-foreground mb-2">Novo Fluxo do Método:</p>
                 <ol className="list-decimal list-inside space-y-1">
@@ -88,8 +88,8 @@ export default function LessonsDeprecatedPage() {
             className="flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-amber-500 hover:bg-amber-500/5 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20">
-                <Calendar className="w-6 h-6 text-blue-500" />
+              <div className="p-2 bg-yellow-500/15 rounded-lg group-hover:bg-yellow-500/15">
+                <Calendar className="w-6 h-6 text-yellow-600" />
               </div>
               <div className="text-left">
                 <p className="font-medium text-foreground">Cronogramas</p>

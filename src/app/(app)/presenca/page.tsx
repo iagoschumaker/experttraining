@@ -513,7 +513,7 @@ export default function PresencaPage() {
     const levelLabel = (l?: string) => l === 'INTERMEDIARIO' ? 'Intermediário' : l === 'AVANCADO' ? 'Avançado' : 'Iniciante'
     const pillarBg = (p: string) => {
         const l = p?.toLowerCase() || ''
-        if (l.includes('lower') || l.includes('inferior')) return 'bg-blue-500/10 text-blue-400'
+        if (l.includes('lower') || l.includes('inferior')) return 'bg-yellow-500/15 text-yellow-600'
         if (l.includes('push') || l.includes('empurr')) return 'bg-red-500/10 text-red-400'
         if (l.includes('pull') || l.includes('pux')) return 'bg-green-500/10 text-green-400'
         return 'bg-amber-500/10 text-amber-400'
@@ -660,7 +660,7 @@ export default function PresencaPage() {
                                             <div className="flex items-center gap-1 flex-wrap mt-0.5">
                                                 {/* Lock badge when manually overridden */}
                                                 {pillarOverridesRef.current.has(card.entry.clientId) && (
-                                                    <span className="text-[9px] px-1 py-0 h-4 rounded-full font-bold bg-blue-500/20 text-blue-400 inline-flex items-center">
+                                                    <span className="text-[9px] px-1 py-0 h-4 rounded-full font-bold bg-yellow-500/15 text-yellow-600 inline-flex items-center">
                                                         🔒
                                                     </span>
                                                 )}
@@ -928,14 +928,14 @@ export default function PresencaPage() {
                     return (
                         <div key={client.id}
                             className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-green-500/50 bg-green-500/5'
-                                : inSession ? 'border-blue-500/30 bg-blue-500/5 opacity-60'
+                                : inSession ? 'border-yellow-500/30 bg-yellow-500/15 opacity-60'
                                     : 'border-transparent hover:border-muted hover:bg-muted/20'
                                 }`}
                             onClick={() => !inSession && toggleSelect(client.id)}>
-                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-green-500 border-green-500' : inSession ? 'bg-blue-500/30 border-blue-500/50' : 'border-muted-foreground/50'
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-green-500 border-green-500' : inSession ? 'bg-yellow-500/15 border-yellow-500/30' : 'border-muted-foreground/50'
                                 }`}>
                                 {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
-                                {inSession && !isSelected && <CheckCircle className="w-3.5 h-3.5 text-blue-400" />}
+                                {inSession && !isSelected && <CheckCircle className="w-3.5 h-3.5 text-yellow-600" />}
                             </div>
                             <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                                 <span className="text-amber-500 font-bold text-xs">{initials(client.name)}</span>
@@ -945,7 +945,7 @@ export default function PresencaPage() {
                                 <p className="text-xs text-muted-foreground truncate">{client.email || 'Sem email'}</p>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                                {inSession && <Badge variant="outline" className="text-[10px] border-blue-500/50 text-blue-400">Em sessão</Badge>}
+                                {inSession && <Badge variant="outline" className="text-[10px] border-yellow-500/30 text-yellow-600">Em sessão</Badge>}
                                 {client.level && <Badge variant="outline" className="text-[10px]">{levelLabel(client.level)}</Badge>}
                             </div>
                         </div>

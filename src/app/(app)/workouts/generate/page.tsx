@@ -813,7 +813,7 @@ function GenerateWorkoutPage() {
                         : level.includes('ADV') || level.includes('AVAN') ? 'Avançado'
                         : ''
                       const levelColor = level.includes('BEGIN') || level.includes('INIC') ? 'bg-green-500/20 text-green-400'
-                        : level.includes('INTER') ? 'bg-blue-500/20 text-blue-400'
+                        : level.includes('INTER') ? 'bg-yellow-500/15 text-yellow-600'
                         : level.includes('ADV') || level.includes('AVAN') ? 'bg-purple-500/20 text-purple-400'
                         : 'bg-muted text-muted-foreground'
 
@@ -1077,21 +1077,21 @@ function GenerateWorkoutPage() {
 
             {/* Manual */}
             <Card
-              className={`cursor-pointer transition-all hover:border-blue-500/50 ${
-                generationMode === 'manual' ? 'border-blue-500 bg-blue-500/5' : ''
+              className={`cursor-pointer transition-all hover:border-yellow-500/30 ${
+                generationMode === 'manual' ? 'border-yellow-500 bg-yellow-500/15' : ''
               }`}
               onClick={() => setGenerationMode('manual')}
             >
               <CardContent className="p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
-                  <Pencil className="h-8 w-8 text-blue-500" />
+                <div className="w-16 h-16 rounded-full bg-yellow-500/15 flex items-center justify-center mx-auto mb-4">
+                  <Pencil className="h-8 w-8 text-yellow-600" />
                 </div>
                 <h3 className="font-semibold text-lg text-foreground mb-2">Manual</h3>
                 <p className="text-sm text-muted-foreground">
                   Edite o template: troque, remova ou adicione exercícios.
                 </p>
                 {generationMode === 'manual' && (
-                  <CheckCircle className="h-6 w-6 text-blue-500 mx-auto mt-3" />
+                  <CheckCircle className="h-6 w-6 text-yellow-600 mx-auto mt-3" />
                 )}
               </CardContent>
             </Card>
@@ -1135,13 +1135,13 @@ function GenerateWorkoutPage() {
                 const pillarColor = treino.pillar === 'PERNA'
                   ? 'from-amber-500/15 to-amber-600/5 border-amber-500/30'
                   : treino.pillar === 'EMPURRA'
-                  ? 'from-blue-500/15 to-blue-600/5 border-blue-500/30'
+                  ? 'from-yellow-600/15 to-yellow-400/5 border-yellow-500/30'
                   : 'from-purple-500/15 to-purple-600/5 border-purple-500/30'
                 const pillarAccent = treino.pillar === 'PERNA' ? 'text-amber-400 bg-amber-500'
-                  : treino.pillar === 'EMPURRA' ? 'text-blue-400 bg-blue-500'
+                  : treino.pillar === 'EMPURRA' ? 'text-yellow-600 bg-yellow-600'
                   : 'text-purple-400 bg-purple-500'
                 const pillarTextAccent = treino.pillar === 'PERNA' ? 'text-amber-400'
-                  : treino.pillar === 'EMPURRA' ? 'text-blue-400' : 'text-purple-400'
+                  : treino.pillar === 'EMPURRA' ? 'text-yellow-600' : 'text-purple-400'
                 const pillarEmoji = treino.pillar === 'PERNA' ? '🦵' : treino.pillar === 'EMPURRA' ? '💪' : '🔙'
 
                 return (
@@ -1624,7 +1624,7 @@ function GenerateWorkoutPage() {
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-border">
                   <span className="text-muted-foreground">Modo</span>
-                  <Badge className={generationMode === 'manual' ? 'bg-blue-500' : 'bg-emerald-500'}>
+                  <Badge className={generationMode === 'manual' ? 'bg-yellow-600' : 'bg-emerald-500'}>
                     {generationMode === 'auto' ? '🤖 Automático' : '✏️ Manual'}
                   </Badge>
                 </div>
@@ -1650,8 +1650,8 @@ function GenerateWorkoutPage() {
               )}
 
               {generationMode === 'manual' && editableTreinos.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                  <p className="text-xs text-blue-400 font-medium mb-1">Template Personalizado:</p>
+                <div className="mt-4 p-3 bg-yellow-500/15 border border-yellow-500/30 rounded-lg">
+                  <p className="text-xs text-yellow-600 font-medium mb-1">Template Personalizado:</p>
                   <div className="space-y-1">
                     {editableTreinos.map((t, i) => (
                       <p key={i} className="text-xs text-muted-foreground">

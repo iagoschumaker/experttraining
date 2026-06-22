@@ -122,8 +122,8 @@ export default function SuperAdminFinanceiroPage() {
           value={totalTrainers}
           subtitle="Base de cobrança"
           icon={<Users className="h-4 w-4" />}
-          iconColor="text-blue-500"
-          iconBgColor="bg-blue-500/10"
+          iconColor="text-yellow-600"
+          iconBgColor="bg-yellow-500/15"
         />
         <StatsCard
           title="Studios Ativos"
@@ -210,8 +210,8 @@ export default function SuperAdminFinanceiroPage() {
         <Link href="/superadmin/financeiro/dre">
           <Card className="bg-card border-border hover:border-emerald-500/30 transition-colors cursor-pointer">
             <CardContent className="pt-6 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
+              <div className="p-2 rounded-lg bg-yellow-500/15">
+                <TrendingUp className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
                 <p className="font-medium text-sm">DRE</p>

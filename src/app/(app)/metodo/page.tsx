@@ -32,8 +32,8 @@ const LEVELS = [
     key: 'CONDICIONAMENTO',
     label: 'Condicionamento',
     icon: Heart,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/20',
+    color: 'text-yellow-600',
+    bg: 'bg-yellow-500/15 border-yellow-500/30',
     description: 'Base para todos os alunos. 2 fases de adaptação e condicionamento geral.',
     phases: ['Condicionamento 1', 'Condicionamento 2'],
   },
@@ -126,11 +126,11 @@ export default function MetodoPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-blue-500/5 border-blue-500/20">
+        <Card className="bg-yellow-500/15 border-yellow-500/30">
           <CardContent className="p-4 flex items-start gap-3">
-            <TrendingUp className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+            <TrendingUp className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-blue-400 text-sm">Progressão de Carga</p>
+              <p className="font-medium text-yellow-600 text-sm">Progressão de Carga</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Volume e intensidade aumen­tam semana a semana dentro da mesma fase.
               </p>

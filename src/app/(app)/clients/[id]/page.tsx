@@ -601,7 +601,7 @@ export default function ClientDetailPage() {
               <Badge className={(() => {
                 const l = client.level || 'INICIANTE'
                 if (l === 'AVANCADO') return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                if (l === 'INTERMEDIARIO') return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                if (l === 'INTERMEDIARIO') return 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30'
                 return 'bg-green-500/20 text-green-400 border-green-500/30'
               })()}>
                 {client.level === 'AVANCADO' ? 'Avançado' :
@@ -622,7 +622,7 @@ export default function ClientDetailPage() {
 
         const statusConfig: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
           ADIMPLENTE:     { label: '✓ Adimplente',    cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: <CheckCircle className="h-4 w-4 text-emerald-500" /> },
-          ADIANTADO:      { label: '⭐ Adiantado',     cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30',         icon: <Star className="h-4 w-4 text-blue-500" /> },
+          ADIANTADO:      { label: '⭐ Adiantado',     cls: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',         icon: <Star className="h-4 w-4 text-yellow-600" /> },
           INADIMPLENTE:   { label: '⚠ Inadimplente',  cls: 'bg-red-500/20 text-red-400 border-red-500/30',            icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
           PENDENTE:       { label: '⏳ Pendente',      cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30',       icon: <Clock className="h-4 w-4 text-amber-500" /> },
           SEM_MENSALIDADE:{ label: 'Sem mensalidade',  cls: 'bg-muted text-muted-foreground border-border',             icon: <CreditCard className="h-4 w-4 text-muted-foreground" /> },
@@ -630,7 +630,7 @@ export default function ClientDetailPage() {
         const cfg = statusConfig[fin.status] ?? statusConfig['SEM_MENSALIDADE']
 
         return (
-          <Card className={`border ${fin.status === 'INADIMPLENTE' ? 'border-red-500/30 bg-red-500/5' : fin.status === 'ADIANTADO' ? 'border-blue-500/20' : 'border-border'}`}>
+          <Card className={`border ${fin.status === 'INADIMPLENTE' ? 'border-red-500/30 bg-red-500/5' : fin.status === 'ADIANTADO' ? 'border-yellow-500/30' : 'border-border'}`}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <CreditCard className="h-5 w-5 text-emerald-500" />
@@ -668,8 +668,8 @@ export default function ClientDetailPage() {
                     </div>
                   )}
                   {fin.creditMonths >= 2 && (
-                    <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 col-span-2">
-                      <div className="text-xs text-blue-400 font-medium">⭐ {fin.creditMonths} meses pagos antecipadamente</div>
+                    <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/15 p-3 col-span-2">
+                      <div className="text-xs text-yellow-600 font-medium">⭐ {fin.creditMonths} meses pagos antecipadamente</div>
                     </div>
                   )}
                 </div>
@@ -821,7 +821,7 @@ export default function ClientDetailPage() {
                     {[
                       { label: 'Feitas', val: stats.sessionsCompleted, color: 'text-green-400' },
                       { label: 'Restam', val: stats.remaining, color: 'text-amber-400' },
-                      { label: '/semana', val: `${stats.sessionsPerWeek}x`, color: 'text-blue-400' },
+                      { label: '/semana', val: `${stats.sessionsPerWeek}x`, color: 'text-yellow-600' },
                       { label: 'Freq.', val: `${pct}%`, color: pct >= 85 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-red-400' },
                     ].map(s => (
                       <div key={s.label} className="rounded-lg border p-2 text-center">
@@ -1216,8 +1216,8 @@ export default function ClientDetailPage() {
               ? (bf < 6 ? 'Essencial' : bf < 14 ? 'Atleta' : bf < 18 ? 'Bom' : bf < 25 ? 'Normal' : 'Acima')
               : (bf < 14 ? 'Essencial' : bf < 21 ? 'Atleta' : bf < 25 ? 'Bom' : bf < 32 ? 'Normal' : 'Acima')
             const bfColor = gender === 'M'
-              ? (bf < 6 ? 'text-blue-400' : bf < 14 ? 'text-green-400' : bf < 18 ? 'text-emerald-400' : bf < 25 ? 'text-yellow-400' : 'text-red-400')
-              : (bf < 14 ? 'text-blue-400' : bf < 21 ? 'text-green-400' : bf < 25 ? 'text-emerald-400' : bf < 32 ? 'text-yellow-400' : 'text-red-400')
+              ? (bf < 6 ? 'text-yellow-600' : bf < 14 ? 'text-green-400' : bf < 18 ? 'text-emerald-400' : bf < 25 ? 'text-yellow-400' : 'text-red-400')
+              : (bf < 14 ? 'text-yellow-600' : bf < 21 ? 'text-green-400' : bf < 25 ? 'text-emerald-400' : bf < 32 ? 'text-yellow-400' : 'text-red-400')
 
             return (
               <div className="space-y-4">
@@ -1267,7 +1267,7 @@ export default function ClientDetailPage() {
                   {/* Data Cards */}
                   <div className="flex-1 grid grid-cols-2 gap-2 w-full">
                     <div className="rounded-xl border p-3 text-center">
-                      <div className="text-xl font-bold text-blue-400">{w.toFixed(1)}<span className="text-xs">kg</span></div>
+                      <div className="text-xl font-bold text-yellow-600">{w.toFixed(1)}<span className="text-xs">kg</span></div>
                       <div className="text-xs text-muted-foreground">Peso</div>
                     </div>
                     <div className="rounded-xl border p-3 text-center">
@@ -1349,7 +1349,7 @@ export default function ClientDetailPage() {
           {/* ========== CIRCUNFERÊNCIAS ========== */}
           {(client.chest || client.waist || client.hip || client.abdomen || client.armRight || client.thighRight) && (() => {
             const measurements = [
-              { label: 'Peitoral', val: client.chest, color: 'from-blue-400 to-blue-500' },
+              { label: 'Peitoral', val: client.chest, color: 'from-yellow-600 to-yellow-400' },
               { label: 'Cintura', val: client.waist, color: 'from-purple-400 to-purple-500' },
               { label: 'Quadril', val: client.hip, color: 'from-pink-400 to-pink-500' },
               { label: 'Abdômen', val: client.abdomen, color: 'from-indigo-400 to-indigo-500' },
@@ -1528,7 +1528,7 @@ export default function ClientDetailPage() {
                 <div className="grid grid-cols-2 gap-4 mt-6 mb-6">
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-2 mb-4 bg-muted/50 px-3 py-1.5 rounded-full z-10 shadow-sm border border-border/50">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-600" />
                       <span className="text-xs font-bold text-foreground">{labelA}</span>
                     </div>
                     <div className="scale-75 origin-top -mb-[25%] w-full">
@@ -1549,7 +1549,7 @@ export default function ClientDetailPage() {
                 {/* Legend */}
                 <div className="flex items-center gap-4 text-[10px]">
                   <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-blue-500 to-blue-400" />
+                    <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-yellow-600 to-yellow-400" />
                     <span className="text-muted-foreground">{labelA}</span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -1583,7 +1583,7 @@ export default function ClientDetailPage() {
                             {/* Bar A */}
                             <div className="flex flex-col items-center w-[14px]">
                               <div
-                                className="w-full rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-500"
+                                className="w-full rounded-t-sm bg-gradient-to-t from-yellow-600 to-yellow-400 transition-all duration-500"
                                 style={{ height: `${hA}px` }}
                               />
                             </div>
@@ -1597,7 +1597,7 @@ export default function ClientDetailPage() {
                           </div>
                           {/* Values */}
                           <div className="text-[8px] text-center mt-1 leading-tight">
-                            <span className="text-blue-400 font-bold">{valA > 0 ? valA.toFixed(1) : '—'}</span>
+                            <span className="text-yellow-600 font-bold">{valA > 0 ? valA.toFixed(1) : '—'}</span>
                             <span className="text-muted-foreground mx-[1px]">/</span>
                             <span className="text-amber-400 font-bold">{valB > 0 ? valB.toFixed(1) : '—'}</span>
                           </div>
@@ -1616,7 +1616,7 @@ export default function ClientDetailPage() {
                       <thead>
                         <tr className="bg-muted/30">
                           <th className="text-left px-2 py-1 font-medium text-muted-foreground">Medida</th>
-                          <th className="text-right px-2 py-1 font-medium text-blue-400">{labelA}</th>
+                          <th className="text-right px-2 py-1 font-medium text-yellow-600">{labelA}</th>
                           <th className="text-right px-2 py-1 font-medium text-amber-400">{labelB}</th>
                           <th className="text-right px-2 py-1 font-medium text-muted-foreground">Δ</th>
                         </tr>

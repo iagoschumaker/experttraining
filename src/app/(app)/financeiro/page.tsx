@@ -134,7 +134,7 @@ export default function FinanceiroDashboardPage() {
             {monthNames[(data.period.month || 1) - 1]} de {data.period.year}
           </p>
         </div>
-        <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+        <Button variant="outline" className="border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/15"
           onClick={async () => {
             try {
               const entriesRes = await fetchWithAuth(`/api/studio/financeiro/entries?limit=200&page=1`)

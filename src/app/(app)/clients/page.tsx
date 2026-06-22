@@ -228,8 +228,8 @@ export default function ClientsPage() {
           title="Total de Alunos"
           value={total}
           icon={<Users className="h-4 w-4" />}
-          iconColor="text-blue-500"
-          iconBgColor="bg-blue-500/10"
+          iconColor="text-yellow-600"
+          iconBgColor="bg-yellow-500/15"
         />
       </StatsGrid>
 
@@ -238,7 +238,7 @@ export default function ClientsPage() {
         <button
           onClick={() => setActiveTab('all')}
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
-            activeTab === 'all' ? 'bg-blue-500/10 text-blue-400 border-b-2 border-blue-500' : 'text-muted-foreground hover:text-foreground'
+            activeTab === 'all' ? 'bg-yellow-500/15 text-yellow-600 border-b-2 border-yellow-500' : 'text-muted-foreground hover:text-foreground'
           }`}>
           <Users className="h-4 w-4" /> Todos
         </button>
@@ -543,7 +543,7 @@ export default function ClientsPage() {
                 <>
                   <Section title="Aniversário Hoje" icon="🎂" clients={today} color="text-pink-500" />
                   <Section title="Esta Semana" icon="🎉" clients={thisWeek} color="text-amber-400" />
-                  <Section title="Este Mês" icon="🎁" clients={thisMonth} color="text-blue-400" />
+                  <Section title="Este Mês" icon="🎁" clients={thisMonth} color="text-yellow-600" />
                   <Section title="Próximos" icon="📅" clients={later} color="text-muted-foreground" />
                   {noDate.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-border">

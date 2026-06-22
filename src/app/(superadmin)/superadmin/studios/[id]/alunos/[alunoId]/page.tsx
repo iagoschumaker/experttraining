@@ -427,7 +427,7 @@ export default function AlunoDetailsPage() {
                       <Badge className="bg-green-600">✅ Apto a reavaliar</Badge>
                     )}
                     {p.isComplete && (
-                      <Badge className="bg-blue-600">🏆 Programa completo</Badge>
+                      <Badge className="bg-yellow-600">🏆 Programa completo</Badge>
                     )}
                   </div>
                 </CardContent>
@@ -626,7 +626,7 @@ export default function AlunoDetailsPage() {
                           <div className="text-white font-medium">{formatDateTime(lesson.startedAt)}</div>
                           <div className="text-xs text-gray-400">{lesson.trainer.name}</div>
                         </div>
-                        <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
+                        <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-yellow-600'}>
                           {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
                         </Badge>
                       </div>
@@ -637,7 +637,7 @@ export default function AlunoDetailsPage() {
                         ) : lesson.status === 'CANCELLED' ? (
                           <span className="flex items-center gap-1 text-red-400 text-xs"><XCircle className="h-3 w-3" /> Cancelada</span>
                         ) : (
-                          <span className="text-blue-400 text-xs">Em andamento</span>
+                          <span className="text-yellow-600 text-xs">Em andamento</span>
                         )}
                       </div>
                     </div>
@@ -661,7 +661,7 @@ export default function AlunoDetailsPage() {
                           <TableCell className="text-white">{formatDateTime(lesson.startedAt)}</TableCell>
                           <TableCell className="text-gray-400">{lesson.trainer.name}</TableCell>
                           <TableCell>
-                            <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
+                            <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-yellow-600'}>
                               {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
                             </Badge>
                           </TableCell>
@@ -676,7 +676,7 @@ export default function AlunoDetailsPage() {
                                 <XCircle className="h-4 w-4" /> Cancelada
                               </span>
                             ) : (
-                              <span className="text-blue-400">Em andamento</span>
+                              <span className="text-yellow-600">Em andamento</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -858,8 +858,8 @@ export default function AlunoDetailsPage() {
                 {selectedAssessment.status === 'COMPLETED' ? (
                   <div className="space-y-4">
                     {/* Input JSON - Dados da Avaliação */}
-                    <div className="bg-indigo-950 rounded-lg p-4 border border-indigo-800">
-                      <div className="text-sm font-semibold text-indigo-300 mb-3">📋 Dados da Avaliação (Input)</div>
+                    <div className="bg-yellow-600 rounded-lg p-4 border border-indigo-800">
+                      <div className="text-sm font-semibold text-yellow-600 mb-3">📋 Dados da Avaliação (Input)</div>
 
                       {selectedAssessment.inputJson ? (
                         <>
@@ -933,7 +933,7 @@ export default function AlunoDetailsPage() {
                           {selectedAssessment.inputJson.level && (
                             <div className="mb-4">
                               <div className="text-xs text-gray-400 mb-2">🎯 Nível Avaliado</div>
-                              <Badge className="bg-indigo-600 text-sm">
+                              <Badge className="bg-yellow-600 text-sm">
                                 {selectedAssessment.inputJson.level}
                               </Badge>
                             </div>
@@ -987,7 +987,7 @@ export default function AlunoDetailsPage() {
                         <div className="bg-gray-950 rounded-lg p-4">
                           <div className="mb-3">
                             <div className="text-xs text-gray-500 mb-2">Foco Primário</div>
-                            <Badge className="bg-blue-500 text-sm">
+                            <Badge className="bg-yellow-600 text-sm">
                               {selectedAssessment.resultJson.primaryFocus?.replace(/_/g, ' ').toUpperCase() || 'N/A'}
                             </Badge>
                           </div>
@@ -996,7 +996,7 @@ export default function AlunoDetailsPage() {
                               <div className="text-xs text-gray-500 mb-2">Focos Secundários</div>
                               <div className="flex flex-wrap gap-2">
                                 {selectedAssessment.resultJson.secondaryFocus.map((focus: string, idx: number) => (
-                                  <Badge key={idx} variant="outline" className="border-blue-400 text-blue-400 text-xs">
+                                  <Badge key={idx} variant="outline" className="border-yellow-500 text-yellow-600 text-xs">
                                     {focus.replace(/_/g, ' ')}
                                   </Badge>
                                 ))}

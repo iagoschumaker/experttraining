@@ -471,7 +471,7 @@ export default function StudioDetailsPage() {
                           </Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                          <div><span className="text-gray-400">Role:</span> <Badge className={`${t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'} text-xs`}>{t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}</Badge></div>
+                          <div><span className="text-gray-400">Role:</span> <Badge className={`${t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-yellow-600'} text-xs`}>{t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}</Badge></div>
                           <div><span className="text-gray-400">Alunos:</span> {t.metrics.clients}</div>
                           <div><span className="text-gray-400">Aulas:</span> <span className={t.metrics.lessonsThisMonth > 0 ? 'text-green-400' : 'text-red-400'}>{t.metrics.lessonsThisMonth}</span></div>
                           <div><span className="text-gray-400">Avaliações:</span> {t.metrics.assessmentsThisMonth}</div>
@@ -514,7 +514,7 @@ export default function StudioDetailsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge className={t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
+                              <Badge className={t.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-yellow-600'}>
                                 {t.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
                               </Badge>
                             </TableCell>

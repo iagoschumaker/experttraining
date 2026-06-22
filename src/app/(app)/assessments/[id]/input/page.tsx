@@ -976,9 +976,9 @@ export default function AssessmentInputPage() {
 
               {/* ---- INBODY H20 ---- */}
               {compMethod === 'inbody' && (
-                <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-4">
+                <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 p-4 space-y-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-400 font-semibold text-sm">⚡ InBody H20 — Bioimpedância</span>
+                    <span className="text-yellow-600 font-semibold text-sm">⚡ InBody H20 — Bioimpedância</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Insira os valores exibidos no relatório do aparelho InBody H20</p>
 
@@ -1063,8 +1063,8 @@ export default function AssessmentInputPage() {
 
                   {/* Resultado InBody visual */}
                   {bodyMetrics.inbody?.fatPct && (
-                    <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-blue-400 font-semibold text-sm">
+                    <div className="rounded-lg bg-yellow-500/15 border border-yellow-500/30 p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-yellow-600 font-semibold text-sm">
                         <span>⚡</span> InBody H20 — Resumo
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1072,7 +1072,7 @@ export default function AssessmentInputPage() {
                           { val: `${bodyMetrics.inbody.fatPct?.toFixed(1)}%`, label: '% Gordura', color: 'text-red-400' },
                           { val: bodyMetrics.inbody.fatMassKg ? `${bodyMetrics.inbody.fatMassKg.toFixed(1)} kg` : '—', label: 'Massa Gorda', color: 'text-red-300' },
                           { val: bodyMetrics.inbody.leanMassKg ? `${bodyMetrics.inbody.leanMassKg.toFixed(1)} kg` : '—', label: 'Massa Magra', color: 'text-yellow-600' },
-                          { val: bodyMetrics.inbody.muscleMassKg ? `${bodyMetrics.inbody.muscleMassKg.toFixed(1)} kg` : '—', label: 'Musc. Esq.', color: 'text-blue-400' },
+                          { val: bodyMetrics.inbody.muscleMassKg ? `${bodyMetrics.inbody.muscleMassKg.toFixed(1)} kg` : '—', label: 'Musc. Esq.', color: 'text-yellow-600' },
                         ].map(({ val, label, color }) => (
                           <div key={label} className="text-center bg-background rounded-lg p-3">
                             <div className={`text-xl font-bold ${color}`}>{val}</div>
@@ -1084,7 +1084,7 @@ export default function AssessmentInputPage() {
                         <div className="grid grid-cols-3 gap-2 pt-1">
                           {bodyMetrics.inbody.totalWaterL && (
                             <div className="text-center text-xs">
-                              <span className="font-bold text-sky-400">{bodyMetrics.inbody.totalWaterL.toFixed(1)} L</span>
+                              <span className="font-bold text-yellow-500">{bodyMetrics.inbody.totalWaterL.toFixed(1)} L</span>
                               <span className="block text-muted-foreground">Água Total</span>
                             </div>
                           )}
@@ -1196,8 +1196,8 @@ export default function AssessmentInputPage() {
                       })
                     }}
                     className={`rounded-lg border-2 p-4 text-left transition-colors ${formData.level === level.value
-                      ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-border hover:border-blue-500'
+                      ? 'border-yellow-500 bg-yellow-500/15'
+                      : 'border-border hover:border-yellow-500'
                       }`}
                   >
                     <div className="font-medium">{level.label}</div>
@@ -1245,7 +1245,7 @@ export default function AssessmentInputPage() {
                   <div className="border-t border-border my-2" />
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Nível:</span>
-                    <Badge className="bg-blue-500">
+                    <Badge className="bg-yellow-600">
                       {formData.level === 'BEGINNER' ? 'Iniciante' : formData.level === 'INTERMEDIATE' ? 'Intermediário' : 'Avançado'}
                     </Badge>
                   </div>

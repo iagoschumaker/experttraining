@@ -25,14 +25,14 @@ import { PHASE_LABELS, LEVEL_LABELS, type TrainingPhase, type TrainingLevel } fr
 // ============================================================================
 
 const LEVEL_CONFIG: Record<string, { label: string; color: string; icon: any; bg: string }> = {
-  CONDICIONAMENTO: { label: 'Condicionamento', color: 'text-blue-400', icon: Heart, bg: 'bg-blue-500/10 border-blue-500/30' },
+  CONDICIONAMENTO: { label: 'Condicionamento', color: 'text-yellow-600', icon: Heart, bg: 'bg-yellow-500/15 border-yellow-500/30' },
   INICIANTE: { label: 'Iniciante', color: 'text-green-400', icon: Target, bg: 'bg-green-500/10 border-green-500/30' },
   INTERMEDIARIO: { label: 'Intermediário', color: 'text-yellow-400', icon: Zap, bg: 'bg-yellow-500/10 border-yellow-500/30' },
   AVANCADO: { label: 'Avançado', color: 'text-red-400', icon: ArrowUpRight, bg: 'bg-red-500/10 border-red-500/30' },
 }
 
 const PILLAR_COLORS: Record<string, string> = {
-  PERNA: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  PERNA: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
   EMPURRA: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   PUXA: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
 }
@@ -182,9 +182,9 @@ export default function SuperAdminPhasesPage() {
             <div className="text-xs text-muted-foreground">Templates</div>
           </CardContent>
         </Card>
-        <Card className="bg-blue-500/5 border-blue-500/20">
+        <Card className="bg-yellow-500/15 border-yellow-500/30">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400">{totalExercises}</div>
+            <div className="text-2xl font-bold text-yellow-600">{totalExercises}</div>
             <div className="text-xs text-muted-foreground">Exercícios</div>
           </CardContent>
         </Card>

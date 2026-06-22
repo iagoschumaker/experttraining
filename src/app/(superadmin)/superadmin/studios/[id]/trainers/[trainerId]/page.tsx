@@ -163,7 +163,7 @@ export default function TrainerDetailsPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-lg sm:text-2xl font-bold text-white truncate max-w-[180px] sm:max-w-none">{data.trainer.name}</h1>
-            <Badge className={data.trainer.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}>
+            <Badge className={data.trainer.role === 'STUDIO_ADMIN' ? 'bg-purple-500' : 'bg-yellow-600'}>
               {data.trainer.role === 'STUDIO_ADMIN' ? 'Admin' : 'Trainer'}
             </Badge>
             {!data.trainer.isActive && (
@@ -324,7 +324,7 @@ export default function TrainerDetailsPage() {
                           <div className="text-white font-medium">{formatDateTime(lesson.startedAt)}</div>
                           <div className="text-xs text-gray-400">{lesson.clients.map((c) => c.client.name).join(', ')}</div>
                         </div>
-                        <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
+                        <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-yellow-600'}>
                           {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
                         </Badge>
                       </div>
@@ -335,7 +335,7 @@ export default function TrainerDetailsPage() {
                         ) : lesson.status === 'CANCELLED' ? (
                           <span className="flex items-center gap-1 text-red-400 text-xs"><XCircle className="h-3 w-3" /> Cancelada</span>
                         ) : (
-                          <span className="text-blue-400 text-xs">Em andamento</span>
+                          <span className="text-yellow-600 text-xs">Em andamento</span>
                         )}
                       </div>
                     </div>
@@ -358,7 +358,7 @@ export default function TrainerDetailsPage() {
                         <TableRow key={lesson.id} className="border-gray-700">
                           <TableCell className="text-white">{formatDateTime(lesson.startedAt)}</TableCell>
                           <TableCell>
-                            <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-blue-500'}>
+                            <Badge className={lesson.type === 'GROUP' ? 'bg-purple-500' : 'bg-yellow-600'}>
                               {lesson.type === 'GROUP' ? 'Grupo' : 'Individual'}
                             </Badge>
                           </TableCell>
@@ -376,7 +376,7 @@ export default function TrainerDetailsPage() {
                                 <XCircle className="h-4 w-4" /> Cancelada
                               </span>
                             ) : (
-                              <span className="text-blue-400">Em andamento</span>
+                              <span className="text-yellow-600">Em andamento</span>
                             )}
                           </TableCell>
                         </TableRow>

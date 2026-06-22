@@ -401,10 +401,10 @@ export default function SuperAdminStudiosPage() {
                   <button
                     type="button"
                     onClick={() => setCreateType('PERSONAL_EXTERNO')}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${createType === 'PERSONAL_EXTERNO' ? 'border-indigo-500 bg-indigo-500/10' : 'border-border hover:border-border/80'}`}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${createType === 'PERSONAL_EXTERNO' ? 'border-indigo-500 bg-yellow-600/10' : 'border-border hover:border-border/80'}`}
                   >
-                    <User className={`h-6 w-6 ${createType === 'PERSONAL_EXTERNO' ? 'text-indigo-500' : 'text-muted-foreground'}`} />
-                    <span className={`text-sm font-medium ${createType === 'PERSONAL_EXTERNO' ? 'text-indigo-500' : 'text-muted-foreground'}`}>Personal Externo</span>
+                    <User className={`h-6 w-6 ${createType === 'PERSONAL_EXTERNO' ? 'text-yellow-600' : 'text-muted-foreground'}`} />
+                    <span className={`text-sm font-medium ${createType === 'PERSONAL_EXTERNO' ? 'text-yellow-600' : 'text-muted-foreground'}`}>Personal Externo</span>
                     <span className="text-xs text-muted-foreground text-center">Workspace individual, sem equipe</span>
                   </button>
                 </div>
@@ -477,9 +477,9 @@ export default function SuperAdminStudiosPage() {
                             placeholder="admin@studio.com"
                           />
                           {emailExists && (
-                            <div className="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20">
-                              <UserCheck className="h-4 w-4 text-blue-400" />
-                              <p className="text-xs text-blue-400">Usuário <strong>{existingUserName}</strong> já existe e será vinculado</p>
+                            <div className="flex items-center gap-2 p-2 rounded bg-yellow-500/15 border border-yellow-500/30">
+                              <UserCheck className="h-4 w-4 text-yellow-600" />
+                              <p className="text-xs text-yellow-600">Usuário <strong>{existingUserName}</strong> já existe e será vinculado</p>
                             </div>
                           )}
                         </div>
@@ -497,8 +497,8 @@ export default function SuperAdminStudiosPage() {
                 {/* Formulário: PERSONAL EXTERNO */}
                 {createType === 'PERSONAL_EXTERNO' && (
                   <div className="space-y-4">
-                    <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                      <p className="text-xs text-indigo-400">O personal terá um workspace próprio com seus alunos. Se o email já existir no sistema, o workspace será adicionado à conta existente.</p>
+                    <div className="p-3 rounded-lg bg-yellow-600/10 border border-indigo-500/20">
+                      <p className="text-xs text-yellow-600">O personal terá um workspace próprio com seus alunos. Se o email já existir no sistema, o workspace será adicionado à conta existente.</p>
                     </div>
 
                     <div className="space-y-2">
@@ -586,7 +586,7 @@ export default function SuperAdminStudiosPage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className={createType === 'PERSONAL_EXTERNO' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-accent text-accent-foreground hover:bg-accent/90'}
+                  className={createType === 'PERSONAL_EXTERNO' ? 'bg-yellow-600 hover:bg-yellow-600 text-white' : 'bg-accent text-accent-foreground hover:bg-accent/90'}
                 >
                   {saving ? 'Salvando...' : createType === 'PERSONAL_EXTERNO' ? 'Criar Workspace' : 'Criar Studio'}
                 </Button>
@@ -682,7 +682,7 @@ export default function SuperAdminStudiosPage() {
                         <TableCell className="font-medium text-foreground">
                           <div className="flex items-center gap-2">
                             {s.studioType === 'PERSONAL_EXTERNO'
-                              ? <User className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                              ? <User className="h-4 w-4 text-yellow-600 flex-shrink-0" />
                               : <Building2 className="h-4 w-4 text-amber-400 flex-shrink-0" />
                             }
                             <div>
@@ -827,9 +827,9 @@ export default function SuperAdminStudiosPage() {
                       placeholder="dono@studio.com (opcional)"
                     />
                     {linkEmailExists && linkAdminEmail && (
-                      <div className="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20">
-                        <UserCheck className="h-4 w-4 text-blue-400" />
-                        <p className="text-xs text-blue-400">Usuário <strong>{linkExistingName}</strong> já existe e será vinculado</p>
+                      <div className="flex items-center gap-2 p-2 rounded bg-yellow-500/15 border border-yellow-500/30">
+                        <UserCheck className="h-4 w-4 text-yellow-600" />
+                        <p className="text-xs text-yellow-600">Usuário <strong>{linkExistingName}</strong> já existe e será vinculado</p>
                       </div>
                     )}
                   </div>

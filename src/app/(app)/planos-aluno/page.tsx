@@ -260,7 +260,7 @@ export default function StudioClientPlansPage() {
                   <p className="text-xl font-bold text-emerald-400 mt-1">{fmt(plan.price)}<span className="text-xs text-muted-foreground font-normal">/{CYCLE_LABELS[plan.billingCycle]?.toLowerCase()}</span></p>
                   {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
                   <p className="text-xs text-muted-foreground mt-1"><Calendar className="h-3 w-3 inline mr-1" />{plan.durationDays} dias</p>
-                  {plan.isTrial && <Badge className="bg-blue-500/20 text-blue-400 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
+                  {plan.isTrial && <Badge className="bg-yellow-500/15 text-yellow-600 text-xs mt-1">Trial {plan.trialDays}d</Badge>}
                 </CardContent>
               </Card>
             ))}

@@ -448,7 +448,7 @@ export default function LancamentosPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-blue-400" />
+                      <Calendar className="h-4 w-4 text-yellow-600" />
                       {MONTH_NAMES[mo - 1]} {yr}
                       <Badge className="bg-muted text-muted-foreground text-[10px] ml-1">{monthEntries.length}</Badge>
                     </CardTitle>
@@ -489,7 +489,7 @@ export default function LancamentosPage() {
                             </p>
                           </div>
                           {entry.recurrenceId && (
-                            <Badge className="bg-blue-500/20 text-blue-400 text-[10px] ml-2 flex-shrink-0">
+                            <Badge className="bg-yellow-500/15 text-yellow-600 text-[10px] ml-2 flex-shrink-0">
                               <RefreshCw className="h-3 w-3 mr-1" /> Recorrente
                             </Badge>
                           )}
@@ -535,7 +535,7 @@ export default function LancamentosPage() {
                               <XCircle className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-blue-400 opacity-0 group-hover:opacity-100"
+                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-yellow-600 opacity-0 group-hover:opacity-100"
                             onClick={() => handleOpenEdit(entry)} title="Editar lançamento">
                             <Edit className="h-4 w-4" />
                           </Button>

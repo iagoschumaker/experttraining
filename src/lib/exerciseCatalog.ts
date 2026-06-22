@@ -166,6 +166,6 @@ export function getExercisesForPosition(
 
 export const POSITION_LABELS: Record<number, { label: string; icon: string; color: string }> = {
   0: { label: 'Principal (Padrão Motor)', icon: '🎯', color: 'text-amber-400' },
-  1: { label: 'Complementar / Acessório', icon: '🔄', color: 'text-blue-400' },
+  1: { label: 'Complementar / Acessório', icon: '🔄', color: 'text-yellow-600' },
   2: { label: 'Core / Estabilização', icon: '⚡', color: 'text-purple-400' },
 }
