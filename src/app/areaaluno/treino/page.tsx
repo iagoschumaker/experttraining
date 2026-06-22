@@ -335,7 +335,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;f
     </div>
   </div>
   <div class="header-right">
-    <strong>Método Expert Pro Training</strong>
+    <strong>Método Kinex Performance</strong>
     <p>Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
   </div>
   </div>
@@ -344,7 +344,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;f
 ${schedule?.weeks?.map((w: any, idx: number) => genWeek(w, idx === schedule.weeks.length - 1)).join('') || ''}
 </main>
 <footer class="pdf-footer">
-  <p>METODOLOGIA Expert Pro Training</p>
+  <p>METODOLOGIA Kinex Performance</p>
 </footer>
 </body></html>`
 

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -64,14 +64,14 @@ function LoginForm() {
     <div className="w-full max-w-md space-y-8">
       {/* Logo */}
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-6 shadow-lg shadow-primary/50">
-          <Dumbbell className="w-10 h-10 text-white" />
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl mb-6 shadow-lg overflow-hidden">
+          <img src="/kinex-logo.jpg" alt="Kinex Performance" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          EXPERT PRO TRAINING
+          Kinex Performance
         </h1>
         <p className="text-muted-foreground">
-          Método de treino funcional híbrido
+          Plataforma de gestão para studios e personal trainers
         </p>
       </div>
 
@@ -122,7 +122,7 @@ function LoginForm() {
                   Senha
                 </Label>
                 <a
-                  href="https://wa.me/5517997141326?text=Olá,%20esqueci%20minha%20senha%20do%20Expert%20Training"
+                  href="https://wa.me/5517997141326?text=Olá,%20esqueci%20minha%20senha%20do%20Kinex%20Performance"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-primary hover:underline"
@@ -184,7 +184,7 @@ function LoginForm() {
 
       {/* Footer */}
       <p className="text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} EXPERT PRO TRAINING. Todos os direitos reservados.
+        © {new Date().getFullYear()} Kinex Performance. Todos os direitos reservados.
       </p>
     </div>
   )

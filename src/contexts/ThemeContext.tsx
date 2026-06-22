@@ -24,7 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true)
     // Carregar tema do localStorage
-    const savedTheme = localStorage.getItem('expert-training-theme') as Theme
+    const savedTheme = localStorage.getItem('kinex-performance-theme') as Theme
     if (savedTheme) {
       setTheme(savedTheme)
       document.documentElement.classList.toggle('dark', savedTheme === 'dark')
@@ -34,7 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
     setTheme(newTheme)
-    localStorage.setItem('expert-training-theme', newTheme)
+    localStorage.setItem('kinex-performance-theme', newTheme)
     document.documentElement.classList.toggle('dark', newTheme === 'dark')
   }
 

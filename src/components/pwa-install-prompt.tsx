@@ -61,7 +61,7 @@ export function PWAInstallPrompt() {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-foreground mb-1">
-              Instalar Expert Training
+              Instalar Kinex Performance
             </h3>
             <p className="text-xs text-muted-foreground mb-3">
               Adicione o app à tela inicial para acesso rápido e melhor experiência

@@ -315,7 +315,7 @@ ${data.topCategories.length > 0 ? `
 </div>
 
 <div style="text-align:center;margin-top:15px;font-size:6pt;color:#999;border-top:1px solid #e5e7eb;padding-top:8px">
-  ${data.studio.name} — Relatório gerado em ${new Date().toLocaleString('pt-BR')} — Expert Pro Training
+  ${data.studio.name} — Relatório gerado em ${new Date().toLocaleString('pt-BR')} — Kinex Performance
 </div>
 
 </body></html>`

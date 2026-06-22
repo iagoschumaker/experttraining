@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import './print.css'
@@ -20,20 +20,20 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'EXPERT PRO TRAINING',
-    template: '%s | EXPERT PRO TRAINING',
+    default: 'Kinex Performance',
+    template: '%s | Kinex Performance',
   },
-  description: 'Sistema de treino funcional híbrido baseado em padrões de movimento e capacidades físicas',
-  keywords: ['treino funcional', 'método expert', 'avaliação física', 'personal trainer'],
+  description: 'Sistema de gestão completo para Studios e Personal Trainers — Kinex Performance',
+  keywords: ['treino funcional', 'kinex performance', 'avaliação física', 'personal trainer'],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Expert Training',
+    title: 'Kinex Performance',
   },
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
+    icon: '/kinex-logo.jpg',
+    apple: '/kinex-logo.jpg',
   },
 }
 

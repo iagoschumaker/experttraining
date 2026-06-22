@@ -340,7 +340,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
       {/* Print Header - Only visible when printing */}
       <div className="print-only print-header">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Expert Training</h1>
+          <h1 className="text-2xl font-bold">Kinex Performance</h1>
           <p className="text-sm text-gray-600">Sistema de Treino Funcional</p>
         </div>
         <div className="border-t border-b py-4 mb-6">
@@ -1173,7 +1173,7 @@ export default function WorkoutDetailPage({ params }: { params: { id: string } }
 
       {/* Print Footer - Only visible when printing */}
       <div className="print-only print-footer">
-        <p>Expert Training - Sistema de Treino Funcional | www.experttraining.com.br</p>
+        <p>Kinex Performance - Sistema de Treino Funcional | www.kinexperformance.com.br</p>
         <p>Documento gerado em {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       </div>
     </div>

@@ -4,7 +4,7 @@
 // EXPERT TRAINING - CLIENT EVOLUTION COMPONENT (JUBA METHOD)
 // ============================================================================
 // Exibe evolução completa: composição corporal, gráficos Recharts, insights,
-// medidas ao longo do tempo, cards do Método Expert Training
+// medidas ao longo do tempo, cards do Método Kinex Performance
 // ============================================================================
 
 import { useEffect, useState } from 'react'
@@ -330,7 +330,7 @@ export function ClientEvolution({ clientId }: ClientEvolutionProps) {
         <div className="flex items-center gap-3">
           <Activity className="h-6 w-6 text-amber-500" />
           <div>
-            <h2 className="text-xl font-bold">Evolução & Método Expert Training</h2>
+            <h2 className="text-xl font-bold">Evolução & Método Kinex Performance</h2>
             <p className="text-sm text-muted-foreground">
               {client.goalType ? GOAL_LABELS[client.goalType] : 'Meta não definida'}
               {client.goalWeight ? ` • Meta: ${client.goalWeight} kg` : ''}

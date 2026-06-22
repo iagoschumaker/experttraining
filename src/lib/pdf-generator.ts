@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;f
     </div>
   </div>
   <div style="text-align:right;font-size:7pt;color:#666">
-    <b style="display:block;font-size:8pt;color:#333">Expert Pro Training</b>
+    <b style="display:block;font-size:8pt;color:#333">Kinex Performance</b>
     ${new Date().toLocaleDateString('pt-BR')}
   </div>
 </div>

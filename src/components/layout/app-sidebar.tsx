@@ -205,11 +205,13 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
         <div className="flex items-center justify-between h-16 px-4 relative z-50">
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${studioType === 'PERSONAL_EXTERNO' ? 'bg-indigo-500' : 'bg-amber-500'}`}>
-                <span className="text-white font-bold text-sm">{studioType === 'PERSONAL_EXTERNO' ? 'PE' : 'ET'}</span>
-              </div>
-              <span className="font-semibold text-foreground text-xs leading-tight">
-                {studioType === 'PERSONAL_EXTERNO' ? 'MEU WORKSPACE' : 'EXPERT PRO TRAINING'}
+              <img
+                src="/kinex-logo.jpg"
+                alt="Kinex Performance"
+                className="w-8 h-8 rounded-lg object-cover"
+              />
+              <span className="font-bold text-foreground text-sm leading-tight tracking-wide">
+                KINEX PERFORMANCE
               </span>
             </Link>
           )}

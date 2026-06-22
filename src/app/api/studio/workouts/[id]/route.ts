@@ -185,7 +185,7 @@ export async function GET(
     const enrichedSchedule = schedule ? {
       ...schedule,
       mainFocus,
-      methodology: schedule.methodology || 'Método Expert Training',
+      methodology: schedule.methodology || 'Método Kinex Performance',
       weeks: schedule.weeks?.map((week: any) => ({
         ...week,
         sessions: week.sessions?.map((session: any) => {
@@ -199,7 +199,7 @@ export async function GET(
 
           if (hasCorrectFormat) return session
 
-          // Gerar blocos no formato Método Expert Training (treinos muito antigos)
+          // Gerar blocos no formato Método Kinex Performance (treinos muito antigos)
           const expertBlocks = generateExpertBlocks(mainFocus)
 
           // Gerar preparação se não existir (com exercícios específicos baseados no foco)

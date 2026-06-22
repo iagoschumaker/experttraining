@@ -7,7 +7,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Área do Aluno | EXPERT PRO TRAINING',
+  title: 'Área do Aluno | Kinex Performance',
   description: 'Acesse seu treino personalizado',
 }
 

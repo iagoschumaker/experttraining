@@ -46,7 +46,7 @@ import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface Entry {
   id: string
-  type: 'RECEITA' | 'DESPESA'
+  type: 'RECEITA' | 'DESPESA' | 'CUSTO'
   description: string
   amount: number
   date: string

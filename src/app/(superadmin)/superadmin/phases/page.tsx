@@ -170,7 +170,7 @@ export default function SuperAdminPhasesPage() {
           Catálogo de Fases
         </h1>
         <p className="text-sm text-muted-foreground">
-          Templates de treino do Método Expert Training — extraídos das planilhas oficiais
+          Templates de treino do Método Kinex Performance — extraídos das planilhas oficiais
         </p>
       </div>
 

@@ -1419,7 +1419,7 @@ export default function ClientDetailPage() {
             const idxA = compareIdxA >= 0 && compareIdxA < evals.length ? compareIdxA : 0
             const idxB = compareIdxB >= 0 && compareIdxB < evals.length ? compareIdxB : evals.length - 1
 
-            const flattenMetrics = (bm: any, computed: any) => {
+            const flattenMetrics = (bm: any, computed: any): Record<string, any> => {
               if (!bm) return {}
               return {
                 weight: bm.weight,
@@ -1532,7 +1532,7 @@ export default function ClientDetailPage() {
                       <span className="text-xs font-bold text-foreground">{labelA}</span>
                     </div>
                     <div className="scale-75 origin-top -mb-[25%] w-full">
-                      <BodySilhouette gender={client.gender} {...dataA} compact={true} />
+                      <BodySilhouette gender={client.gender as 'M' | 'F' | null} {...dataA} compact={true} />
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
@@ -1541,7 +1541,7 @@ export default function ClientDetailPage() {
                       <span className="text-xs font-bold text-foreground">{labelB}</span>
                     </div>
                     <div className="scale-75 origin-top -mb-[25%] w-full">
-                      <BodySilhouette gender={client.gender} {...dataB} compact={true} />
+                      <BodySilhouette gender={client.gender as 'M' | 'F' | null} {...dataB} compact={true} />
                     </div>
                   </div>
                 </div>

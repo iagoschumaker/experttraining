@@ -94,7 +94,7 @@ export default function SuperAdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Visão geral do sistema EXPERT PRO TRAINING
+          Visão geral do sistema Kinex Performance
         </p>
       </div>
 

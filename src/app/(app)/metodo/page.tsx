@@ -106,7 +106,7 @@ export default function MetodoPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
           <BookOpen className="h-7 w-7 text-amber-500" />
-          Método Expert Training
+          Método Kinex Performance
         </h1>
         <p className="text-muted-foreground mt-1">
           Periodização por fases — cada fase dura 6 semanas com exercícios fixos e progressão de carga.

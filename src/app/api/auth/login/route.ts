@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - LOGIN API
 // ============================================================================
 // POST /api/auth/login
@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
       studioName: us.studio.name,
       studioSlug: us.studio.slug,
       studioStatus: us.studio.status as 'ACTIVE' | 'SUSPENDED',
+      studioType: ((us.studio as any).studioType || 'ACADEMIA') as 'ACADEMIA' | 'PERSONAL_EXTERNO',
       role: us.role as 'STUDIO_ADMIN' | 'TRAINER',
       joinedAt: us.joinedAt,
     }))

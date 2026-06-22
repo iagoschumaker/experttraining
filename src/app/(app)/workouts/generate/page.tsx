@@ -676,7 +676,7 @@ function GenerateWorkoutPage() {
               Gerar Treino
             </h1>
             <p className="text-sm text-muted-foreground">
-              Método Expert Pro Training
+              Método Kinex Performance
             </p>
           </div>
         </div>

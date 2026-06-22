@@ -1,23 +1,23 @@
 {
-  "name": "Expert Training",
-  "short_name": "Expert Training",
-  "description": "Sistema de gestão de treinos e alunos para personal trainers",
+  "name": "Kinex Performance",
+  "short_name": "Kinex",
+  "description": "Sistema de gestão completo para Studios e Personal Trainers",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F1215",
-  "theme_color": "#00C2D1",
+  "theme_color": "#F59E0B",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/kinex-logo.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/kinex-logo.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ],
