@@ -10,85 +10,69 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Shadcn compatibility
+        // Shadcn/UI — CSS Variables (tema claro/escuro via globals.css)
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        
-        // Expert Training Design System
-        // Base Backgrounds
-        'bg-primary': {
-          DEFAULT: '#0F1215', // Dark: Cinza carvão
-          light: '#FFFFFF',   // Light: Branco
-        },
-        'bg-secondary': {
-          DEFAULT: '#151A1F', // Dark: Cinza grafite
-          light: '#F5F7FA',   // Light: Cinza muito claro
-        },
-        'surface': {
-          DEFAULT: '#1C232B', // Dark: Cards/containers
-          light: '#FFFFFF',   // Light: Cards
-          hover: '#2A333D',   // Dark: Hover state
-        },
-        'border-color': {
-          DEFAULT: '#2A333D', // Dark: Bordas
-          light: '#E2E8F0',   // Light: Bordas
-          divider: '#323C47', // Dark: Divisores
-        },
-        
-        // Expert Training Primary (Azul Ciano)
+
+        // =============================================
+        // KINEX PERFORMANCE — Paleta da Proposta Premium
+        // Fonte: docs/proposta-juba/style.css
+        // =============================================
+
+        // Primary: Gold — cor exata da proposta
         primary: {
-          DEFAULT: '#00C2D1',
-          hover: '#00A9B6',
-          active: '#008E99',
-          focus: '#33D6E2',
-          foreground: '#FFFFFF',
+          DEFAULT: 'hsl(var(--primary))',       // #d4a830 via CSS var
+          foreground: 'hsl(var(--primary-foreground))',
+          // Variantes fixas para uso direto
+          gold: '#d4a830',
+          light: '#f0d060',
+          dim: 'rgba(212, 168, 48, 0.15)',
+          border: 'rgba(212, 168, 48, 0.35)',
+          glow: 'rgba(212, 168, 48, 0.25)',
         },
-        
-        // Expert Training Accent (Amarelo Mostarda)
-        accent: {
-          DEFAULT: '#F2B705',
-          hover: '#D9A404',
-          soft: '#3A2E0A',
-          'soft-light': '#FFF4CC',
-          foreground: '#000000',
+
+        // Backgrounds — da proposta
+        'kinex-black': {
+          deep: '#0a0a0a',    // --black-deep
+          soft: '#111111',    // --black-soft
+          card: '#161616',    // --black-card
+          border: '#222222',  // --black-border
         },
-        
-        // Text colors
-        'text-primary': {
-          DEFAULT: '#E6EAF0', // Dark: Branco suave
-          light: '#0F172A',   // Light: Cinza muito escuro
+
+        // Grays — da proposta
+        'kinex-gray': {
+          muted: '#6b6b6b',   // --gray-muted
+          light: '#9a9a9a',   // --gray-light
         },
-        'text-secondary': {
-          DEFAULT: '#AEB6C2', // Dark: Cinza claro
-          light: '#475569',   // Light: Cinza médio
+
+        // Whites — da proposta
+        'kinex-white': {
+          pure: '#ffffff',
+          soft: '#f0f0f0',    // --white-soft
         },
-        'text-disabled': {
-          DEFAULT: '#7A8491', // Dark: Cinza opaco
-          light: '#94A3B8',   // Light: Cinza claro
-        },
-        
-        // Status colors
+
+        // Status
         success: {
           DEFAULT: '#22C55E',
-          foreground: '#FFFFFF',
+          foreground: '#ffffff',
         },
         warning: {
-          DEFAULT: '#F2B705',
-          foreground: '#000000',
+          DEFAULT: '#d4a830',   // usa o gold, não amarelo neutro
+          foreground: '#0a0a0a',
         },
         error: {
           DEFAULT: '#EF4444',
-          foreground: '#FFFFFF',
+          foreground: '#ffffff',
         },
         info: {
-          DEFAULT: '#00C2D1',
-          foreground: '#FFFFFF',
+          DEFAULT: '#d4a830',   // gold no lugar do cyan
+          foreground: '#0a0a0a',
         },
-        
-        // Shadcn required colors
+
+        // Shadcn required
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
@@ -100,6 +84,10 @@ const config: Config = {
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
         },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
@@ -116,7 +104,7 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'monospace'],
       },
       keyframes: {
