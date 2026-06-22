@@ -13,13 +13,15 @@ import { verifyAccessToken, getAccessTokenCookie } from '@/lib/auth'
 
 // Validation schema
 const createStudioSchema = z.object({
+  studioType: z.enum(['ACADEMIA', 'PERSONAL_EXTERNO']).default('ACADEMIA'),
   name: z.string().min(1, 'Nome é obrigatório'),
-  slug: z.string().min(1, 'Slug é obrigatório').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
-  planId: z.string().min(1, 'Plano é obrigatório'),
+  slug: z.string().min(1, 'Slug é obrigatório').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens').optional(),
+  planId: z.string().min(1, 'Plano é obrigatório').optional(),
   status: z.enum(['ACTIVE', 'SUSPENDED']).default('ACTIVE'),
   modules: z.array(z.string()).optional().default(['TREINO']),
   adminEmail: z.string().email('Email inválido'),
   adminPassword: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional(),
+  adminName: z.string().optional(),
 })
 
 // Middleware to check superadmin
@@ -91,9 +93,15 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // Include studioType in each studio (workaround for Prisma type issues)
+    const studiosWithType = studios.map((s: any) => ({
+      ...s,
+      studioType: s.studioType || 'ACADEMIA',
+    }))
+
     // Enrich with usage metrics
     const enrichedStudios = await Promise.all(
-      studios.map(async (studio: typeof studios[0]) => {
+      studiosWithType.map(async (studio: any) => {
         // Count lessons this month
         const lessonsThisMonth = await prisma.lesson.count({
           where: {
@@ -183,16 +191,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, slug, planId, status, modules, adminEmail, adminPassword } = validation.data
+    const { studioType, name, planId, status, modules, adminEmail, adminPassword, adminName } = validation.data
 
-    // Check if slug already exists
-    const existingStudio = await prisma.studio.findUnique({
-      where: { slug },
-    })
+    // Derive slug: provided or auto-generated from name
+    const rawSlug = validation.data.slug || name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
-    if (existingStudio) {
+    // Ensure slug is unique (append suffix if needed)
+    let slug = rawSlug
+    const existing = await prisma.studio.findUnique({ where: { slug } })
+    if (existing) {
+      slug = `${rawSlug}-${Date.now().toString(36)}`
+    }
+
+    // For ACADEMIA, planId is required
+    if (studioType === 'ACADEMIA' && !planId) {
       return NextResponse.json(
-        { success: false, error: 'Slug já está em uso' },
+        { success: false, error: 'Plano é obrigatório para Academia' },
         { status: 400 }
       )
     }
@@ -213,11 +227,12 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      const displayName = adminName || name
       const passwordHash = await bcrypt.hash(adminPassword, 10)
-      
+
       user = await prisma.user.create({
         data: {
-          name: name, // Use studio name as initial user name
+          name: displayName,
           email: adminEmail,
           passwordHash,
           isSuperAdmin: false,
@@ -227,15 +242,19 @@ export async function POST(request: NextRequest) {
       userWasCreated = true
     }
 
+    // For PERSONAL_EXTERNO: studio name defaults to personal's name if not set differently
+    const studioName = studioType === 'PERSONAL_EXTERNO' ? (adminName || user.name || name) : name
+
     // Create studio
     const studio = await prisma.studio.create({
       data: {
-        name,
+        name: studioName,
         slug,
-        planId,
+        planId: planId || null,
         status,
         modules,
-      },
+        studioType,
+      } as any,
     })
 
     // Link user to studio as STUDIO_ADMIN
@@ -256,6 +275,7 @@ export async function POST(request: NextRequest) {
         entityId: studio.id,
         metadata: {
           adminEmail,
+          studioType,
           userCreated: userWasCreated,
         },
       },

@@ -22,6 +22,7 @@ import {
   BarChart2,
   FolderTree,
   CreditCard,
+  BadgeDollarSign,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -78,6 +79,12 @@ const sidebarLinks: SidebarLink[] = [
     module: 'FINANCEIRO',
   },
   {
+    href: '/financeiro/mensalidades',
+    label: 'Mensalidades',
+    icon: <BadgeDollarSign className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
     href: '/financeiro/contas-pagar',
     label: 'Contas a Pagar',
     icon: <TrendingDown className="w-5 h-5" />,
@@ -128,6 +135,7 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
   const [internalMobileOpen, setInternalMobileOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [studioModules, setStudioModules] = useState<string[]>(['TREINO'])
+  const [studioType, setStudioType] = useState<'ACADEMIA' | 'PERSONAL_EXTERNO'>('ACADEMIA')
 
   const isMobileOpen = externalMobileOpen ?? internalMobileOpen
   const setIsMobileOpen = onMobileOpenChange ?? setInternalMobileOpen
@@ -141,9 +149,11 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
 
         if (data.success && data.data.currentStudio) {
           setUserRole(data.data.currentStudio.role)
-          // Buscar módulos do studio
           if (data.data.currentStudio.modules) {
             setStudioModules(data.data.currentStudio.modules)
+          }
+          if (data.data.currentStudio.studioType) {
+            setStudioType(data.data.currentStudio.studioType)
           }
         }
       } catch (err) {
@@ -154,8 +164,10 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
     fetchUserRole()
   }, [])
 
-  // Filtrar links por role e módulo
+  // Filtrar links por role, módulo e tipo de studio
   const visibleLinks = sidebarLinks.filter(link => {
+    // Personal Externo: ocultar Equipe (sem time para gerenciar)
+    if (studioType === 'PERSONAL_EXTERNO' && link.href === '/team') return false
     // Filtrar por role admin
     if (link.requiresAdmin && userRole !== 'STUDIO_ADMIN') return false
     // Filtrar por módulo
@@ -193,10 +205,12 @@ export function AppSidebar({ isMobileOpen: externalMobileOpen, onMobileOpenChang
         <div className="flex items-center justify-between h-16 px-4 relative z-50">
           {!isCollapsed && (
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-sm">ET</span>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${studioType === 'PERSONAL_EXTERNO' ? 'bg-indigo-500' : 'bg-amber-500'}`}>
+                <span className="text-white font-bold text-sm">{studioType === 'PERSONAL_EXTERNO' ? 'PE' : 'ET'}</span>
               </div>
-              <span className="font-semibold text-foreground">EXPERT PRO TRAINING</span>
+              <span className="font-semibold text-foreground text-xs leading-tight">
+                {studioType === 'PERSONAL_EXTERNO' ? 'MEU WORKSPACE' : 'EXPERT PRO TRAINING'}
+              </span>
             </Link>
           )}
           <Button

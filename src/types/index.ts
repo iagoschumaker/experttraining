@@ -19,11 +19,14 @@ export interface JWTPayloadWithStudio extends JWTPayload {
   studioId: string
   role: UserStudioRole
   studioName: string
+  studioType: StudioType
 }
 
 export type UserStudioRole = 'STUDIO_ADMIN' | 'TRAINER'
 
 export type StudioStatus = 'ACTIVE' | 'SUSPENDED'
+
+export type StudioType = 'ACADEMIA' | 'PERSONAL_EXTERNO'
 
 // ============================================================================
 // USER TYPES
@@ -49,6 +52,7 @@ export interface UserStudioLink {
   studioName: string
   studioSlug: string
   studioStatus: StudioStatus
+  studioType: StudioType
   role: UserStudioRole
   joinedAt: Date
 }

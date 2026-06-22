@@ -68,6 +68,7 @@ const updateAssessmentSchema = z.object({
   assessmentDate: z.string().optional(),
   selectedPhase: z.string().optional(),
   objective: z.string().optional(),
+  computedBMR: z.record(z.string(), z.any()).optional(),
 })
 
 // GET - Get assessment by ID
@@ -133,6 +134,7 @@ export async function GET(
         },
       },
     })
+
 
     if (!assessment) {
       return NextResponse.json(
@@ -249,7 +251,7 @@ export async function PUT(
       )
     }
 
-    const { inputJson, bodyMetrics, status, assessmentDate, selectedPhase, objective } = validation.data
+    const { inputJson, bodyMetrics, status, assessmentDate, selectedPhase, objective, computedBMR } = validation.data
 
     // Build update data
     const updateData: any = {}
@@ -267,6 +269,11 @@ export async function PUT(
     }
     if (objective) {
       updateData.objective = objective
+    }
+    // Save BMR into computedJson (merged with any existing data)
+    if (computedBMR) {
+      const existingComputed = (existingAssessment.computedJson as any) || {}
+      updateData.computedJson = { ...existingComputed, bmr: computedBMR }
     }
     if (assessmentDate) {
       // Parse date-only strings as noon to avoid timezone boundary shifts

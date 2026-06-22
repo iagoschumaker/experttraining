@@ -50,10 +50,29 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         isSuperAdmin: true,
+        studios: {
+          where: { isActive: true },
+          include: {
+            studio: {
+              select: { id: true, name: true, studioType: true },
+            },
+          },
+        },
       },
     })
 
     if (user) {
+      const linkedStudios = user.studios.map((us: any) => ({
+        studioId: us.studio.id,
+        studioName: us.studio.name,
+        studioType: us.studio.studioType,
+        role: us.role,
+      }))
+
+      const hasPersonalWorkspace = linkedStudios.some(
+        (s: any) => s.studioType === 'PERSONAL_EXTERNO'
+      )
+
       return NextResponse.json({
         success: true,
         exists: true,
@@ -62,6 +81,8 @@ export async function GET(request: NextRequest) {
           name: user.name,
           email: user.email,
           isSuperAdmin: user.isSuperAdmin,
+          linkedStudios,
+          hasPersonalWorkspace,
         },
       })
     }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, Skeleton, Input, Label } from '@/components/ui'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Building2, ChevronRight, Loader2, AlertCircle, Shield, Lock, Eye, EyeOff } from 'lucide-react'
+import { Building2, ChevronRight, Loader2, AlertCircle, Shield, Lock, Eye, EyeOff, User } from 'lucide-react'
 import type { UserStudioLink } from '@/types'
 
 interface UserData {
@@ -261,17 +261,24 @@ export default function SelectStudioPage() {
                     className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Building2 className="w-6 h-6 text-primary" />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${(studio as any).studioType === 'PERSONAL_EXTERNO' ? 'bg-indigo-500/10' : 'bg-primary/10'}`}>
+                        {(studio as any).studioType === 'PERSONAL_EXTERNO'
+                          ? <User className="w-6 h-6 text-indigo-500" />
+                          : <Building2 className="w-6 h-6 text-primary" />
+                        }
                       </div>
                       <div>
                         <h3 className="font-semibold text-foreground">
                           {studio.studioName}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant={studio.role === 'STUDIO_ADMIN' ? 'default' : 'secondary'}>
-                            {studio.role === 'STUDIO_ADMIN' ? 'Admin' : 'Treinador'}
-                          </Badge>
+                          {(studio as any).studioType === 'PERSONAL_EXTERNO' ? (
+                            <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Personal Externo</Badge>
+                          ) : (
+                            <Badge variant={studio.role === 'STUDIO_ADMIN' ? 'default' : 'secondary'}>
+                              {studio.role === 'STUDIO_ADMIN' ? 'Admin' : 'Treinador'}
+                            </Badge>
+                          )}
                           {studio.studioStatus === 'SUSPENDED' && (
                             <Badge variant="destructive">Suspenso</Badge>
                           )}

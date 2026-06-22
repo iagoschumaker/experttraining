@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
             name: true,
             slug: true,
             status: true,
+            studioType: true,
           },
         },
       },
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
           name: true,
           slug: true,
           status: true,
+          studioType: true,
         },
       })
       
@@ -127,6 +129,7 @@ export async function POST(request: NextRequest) {
       studioId: studio.id,
       role: role,
       studioName: studio.name,
+      studioType: ((studio as any).studioType || 'ACADEMIA') as 'ACADEMIA' | 'PERSONAL_EXTERNO',
     }
 
     const newAccessToken = generateAccessTokenWithStudio(newPayload)

@@ -40,6 +40,7 @@ model Studio {
   blockedAt       DateTime?     @map("blocked_at")
   blockedReason   String?       @map("blocked_reason")
   gracePeriodEnds DateTime?     @map("grace_period_ends")
+  studioType      StudioType    @default(ACADEMIA) @map("studio_type")
   isPaid          Boolean       @default(true) @map("is_paid")
   lastPaymentDate DateTime?     @map("last_payment_date")
   paymentDueDate  DateTime?     @map("payment_due_date")
@@ -528,6 +529,11 @@ model TrainingSession {
   @@map("training_sessions")
 }
 
+enum StudioType {
+  ACADEMIA
+  PERSONAL_EXTERNO
+}
+
 enum StudioStatus {
   ACTIVE
   SUSPENDED
@@ -640,6 +646,7 @@ enum FinancialCategoryType {
 
 enum FinancialEntryType {
   RECEITA
+  CUSTO
   DESPESA
 }
 

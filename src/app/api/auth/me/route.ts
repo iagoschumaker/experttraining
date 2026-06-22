@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 slug: true,
                 status: true,
+                studioType: true,
               },
             },
           },
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
       studioName: us.studio.name,
       studioSlug: us.studio.slug,
       studioStatus: us.studio.status as 'ACTIVE' | 'SUSPENDED',
+      studioType: (us.studio.studioType || 'ACADEMIA') as 'ACADEMIA' | 'PERSONAL_EXTERNO',
       role: us.role as 'STUDIO_ADMIN' | 'TRAINER',
       joinedAt: us.joinedAt,
     }))
@@ -84,16 +86,16 @@ export async function GET(request: NextRequest) {
     // Get current studio context if exists
     let currentStudio = null
     if (hasStudioContext(payload)) {
-      // Buscar módulos do studio
       const studioData = await prisma.studio.findUnique({
         where: { id: payload.studioId },
-        select: { modules: true },
+        select: { modules: true, studioType: true },
       })
 
       currentStudio = {
         studioId: payload.studioId,
         studioName: payload.studioName,
         role: payload.role,
+        studioType: (studioData?.studioType || 'ACADEMIA') as 'ACADEMIA' | 'PERSONAL_EXTERNO',
         modules: studioData?.modules || ['TREINO'],
       }
     }

@@ -36,13 +36,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Building2, Plus, Search, Pencil, Trash2, Users, UserCheck, ExternalLink, Calendar, Clock, Boxes } from 'lucide-react'
+import { Building2, Plus, Search, Pencil, Trash2, Users, UserCheck, ExternalLink, Calendar, Clock, Boxes, User, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface Studio {
   id: string
   name: string
   slug: string
   status: 'ACTIVE' | 'SUSPENDED'
+  studioType?: 'ACADEMIA' | 'PERSONAL_EXTERNO'
   createdAt: string
   plan: { id: string; name: string } | null
   _count: {
@@ -82,6 +83,8 @@ export default function SuperAdminStudiosPage() {
   const [saving, setSaving] = useState(false)
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null)
 
+  const [createType, setCreateType] = useState<'ACADEMIA' | 'PERSONAL_EXTERNO'>('ACADEMIA')
+
   const [formData, setFormData] = useState<{
     name: string
     slug: string
@@ -99,6 +102,16 @@ export default function SuperAdminStudiosPage() {
     adminPassword: '',
     modules: ['TREINO'],
   })
+
+  // Personal Externo form state
+  const [personalEmail, setPersonalEmail] = useState('')
+  const [personalName, setPersonalName] = useState('')
+  const [personalPassword, setPersonalPassword] = useState('')
+  const [personalLookup, setPersonalLookup] = useState<{
+    loading: boolean
+    found: boolean
+    user: { id: string; name: string; email: string; linkedStudios: any[]; hasPersonalWorkspace: boolean } | null
+  }>({ loading: false, found: false, user: null })
 
   const [emailExists, setEmailExists] = useState(false)
   const [existingUserName, setExistingUserName] = useState('')
@@ -171,14 +184,50 @@ export default function SuperAdminStudiosPage() {
     }
   }
 
+  const lookupPersonalEmail = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setPersonalLookup({ loading: false, found: false, user: null })
+      return
+    }
+    setPersonalLookup({ loading: true, found: false, user: null })
+    try {
+      const res = await fetch(`/api/superadmin/users/check-email?email=${encodeURIComponent(email)}`)
+      const data = await res.json()
+      if (data.exists) {
+        setPersonalLookup({ loading: false, found: true, user: data.user })
+        setPersonalName(data.user.name)
+      } else {
+        setPersonalLookup({ loading: false, found: false, user: null })
+      }
+    } catch {
+      setPersonalLookup({ loading: false, found: false, user: null })
+    }
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
+      let payload: any
+
+      if (createType === 'PERSONAL_EXTERNO') {
+        payload = {
+          studioType: 'PERSONAL_EXTERNO',
+          name: personalName || personalEmail,
+          adminEmail: personalEmail,
+          adminName: personalName,
+          adminPassword: personalLookup.found ? undefined : personalPassword,
+          status: 'ACTIVE',
+          modules: ['TREINO'],
+        }
+      } else {
+        payload = { ...formData }
+      }
+
       const res = await fetch('/api/superadmin/studios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (data.success) {
@@ -186,6 +235,11 @@ export default function SuperAdminStudiosPage() {
         setFormData({ name: '', slug: '', planId: '', status: 'ACTIVE', adminEmail: '', adminPassword: '', modules: ['TREINO'] })
         setEmailExists(false)
         setExistingUserName('')
+        setPersonalEmail('')
+        setPersonalName('')
+        setPersonalPassword('')
+        setPersonalLookup({ loading: false, found: false, user: null })
+        setCreateType('ACADEMIA')
         fetchStudios()
       } else {
         alert(data.error)
@@ -310,122 +364,232 @@ export default function SuperAdminStudiosPage() {
           <h1 className="text-2xl font-bold text-foreground">Studios</h1>
           <p className="text-sm text-muted-foreground">Gerencie os studios parceiros</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) {
+            setCreateType('ACADEMIA')
+            setPersonalEmail('')
+            setPersonalName('')
+            setPersonalPassword('')
+            setPersonalLookup({ loading: false, found: false, user: null })
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-              <Plus className="h-4 w-4" /> Novo Studio
+              <Plus className="h-4 w-4" /> Novo Tenant
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border max-w-lg">
             <form onSubmit={handleCreate}>
               <DialogHeader>
-                <DialogTitle className="text-foreground">Novo Studio</DialogTitle>
-                <DialogDescription className="text-muted-foreground">Cadastre um novo studio</DialogDescription>
+                <DialogTitle className="text-foreground">Novo Tenant</DialogTitle>
+                <DialogDescription className="text-muted-foreground">Cadastre uma academia ou um personal externo</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Nome *</Label>
-                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: generateSlug(e.target.value) })} className="bg-background border-border text-foreground" required />
+
+                {/* Toggle de tipo */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateType('ACADEMIA')}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${createType === 'ACADEMIA' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:border-border/80'}`}
+                  >
+                    <Building2 className={`h-6 w-6 ${createType === 'ACADEMIA' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                    <span className={`text-sm font-medium ${createType === 'ACADEMIA' ? 'text-amber-500' : 'text-muted-foreground'}`}>Academia / Studio</span>
+                    <span className="text-xs text-muted-foreground text-center">Equipe de trainers, gestão completa</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateType('PERSONAL_EXTERNO')}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${createType === 'PERSONAL_EXTERNO' ? 'border-indigo-500 bg-indigo-500/10' : 'border-border hover:border-border/80'}`}
+                  >
+                    <User className={`h-6 w-6 ${createType === 'PERSONAL_EXTERNO' ? 'text-indigo-500' : 'text-muted-foreground'}`} />
+                    <span className={`text-sm font-medium ${createType === 'PERSONAL_EXTERNO' ? 'text-indigo-500' : 'text-muted-foreground'}`}>Personal Externo</span>
+                    <span className="text-xs text-muted-foreground text-center">Workspace individual, sem equipe</span>
+                  </button>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Slug *</Label>
-                  <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-background border-border text-foreground" required />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Plano *</Label>
-                  <Select value={formData.planId} onValueChange={(v) => setFormData({ ...formData, planId: v })} required>
-                    <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione um plano" /></SelectTrigger>
-                    <SelectContent>
-                      {plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) || null}
-                    </SelectContent>
-                  </Select>
-                  {formData.planId && (() => {
-                    const selectedPlan = plans.find(p => p.id === formData.planId)
-                    if (!selectedPlan) return null
-                    return (
-                      <div className="flex items-start gap-2 p-3 rounded bg-amber-500/10 border border-amber-500/20">
-                        <UserCheck className="h-4 w-4 text-amber-400 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-xs text-amber-400 font-medium mb-1">
-                            Plano: {selectedPlan.name}
-                          </p>
-                          <p className="text-xs text-amber-300">
-                            Mínimo: <strong>{selectedPlan.minTrainers}</strong> trainer{selectedPlan.minTrainers > 1 ? 's' : ''}
-                            {selectedPlan.recommendedMax && (
-                              <> • Máximo recomendado: <strong>{selectedPlan.recommendedMax}</strong></>
-                            )}
-                          </p>
-                          <p className="text-xs text-amber-300 mt-1">
-                            Valor: <strong>R$ {selectedPlan.pricePerTrainer.toFixed(2)}</strong> por trainer ativo/mês
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-                <div className="border-t border-border pt-4 mt-4">
-                  <h4 className="text-sm font-medium text-foreground mb-3">Módulos</h4>
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={formData.modules.includes('TREINO')} onChange={(e) => {
-                        setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'TREINO'), 'TREINO'] : f.modules.filter(m => m !== 'TREINO') }))
-                      }} className="rounded" />
-                      <span className="text-sm">🏋️ Treino</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={formData.modules.includes('FINANCEIRO')} onChange={(e) => {
-                        setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'FINANCEIRO'), 'FINANCEIRO'] : f.modules.filter(m => m !== 'FINANCEIRO') }))
-                      }} className="rounded" />
-                      <span className="text-sm">💰 Financeiro</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="border-t border-border pt-4 mt-4">
-                  <h4 className="text-sm font-medium text-foreground mb-3">Administrador do Studio</h4>
-                  <div className="space-y-4">
+
+                {/* Formulário: ACADEMIA */}
+                {createType === 'ACADEMIA' && (
+                  <>
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Email do Admin *</Label>
-                      <Input 
-                        type="email" 
-                        value={formData.adminEmail} 
-                        onChange={(e) => {
-                          setFormData({ ...formData, adminEmail: e.target.value })
-                          checkEmailExists(e.target.value)
-                        }}
-                        className="bg-background border-border text-foreground" 
-                        required 
-                        placeholder="admin@studio.com"
+                      <Label className="text-muted-foreground">Nome *</Label>
+                      <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: generateSlug(e.target.value) })} className="bg-background border-border text-foreground" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Slug *</Label>
+                      <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-background border-border text-foreground" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Plano *</Label>
+                      <Select value={formData.planId} onValueChange={(v) => setFormData({ ...formData, planId: v })} required>
+                        <SelectTrigger className="bg-background border-border text-foreground"><SelectValue placeholder="Selecione um plano" /></SelectTrigger>
+                        <SelectContent>
+                          {plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) || null}
+                        </SelectContent>
+                      </Select>
+                      {formData.planId && (() => {
+                        const selectedPlan = plans.find(p => p.id === formData.planId)
+                        if (!selectedPlan) return null
+                        return (
+                          <div className="flex items-start gap-2 p-3 rounded bg-amber-500/10 border border-amber-500/20">
+                            <UserCheck className="h-4 w-4 text-amber-400 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-xs text-amber-400 font-medium mb-1">Plano: {selectedPlan.name}</p>
+                              <p className="text-xs text-amber-300">
+                                Mínimo: <strong>{selectedPlan.minTrainers}</strong> trainer{selectedPlan.minTrainers > 1 ? 's' : ''}
+                                {selectedPlan.recommendedMax && <> • Máximo recomendado: <strong>{selectedPlan.recommendedMax}</strong></>}
+                              </p>
+                              <p className="text-xs text-amber-300 mt-1">Valor: <strong>R$ {selectedPlan.pricePerTrainer.toFixed(2)}</strong> por trainer ativo/mês</p>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                    <div className="border-t border-border pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-foreground mb-3">Módulos</h4>
+                      <div className="flex flex-wrap gap-3 mb-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={formData.modules.includes('TREINO')} onChange={(e) => {
+                            setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'TREINO'), 'TREINO'] : f.modules.filter(m => m !== 'TREINO') }))
+                          }} className="rounded" />
+                          <span className="text-sm">🏋️ Treino</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={formData.modules.includes('FINANCEIRO')} onChange={(e) => {
+                            setFormData(f => ({ ...f, modules: e.target.checked ? [...f.modules.filter(m => m !== 'FINANCEIRO'), 'FINANCEIRO'] : f.modules.filter(m => m !== 'FINANCEIRO') }))
+                          }} className="rounded" />
+                          <span className="text-sm">💰 Financeiro</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="border-t border-border pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-foreground mb-3">Administrador do Studio</h4>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Email do Admin *</Label>
+                          <Input
+                            type="email"
+                            value={formData.adminEmail}
+                            onChange={(e) => { setFormData({ ...formData, adminEmail: e.target.value }); checkEmailExists(e.target.value) }}
+                            className="bg-background border-border text-foreground"
+                            required
+                            placeholder="admin@studio.com"
+                          />
+                          {emailExists && (
+                            <div className="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20">
+                              <UserCheck className="h-4 w-4 text-blue-400" />
+                              <p className="text-xs text-blue-400">Usuário <strong>{existingUserName}</strong> já existe e será vinculado</p>
+                            </div>
+                          )}
+                        </div>
+                        {!emailExists && (
+                          <div className="space-y-2">
+                            <Label className="text-muted-foreground">Senha Inicial *</Label>
+                            <Input type="password" value={formData.adminPassword} onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })} className="bg-background border-border text-foreground" required={!emailExists} placeholder="Mínimo 6 caracteres" minLength={6} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Formulário: PERSONAL EXTERNO */}
+                {createType === 'PERSONAL_EXTERNO' && (
+                  <div className="space-y-4">
+                    <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                      <p className="text-xs text-indigo-400">O personal terá um workspace próprio com seus alunos. Se o email já existir no sistema, o workspace será adicionado à conta existente.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Email do Personal *</Label>
+                      <Input
+                        type="email"
+                        value={personalEmail}
+                        onChange={(e) => setPersonalEmail(e.target.value)}
+                        onBlur={(e) => lookupPersonalEmail(e.target.value)}
+                        className="bg-background border-border text-foreground"
+                        required
+                        placeholder="personal@email.com"
                       />
-                      {emailExists && (
-                        <div className="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20">
-                          <UserCheck className="h-4 w-4 text-blue-400" />
-                          <p className="text-xs text-blue-400">
-                            Usuário <strong>{existingUserName}</strong> já existe e será vinculado a este studio
-                          </p>
+                      {personalLookup.loading && (
+                        <p className="text-xs text-muted-foreground">Verificando...</p>
+                      )}
+
+                      {/* Usuário encontrado */}
+                      {personalLookup.found && personalLookup.user && (
+                        <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/10 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+                            <p className="text-xs text-green-400 font-medium">
+                              Conta encontrada: <strong>{personalLookup.user.name}</strong>
+                            </p>
+                          </div>
+                          {personalLookup.user.hasPersonalWorkspace && (
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                              <p className="text-xs text-amber-400">Este personal já possui um workspace. Um novo workspace será criado.</p>
+                            </div>
+                          )}
+                          {personalLookup.user.linkedStudios.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Vinculado a {personalLookup.user.linkedStudios.length} studio{personalLookup.user.linkedStudios.length > 1 ? 's' : ''}: {personalLookup.user.linkedStudios.map((s: any) => s.studioName).join(', ')}
+                            </p>
+                          )}
+                          <p className="text-xs text-green-300">O workspace será adicionado à conta existente. Nenhuma senha necessária.</p>
+                        </div>
+                      )}
+
+                      {/* Usuário não encontrado */}
+                      {!personalLookup.loading && !personalLookup.found && personalEmail.includes('@') && (
+                        <div className="flex items-center gap-2 p-2 rounded bg-muted border border-border">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">Novo usuário — será criado automaticamente</p>
                         </div>
                       )}
                     </div>
-                    {!emailExists && (
+
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Nome do Personal *</Label>
+                      <Input
+                        value={personalName}
+                        onChange={(e) => setPersonalName(e.target.value)}
+                        className="bg-background border-border text-foreground"
+                        required
+                        placeholder="Nome completo"
+                        disabled={personalLookup.found}
+                      />
+                      {personalLookup.found && <p className="text-xs text-muted-foreground">Nome da conta existente</p>}
+                    </div>
+
+                    {!personalLookup.found && personalEmail.includes('@') && (
                       <div className="space-y-2">
                         <Label className="text-muted-foreground">Senha Inicial *</Label>
-                        <Input 
-                          type="password" 
-                          value={formData.adminPassword} 
-                          onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                          className="bg-background border-border text-foreground" 
-                          required={!emailExists}
+                        <Input
+                          type="password"
+                          value={personalPassword}
+                          onChange={(e) => setPersonalPassword(e.target.value)}
+                          className="bg-background border-border text-foreground"
+                          required
                           placeholder="Mínimo 6 caracteres"
                           minLength={6}
                         />
-                        <p className="text-xs text-muted-foreground">O usuário receberá este email e senha para acessar o studio</p>
+                        <p className="text-xs text-muted-foreground">Senha para o personal acessar o workspace</p>
                       </div>
                     )}
                   </div>
-                </div>
+                )}
               </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Salvando...' : 'Criar'}</Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className={createType === 'PERSONAL_EXTERNO' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-accent text-accent-foreground hover:bg-accent/90'}
+                >
+                  {saving ? 'Salvando...' : createType === 'PERSONAL_EXTERNO' ? 'Criar Workspace' : 'Criar Studio'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -516,9 +680,15 @@ export default function SuperAdminStudiosPage() {
                     {studios.map((s) => (
                       <TableRow key={s.id} className="border-border hover:bg-muted">
                         <TableCell className="font-medium text-foreground">
-                          <div>
-                            <div>{s.name}</div>
-                            <div className="text-xs text-muted-foreground">{s.slug}</div>
+                          <div className="flex items-center gap-2">
+                            {s.studioType === 'PERSONAL_EXTERNO'
+                              ? <User className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                              : <Building2 className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                            }
+                            <div>
+                              <div>{s.name}</div>
+                              <div className="text-xs text-muted-foreground">{s.slug}</div>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{s.plan?.name || '-'}</TableCell>
