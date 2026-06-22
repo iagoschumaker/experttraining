@@ -141,6 +141,43 @@ export async function GET(request: NextRequest) {
       return { id: c.id, name: c.name, birthDate: c.birthDate, daysUntil, age: age + 1 }
     }).sort((a, b) => a.daysUntil - b.daysUntil)
 
+    // ========================================================================
+    // DADOS FINANCEIROS — Inadimplência
+    // ========================================================================
+    // Auto-OVERDUE: marcar lançamentos PENDING vencidos
+    await prisma.financialEntry.updateMany({
+      where: { studioId, status: 'PENDING', dueDate: { lt: new Date() } },
+      data: { status: 'OVERDUE' },
+    })
+
+    // Buscar clientes com mensalidades/receitas vencidas
+    const overdueEntries = await prisma.financialEntry.findMany({
+      where: {
+        studioId,
+        status: 'OVERDUE',
+        type: 'RECEITA',
+        clientId: { not: null },
+      },
+      select: {
+        clientId: true,
+        amount: true,
+        client: { select: { id: true, name: true } },
+      },
+    })
+
+    // Agrupar por cliente
+    const overdueByClient: Record<string, { clientId: string; clientName: string; totalOverdue: number }> = {}
+    for (const e of overdueEntries) {
+      if (!e.clientId || !e.client) continue
+      if (!overdueByClient[e.clientId]) {
+        overdueByClient[e.clientId] = { clientId: e.clientId, clientName: e.client.name, totalOverdue: 0 }
+      }
+      overdueByClient[e.clientId].totalOverdue += parseFloat(e.amount.toString())
+    }
+    const inadimplentesList = Object.values(overdueByClient).sort((a, b) => b.totalOverdue - a.totalOverdue)
+    const totalInadimplentes = inadimplentesList.length
+    const totalEmAtraso = inadimplentesList.reduce((s, c) => s + c.totalOverdue, 0)
+
     // Format goals distribution
     const goalsDistribution = clientsByGoal.map((g: any) => ({
       goal: g.goal || 'Não definido',
@@ -170,6 +207,11 @@ export async function GET(request: NextRequest) {
         reassessmentAlerts,
         birthdaysToday,
         upcomingBirthdays,
+        financeiro: {
+          totalInadimplentes,
+          totalEmAtraso,
+          inadimplentesList: inadimplentesList.slice(0, 10),
+        },
       },
     })
   } catch (error) {

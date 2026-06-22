@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - ÁREA DO ALUNO - TREINO
 // ============================================================================
 // GET /api/areaaluno/treino - Buscar treino ativo do aluno
@@ -128,6 +128,40 @@ export async function GET(request: NextRequest) {
     // Extrair contato do studio das settings
     const studioSettings = client.studio?.settings as any || {}
 
+    // ── Status Financeiro do Aluno ──────────────────────────────────────────
+    // Verifica se há mensalidades vencidas vinculadas ao aluno
+    let paymentStatus: 'OK' | 'OVERDUE' | 'PENDING' = 'OK'
+    let overdueAmount = 0
+    let overdueDate: string | null = null
+
+    const studioId = client.studio?.id
+    if (studioId) {
+      // Auto-marcar PENDING vencidos como OVERDUE
+      await prisma.financialEntry.updateMany({
+        where: { studioId, clientId: session.clientId, status: 'PENDING', dueDate: { lt: new Date() } },
+        data: { status: 'OVERDUE' },
+      })
+
+      const overdueEntries = await prisma.financialEntry.findMany({
+        where: { studioId, clientId: session.clientId, status: 'OVERDUE', type: 'RECEITA' },
+        select: { amount: true, dueDate: true, date: true },
+        orderBy: { date: 'asc' },
+      })
+
+      if (overdueEntries.length > 0) {
+        paymentStatus = 'OVERDUE'
+        overdueAmount = overdueEntries.reduce((s, e) => s + parseFloat(e.amount.toString()), 0)
+        const oldest = overdueEntries[0]
+        overdueDate = oldest.dueDate?.toISOString() ?? oldest.date?.toISOString() ?? null
+      } else {
+        // Verificar se há pendentes (a vencer)
+        const pendingEntry = await prisma.financialEntry.findFirst({
+          where: { studioId, clientId: session.clientId, status: 'PENDING', type: 'RECEITA' },
+        })
+        if (pendingEntry) paymentStatus = 'PENDING'
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -152,8 +186,14 @@ export async function GET(request: NextRequest) {
           daysSinceLastAssessment,
           lastAssessmentDate: lastAssessment?.completedAt,
         },
+        payment: {
+          status: paymentStatus,
+          overdueAmount,
+          overdueDate,
+        },
       },
     })
+
   } catch (error) {
     console.error('Erro ao buscar treino do aluno:', error)
     return NextResponse.json(

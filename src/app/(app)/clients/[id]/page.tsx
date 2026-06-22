@@ -49,6 +49,9 @@ import {
   AlertTriangle,
   Clock,
   FileDown,
+  CreditCard,
+  CheckCircle,
+  Star,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
@@ -609,6 +612,75 @@ export default function ClientDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Situação Financeira ── */}
+      {(() => {
+        const fin = (client as any).financial
+        if (!fin) return null
+        const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+        const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('pt-BR') : '—'
+
+        const statusConfig: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+          ADIMPLENTE:     { label: '✓ Adimplente',    cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: <CheckCircle className="h-4 w-4 text-emerald-500" /> },
+          ADIANTADO:      { label: '⭐ Adiantado',     cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30',         icon: <Star className="h-4 w-4 text-blue-500" /> },
+          INADIMPLENTE:   { label: '⚠ Inadimplente',  cls: 'bg-red-500/20 text-red-400 border-red-500/30',            icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
+          PENDENTE:       { label: '⏳ Pendente',      cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30',       icon: <Clock className="h-4 w-4 text-amber-500" /> },
+          SEM_MENSALIDADE:{ label: 'Sem mensalidade',  cls: 'bg-muted text-muted-foreground border-border',             icon: <CreditCard className="h-4 w-4 text-muted-foreground" /> },
+        }
+        const cfg = statusConfig[fin.status] ?? statusConfig['SEM_MENSALIDADE']
+
+        return (
+          <Card className={`border ${fin.status === 'INADIMPLENTE' ? 'border-red-500/30 bg-red-500/5' : fin.status === 'ADIANTADO' ? 'border-blue-500/20' : 'border-border'}`}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CreditCard className="h-5 w-5 text-emerald-500" />
+                Situação Financeira
+                <Badge className={`ml-auto text-xs border ${cfg.cls}`}>{cfg.label}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!fin.hasEntries ? (
+                <p className="text-sm text-muted-foreground">Nenhuma mensalidade cadastrada para este aluno.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {fin.totalOverdue > 0 && (
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                      <div className="text-xs text-muted-foreground">Em Atraso</div>
+                      <div className="text-lg font-bold text-red-400">{fmt(fin.totalOverdue)}</div>
+                    </div>
+                  )}
+                  {fin.totalPending > 0 && (
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                      <div className="text-xs text-muted-foreground">Pendente</div>
+                      <div className="text-lg font-bold text-amber-400">{fmt(fin.totalPending)}</div>
+                    </div>
+                  )}
+                  {fin.nextDueDate && (
+                    <div className="rounded-lg border p-3">
+                      <div className="text-xs text-muted-foreground">Próx. Vencimento</div>
+                      <div className="text-sm font-semibold">{fmtDate(fin.nextDueDate)}</div>
+                    </div>
+                  )}
+                  {fin.lastPaymentDate && (
+                    <div className="rounded-lg border p-3">
+                      <div className="text-xs text-muted-foreground">Último Pagamento</div>
+                      <div className="text-sm font-semibold">{fmtDate(fin.lastPaymentDate)}</div>
+                    </div>
+                  )}
+                  {fin.creditMonths >= 2 && (
+                    <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 col-span-2">
+                      <div className="text-xs text-blue-400 font-medium">⭐ {fin.creditMonths} meses pagos antecipadamente</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <Link href={`/financeiro/mensalidades`} className="text-xs text-emerald-400 hover:underline font-medium">
+                Ver no módulo de mensalidades →
+              </Link>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Presença & Check-in — Calendário Compacto com CRUD */}
       {(() => {

@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatsCard, StatsGrid } from '@/components/ui'
-import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle, Cake, Gift } from 'lucide-react'
+import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle, Cake, Gift, CreditCard } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
@@ -49,6 +49,11 @@ interface DashboardData {
   reassessmentAlerts: ReassessmentAlert[]
   birthdaysToday: Array<{ id: string; name: string; birthDate: string }>
   upcomingBirthdays: Array<{ id: string; name: string; birthDate: string; daysUntil: number; age: number }>
+  financeiro?: {
+    totalInadimplentes: number
+    totalEmAtraso: number
+    inadimplentesList: Array<{ clientId: string; clientName: string; totalOverdue: number }>
+  }
 }
 
 export default function DashboardPage() {
@@ -112,6 +117,50 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral do seu studio</p>
       </div>
+
+      {/* Alerta de Inadimplêntes */}
+      {data.financeiro && data.financeiro.totalInadimplentes > 0 && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <CreditCard className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-semibold text-red-400">
+                  ⚠️ Alunos Inadimplentes ({data.financeiro.totalInadimplentes})
+                </h3>
+                <span className="text-sm font-bold text-red-400">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.financeiro.totalEmAtraso)} em atraso
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Os seguintes alunos possuem mensalidades vencidas e não pagas:
+              </p>
+              <div className="space-y-2">
+                {data.financeiro.inadimplentesList.slice(0, 5).map((c) => (
+                  <Link
+                    key={c.clientId}
+                    href={`/clients/${c.clientId}`}
+                    className="flex items-center justify-between p-2 bg-card/50 rounded border border-border hover:border-red-500/50 transition-colors"
+                  >
+                    <span className="font-medium text-sm">{c.clientName}</span>
+                    <span className="text-xs font-semibold text-red-400">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.totalOverdue)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              {data.financeiro.totalInadimplentes > 5 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  E mais {data.financeiro.totalInadimplentes - 5} aluno(s)...
+                </p>
+              )}
+              <Link href="/financeiro/mensalidades" className="inline-block mt-3 text-xs text-red-400 hover:underline font-medium">
+                Ver todos no módulo de mensalidades →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alerta de Reavaliações Pendentes */}
       {data.reassessmentAlerts && data.reassessmentAlerts.length > 0 && (
