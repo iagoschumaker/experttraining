@@ -2,12 +2,13 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button, Input, Label } from '@/components/ui'
+import { Input, Label } from '@/components/ui'
 import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { KinexLogo } from '@/components/kinex-logo'
+import { useTheme } from '@/contexts/ThemeContext'
 
-/* ─── Partículas douradas (igual proposta-juba) ─── */
+/* ─── Partículas douradas ─── */
 function GoldParticles() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -24,12 +25,9 @@ function GoldParticles() {
     resize()
     window.addEventListener('resize', resize)
 
-    interface Particle {
-      x: number; y: number; size: number; speedY: number; speedX: number; opacity: number; life: number; maxLife: number
-    }
+    interface Particle { x: number; y: number; size: number; speedY: number; speedX: number; opacity: number; life: number; maxLife: number }
 
     const particles: Particle[] = []
-    const PARTICLE_COUNT = 35
 
     const spawn = (): Particle => ({
       x: Math.random() * canvas.width,
@@ -42,7 +40,7 @@ function GoldParticles() {
       maxLife: Math.random() * 200 + 120,
     })
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let i = 0; i < 35; i++) {
       const p = spawn()
       p.y = Math.random() * canvas.height
       p.life = Math.random() * p.maxLife
@@ -78,11 +76,13 @@ function GoldParticles() {
   return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 }
 
-/* ─── Formulário de Login ─── */
+/* ─── Formulário ─── */
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect')
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -99,8 +99,6 @@ function LoginForm() {
     setIsLoading(true)
 
     const normalizedEmail = email.trim().toLowerCase()
-    console.log('📧 Sending login request with email:', normalizedEmail)
-    console.log('📱 User agent:', navigator.userAgent)
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -110,7 +108,6 @@ function LoginForm() {
       })
 
       const data = await response.json()
-      console.log('Login response:', data)
 
       if (!data.success) {
         setError(data.error || 'Erro ao fazer login')
@@ -122,7 +119,6 @@ function LoginForm() {
         ? `/select-studio?redirect=${encodeURIComponent(redirectTo)}`
         : '/select-studio'
 
-      console.log('Login successful, redirecting to:', selectStudioUrl)
       window.location.replace(selectStudioUrl)
     } catch (err) {
       console.error('Login error:', err)
@@ -130,6 +126,17 @@ function LoginForm() {
       setIsLoading(false)
     }
   }
+
+  // Cores adaptadas ao tema
+  const cardBg    = isDark ? 'rgba(22,22,22,0.75)'   : 'rgba(255,255,255,0.92)'
+  const cardBorder = isDark ? '#222222'               : '#e5e5e5'
+  const titleColor = isDark ? '#ffffff'               : '#111111'
+  const subColor   = isDark ? '#9a9a9a'               : '#6b6b6b'
+  const labelColor = isDark ? '#f0f0f0'               : '#111111'
+  const inputBg    = isDark ? '#111111'               : '#f9f9f9'
+  const inputBorder = isDark ? '#222222'              : '#e0e0e0'
+  const inputColor = isDark ? '#f0f0f0'               : '#111111'
+  const footerColor = isDark ? '#6b6b6b'              : '#9a9a9a'
 
   return (
     <div
@@ -141,25 +148,23 @@ function LoginForm() {
       }}
     >
       {/* Logo apenas — sem texto */}
-      <div className="flex flex-col items-center gap-6">
-        <div
-          style={{
-            opacity: mounted ? 1 : 0,
-            transform: mounted ? 'scale(1)' : 'scale(0.92)',
-            transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
-          }}
-        >
+      <div className="flex justify-center">
+        <div style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'scale(1)' : 'scale(0.92)',
+          transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
+        }}>
           <KinexLogo height={72} />
         </div>
       </div>
 
-      {/* Card de login — estilo proposta-juba */}
+      {/* Card */}
       <div
         style={{
-          background: 'rgba(22, 22, 22, 0.75)',
+          background: cardBg,
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid #222222',
+          border: `1px solid ${cardBorder}`,
           borderRadius: '16px',
           padding: '2rem',
           transition: 'border-color 300ms ease, box-shadow 300ms ease',
@@ -168,27 +173,24 @@ function LoginForm() {
           transitionDelay: '0.15s',
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(212,168,48,0.35)'
+          ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(212,168,48,0.35)'
           ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 10px 40px rgba(212,168,48,0.08)'
         }}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = '#222222'
+          ;(e.currentTarget as HTMLDivElement).style.borderColor = cardBorder
           ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
         }}
       >
-        {/* Header do card */}
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-white mb-1">Bem-vindo</h1>
-          <p className="text-sm" style={{ color: '#9a9a9a' }}>Acesse sua conta para continuar</p>
+          <h1 className="text-xl font-semibold mb-1" style={{ color: titleColor }}>Bem-vindo</h1>
+          <p className="text-sm" style={{ color: subColor }}>Acesse sua conta para continuar</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Erro */}
           {error && (
-            <div
-              className="flex items-center gap-3 p-3 text-sm rounded-lg"
-              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}
-            >
+            <div className="flex items-center gap-3 p-3 text-sm rounded-lg"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -196,40 +198,23 @@ function LoginForm() {
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium" style={{ color: '#f0f0f0' }}>
-              Email
-            </Label>
+            <Label htmlFor="email" className="text-sm font-medium" style={{ color: labelColor }}>Email</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              disabled={isLoading}
-              className="h-11"
-              style={{
-                background: '#111111',
-                border: '1px solid #222222',
-                color: '#f0f0f0',
-              }}
+              id="email" type="email" placeholder="seu@email.com"
+              value={email} onChange={e => setEmail(e.target.value)}
+              required autoComplete="off" autoCapitalize="none" autoCorrect="off"
+              spellCheck={false} disabled={isLoading} className="h-11"
+              style={{ background: inputBg, border: `1px solid ${inputBorder}`, color: inputColor }}
             />
           </div>
 
           {/* Senha */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-sm font-medium" style={{ color: '#f0f0f0' }}>
-                Senha
-              </Label>
+              <Label htmlFor="password" className="text-sm font-medium" style={{ color: labelColor }}>Senha</Label>
               <a
                 href="https://wa.me/5517997141326?text=Olá,%20esqueci%20minha%20senha%20do%20Kinex%20Performance"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_blank" rel="noopener noreferrer"
                 className="text-xs transition-colors"
                 style={{ color: '#d4a830' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#f0d060')}
@@ -240,27 +225,18 @@ function LoginForm() {
             </div>
             <div className="relative">
               <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
+                id="password" type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••" value={password}
                 onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                disabled={isLoading}
+                required autoComplete="current-password" disabled={isLoading}
                 className="h-11 pr-10"
-                style={{
-                  background: '#111111',
-                  border: '1px solid #222222',
-                  color: '#f0f0f0',
-                }}
+                style={{ background: inputBg, border: `1px solid ${inputBorder}`, color: inputColor }}
               />
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                type="button" onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
                 style={{ color: '#6b6b6b' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#f0f0f0')}
+                onMouseEnter={e => (e.currentTarget.style.color = labelColor)}
                 onMouseLeave={e => (e.currentTarget.style.color = '#6b6b6b')}
                 tabIndex={-1}
               >
@@ -269,16 +245,15 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* Botão — exato da proposta */}
+          {/* Botão — igual proposta */}
           <button
-            type="submit"
-            disabled={isLoading}
+            type="submit" disabled={isLoading}
             className="w-full h-12 rounded-lg font-bold text-sm uppercase tracking-[0.06em] transition-all relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, #d4a830 0%, #f0d060 50%, #d4a830 100%)',
               backgroundSize: '200% 200%',
               color: '#0a0a0a',
-              boxShadow: '0 4px 20px rgba(212, 168, 48, 0.25)',
+              boxShadow: '0 4px 20px rgba(212,168,48,0.25)',
               opacity: isLoading ? 0.7 : 1,
             }}
             onMouseEnter={e => {
@@ -292,24 +267,19 @@ function LoginForm() {
               ;(e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(212,168,48,0.25)'
             }}
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Entrando...
-              </span>
-            ) : (
-              'Entrar'
-            )}
+            {isLoading
+              ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Entrando...</span>
+              : 'Entrar'
+            }
           </button>
 
-          <p className="text-xs text-center" style={{ color: '#6b6b6b' }}>
+          <p className="text-xs text-center" style={{ color: footerColor }}>
             Ao entrar, você concorda com nossos termos de uso
           </p>
         </form>
       </div>
 
-      {/* Footer */}
-      <p className="text-center text-xs" style={{ color: '#6b6b6b' }}>
+      <p className="text-center text-xs" style={{ color: footerColor }}>
         © {new Date().getFullYear()} Kinex Performance. Todos os direitos reservados.
       </p>
     </div>
@@ -320,7 +290,7 @@ function LoginForm() {
 function LoginSkeleton() {
   return (
     <div className="w-full max-w-sm space-y-8 animate-pulse">
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex justify-center">
         <div className="w-20 h-20 rounded-full bg-white/5" />
       </div>
       <div className="rounded-2xl p-8 space-y-4" style={{ background: 'rgba(22,22,22,0.75)', border: '1px solid #222' }}>
@@ -335,25 +305,25 @@ function LoginSkeleton() {
 
 /* ─── Page ─── */
 export default function LoginPage() {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: '#0a0a0a' }}
+      style={{ background: isDark ? '#0a0a0a' : '#f5f5f5' }}
     >
-      {/* Gradiente animado de fundo — igual hero da proposta */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(circle at 20% 50%, rgba(212, 168, 48, 0.06) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(212, 168, 48, 0.04) 0%, transparent 50%),
-            radial-gradient(circle at 50% 80%, rgba(212, 168, 48, 0.03) 0%, transparent 50%)
-          `,
-          animation: 'hero-float 25s ease-in-out infinite',
-        }}
-      />
+      {/* Gradiente animado */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `
+          radial-gradient(circle at 20% 50%, rgba(212,168,48,0.06) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(212,168,48,0.04) 0%, transparent 50%),
+          radial-gradient(circle at 50% 80%, rgba(212,168,48,0.03) 0%, transparent 50%)
+        `,
+        animation: 'hero-float 25s ease-in-out infinite',
+      }} />
 
-      {/* Partículas douradas */}
+      {/* Partículas */}
       <GoldParticles />
 
       {/* Theme Toggle */}
@@ -368,7 +338,6 @@ export default function LoginPage() {
         </Suspense>
       </div>
 
-      {/* Keyframe para o gradiente flutuante */}
       <style>{`
         @keyframes hero-float {
           0%, 100% { transform: translate(0, 0) scale(1); }
