@@ -86,17 +86,32 @@ export async function GET(request: NextRequest) {
     // Get current studio context if exists
     let currentStudio = null
     if (hasStudioContext(payload)) {
-      const studioData = await prisma.studio.findUnique({
-        where: { id: payload.studioId },
-        select: { modules: true, studioType: true },
-      })
+      try {
+        const studioData = await prisma.studio.findUnique({
+          where: { id: payload.studioId },
+          select: { modules: true, studioType: true },
+        })
 
-      currentStudio = {
-        studioId: payload.studioId,
-        studioName: payload.studioName,
-        role: payload.role,
-        studioType: (studioData?.studioType || 'ACADEMIA') as 'ACADEMIA' | 'PERSONAL_EXTERNO',
-        modules: studioData?.modules || ['TREINO'],
+        currentStudio = {
+          studioId: payload.studioId,
+          studioName: payload.studioName,
+          role: payload.role,
+          studioType: (studioData?.studioType || 'ACADEMIA') as 'ACADEMIA' | 'PERSONAL_EXTERNO',
+          modules: studioData?.modules || ['TREINO'],
+        }
+      } catch {
+        // Fallback if studioType column not yet in DB (migration pending)
+        const studioData = await prisma.studio.findUnique({
+          where: { id: payload.studioId },
+          select: { modules: true },
+        })
+        currentStudio = {
+          studioId: payload.studioId,
+          studioName: payload.studioName,
+          role: payload.role,
+          studioType: 'ACADEMIA' as 'ACADEMIA' | 'PERSONAL_EXTERNO',
+          modules: studioData?.modules || ['TREINO'],
+        }
       }
     }
 
