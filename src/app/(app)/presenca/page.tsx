@@ -17,9 +17,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog'
+import {
     UserCheck, Search, Loader2, CheckCircle, AlertCircle,
     Users, Plus, X, ChevronDown, ChevronUp, Weight,
-    ArrowLeft, UserPlus, Flag,
+    ArrowLeft, UserPlus, Flag, AlertTriangle, CreditCard,
 } from 'lucide-react'
 
 // ============================================================================
@@ -116,6 +119,15 @@ export default function PresencaPage() {
     const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
     const [clearingStuck, setClearingStuck] = useState(false)
     const [mensAlertIds, setMensAlertIds] = useState<Set<string>>(new Set())
+    // clientId -> 'overdue' | 'upcoming'
+    const [mensStatusMap, setMensStatusMap] = useState<Map<string, 'overdue' | 'upcoming'>>(new Map())
+
+    // Modal de confirmação de pagamento pendente ao iniciar sessão
+    const [paymentWarningModal, setPaymentWarningModal] = useState<{
+        overdue: { id: string; name: string }[]
+        upcoming: { id: string; name: string }[]
+        forceStart: () => void
+    } | null>(null)
 
     const activeSession = serverSessions.find(s => s.id === activeTabId) || null
     const activeCards = activeTabId ? (cardsBySession.get(activeTabId) || []) : []
@@ -139,6 +151,11 @@ export default function PresencaPage() {
                         ...d.data.overdue.map((m: any) => m.clientId),
                     ])
                     setMensAlertIds(ids)
+                    // Mapa detalhado: clientId -> 'overdue' | 'upcoming'
+                    const statusMap = new Map<string, 'overdue' | 'upcoming'>()
+                    d.data.overdue.forEach((m: any) => statusMap.set(m.clientId, 'overdue'))
+                    d.data.upcoming.forEach((m: any) => { if (!statusMap.has(m.clientId)) statusMap.set(m.clientId, 'upcoming') })
+                    setMensStatusMap(statusMap)
                 }
             })
             .catch(() => {})
@@ -296,16 +313,16 @@ export default function PresencaPage() {
     // ========================================================================
     // SESSION MANAGEMENT — Server-side
     // ========================================================================
-    async function startGroupSession() {
+    // Executa a criação da sessão de fato (após confirmação se necessário)
+    async function doStartGroupSession(idsToStart: string[]) {
         setStartingSession(true)
-        const selected = allClients.filter(c => selectedIds.has(c.id))
+        const selected = allClients.filter(c => idsToStart.includes(c.id))
         const students: StudentEntry[] = selected.map(c => ({
             clientId: c.id,
             workoutId: clientWorkoutMap.get(c.id) || '',
             clientName: c.name,
         }))
         const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-
         try {
             const res = await fetchWithAuth('/api/studio/training-sessions', {
                 method: 'POST',
@@ -325,6 +342,37 @@ export default function PresencaPage() {
             }
         } catch (err) { alert('Erro de conexão') }
         finally { setStartingSession(false) }
+    }
+
+    async function startGroupSession() {
+        const selected = allClients.filter(c => selectedIds.has(c.id))
+        const selectedIds_list = selected.map(c => c.id)
+
+        // Verificar status de mensalidades dos alunos selecionados
+        const overdue  = selected.filter(c => mensStatusMap.get(c.id) === 'overdue')
+        const upcoming = selected.filter(c => mensStatusMap.get(c.id) === 'upcoming')
+
+        // Se houver alunos em atraso → abre modal de aviso (bloqueio + confirmação)
+        if (overdue.length > 0 || upcoming.length > 0) {
+            // Alunos OK são os que nem estão overdue nem upcoming
+            const allowedIds = selectedIds_list.filter(id => mensStatusMap.get(id) !== 'overdue')
+
+            setPaymentWarningModal({
+                overdue: overdue.map(c => ({ id: c.id, name: c.name })),
+                upcoming: upcoming.map(c => ({ id: c.id, name: c.name })),
+                // forceStart: inicia com TODOS (trainer sobrescreve)
+                forceStart: () => {
+                    setPaymentWarningModal(null)
+                    doStartGroupSession(selectedIds_list)
+                },
+            })
+            // Se há alunos sem pendência, permite iniciar já sem eles (auto-remove overdue)
+            // A ação de "Iniciar sem inadimplentes" remove os overdue automaticamente
+            return
+        }
+
+        // Nenhum problema de pagamento → inicia normalmente
+        await doStartGroupSession(selectedIds_list)
     }
 
     async function addLateStudent(client: Client) {
@@ -641,8 +689,11 @@ export default function PresencaPage() {
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium truncate flex items-center gap-1.5">
                                                 {c.name}
-                                                {mensAlertIds.has(c.id) && (
-                                                    <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">$</span>
+                                                {mensStatusMap.get(c.id) === 'overdue' && (
+                                                    <span className="flex-shrink-0 text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 font-bold">INAD</span>
+                                                )}
+                                                {mensStatusMap.get(c.id) === 'upcoming' && (
+                                                    <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">$ 3d</span>
                                                 )}
                                             </p>
                                         </div>
@@ -667,9 +718,14 @@ export default function PresencaPage() {
                                     <div className="min-w-0">
                                         <p className="font-medium text-sm truncate flex items-center gap-1.5">
                                             {card.entry.clientName}
-                                            {mensAlertIds.has(card.entry.clientId) && (
-                                                <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5 font-semibold">
-                                                    $ Vencendo
+                                            {mensStatusMap.get(card.entry.clientId) === 'overdue' && (
+                                                <span className="flex-shrink-0 text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 font-bold">
+                                                    INAD
+                                                </span>
+                                            )}
+                                            {mensStatusMap.get(card.entry.clientId) === 'upcoming' && (
+                                                <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">
+                                                    $ 3d
                                                 </span>
                                             )}
                                         </p>
@@ -970,7 +1026,15 @@ export default function PresencaPage() {
                                 <span className="text-amber-500 font-bold text-xs">{initials(client.name)}</span>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{client.name}</p>
+                                <p className="font-medium text-sm flex items-center gap-1.5 min-w-0">
+                                    <span className="truncate">{client.name}</span>
+                                    {mensStatusMap.get(client.id) === 'overdue' && (
+                                        <span className="flex-shrink-0 text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 font-bold">INAD</span>
+                                    )}
+                                    {mensStatusMap.get(client.id) === 'upcoming' && (
+                                        <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">$ 3d</span>
+                                    )}
+                                </p>
                                 <p className="text-xs text-muted-foreground truncate">{client.email || 'Sem email'}</p>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -992,6 +1056,94 @@ export default function PresencaPage() {
                     </Button>
                 </div>
             )}
+
+            {/* ─ Modal: Aviso de pagamento pendente / inadimplência ─ */}
+            <Dialog open={!!paymentWarningModal} onOpenChange={() => setPaymentWarningModal(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-amber-400">
+                            <AlertTriangle className="w-5 h-5" />
+                            Alerta de Mensalidade
+                        </DialogTitle>
+                        <DialogDescription>
+                            Alguns alunos selecionados têm pendências financeiras.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3 py-2">
+                        {/* Alunos em atraso — bloqueados */}
+                        {paymentWarningModal && paymentWarningModal.overdue.length > 0 && (
+                            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 space-y-2">
+                                <p className="text-sm font-semibold text-red-400 flex items-center gap-1.5">
+                                    <CreditCard className="w-4 h-4" />
+                                    Inadimplente(s) — removido(s) automaticamente:
+                                </p>
+                                <ul className="space-y-1">
+                                    {paymentWarningModal.overdue.map(c => (
+                                        <li key={c.id} className="text-sm text-red-300 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                                            {c.name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Alunos vencendo em breve — aviso, mas podem entrar */}
+                        {paymentWarningModal && paymentWarningModal.upcoming.length > 0 && (
+                            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
+                                <p className="text-sm font-semibold text-yellow-400 flex items-center gap-1.5">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Vencendo em até 3 dias — aviso:
+                                </p>
+                                <ul className="space-y-1">
+                                    {paymentWarningModal.upcoming.map(c => (
+                                        <li key={c.id} className="text-sm text-yellow-300 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />
+                                            {c.name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPaymentWarningModal(null)}
+                            className="w-full sm:w-auto"
+                        >
+                            Cancelar
+                        </Button>
+                        {/* Iniciar sem os inadimplentes (apenas os OK + upcoming) */}
+                        {paymentWarningModal && paymentWarningModal.overdue.length > 0 && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full sm:w-auto border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
+                                onClick={() => {
+                                    const overdueIds = new Set(paymentWarningModal.overdue.map(c => c.id))
+                                    const allowedIds = Array.from(selectedIds).filter(id => !overdueIds.has(id))
+                                    setPaymentWarningModal(null)
+                                    if (allowedIds.length > 0) doStartGroupSession(allowedIds)
+                                }}
+                            >
+                                Iniciar sem inadimplentes
+                            </Button>
+                        )}
+                        {/* Forçar entrada de todos — personal override */}
+                        <Button
+                            size="sm"
+                            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+                            onClick={paymentWarningModal?.forceStart}
+                        >
+                            Liberar mesmo assim
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
