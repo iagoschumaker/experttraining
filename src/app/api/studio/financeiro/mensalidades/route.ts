@@ -85,15 +85,16 @@ export async function GET(request: NextRequest) {
     // Isso previne vazamento de dados caso haja registros inconsistentes no banco.
     const mensalidades = mensalidadesRaw.filter((m: any) => m.client?.studioId === studioId)
 
-    // Alunos sem mensalidade — busca TODOS os alunos do studio (independente de isActive)
-    // para não excluir alunos que foram marcados como inativos por outra razão
-    const clientsWithMens = new Set(mensalidades.map(m => m.clientId))
+    // Alunos sem mensalidade: apenas ATIVOS do studio sem plano configurado.
+    // isActive: true é essencial — clientes inativos (que saíram) NÃO devem aparecer.
+    const clientsWithMens = new Set(mensalidades.map((m: any) => m.clientId))
     const allClients = await prisma.client.findMany({
-      where: { studioId },
+      where: { studioId, isActive: true },
       select: { id: true, name: true, email: true, phone: true, isActive: true },
       orderBy: { name: 'asc' },
     })
     const clientsWithoutMens = allClients.filter(c => !clientsWithMens.has(c.id))
+
 
     // 3 dias antes = alerta
     const alertDate = new Date(now)
