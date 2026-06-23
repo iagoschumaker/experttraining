@@ -327,6 +327,35 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Auto-enrollment em mensalidades se studio tem modulo FINANCEIRO
+    try {
+      const studio = await prisma.studio.findUnique({
+        where: { id: studioId },
+        select: { modules: true },
+      })
+      if (studio?.modules?.includes('FINANCEIRO')) {
+        const nextMonth = new Date()
+        nextMonth.setMonth(nextMonth.getMonth() + 1)
+        nextMonth.setDate(1)
+        nextMonth.setHours(0, 0, 0, 0)
+        await (prisma as any).clientMensalidade.create({
+          data: {
+            clientId: client.id,
+            studioId,
+            billingCycle: 'MONTHLY',
+            amount: 0,
+            adhesionDate: new Date(),
+            nextBillingDate: nextMonth,
+            status: 'PENDING',
+            notes: 'Configurar valor e ciclo no modulo financeiro',
+          },
+        })
+      }
+    } catch (mensErr) {
+      console.warn('Auto-enrollment mensalidade falhou:', mensErr)
+    }
+
+
     return NextResponse.json({
       success: true,
       data: client,

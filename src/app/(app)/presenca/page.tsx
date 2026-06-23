@@ -115,6 +115,7 @@ export default function PresencaPage() {
     const [finalizingSession, setFinalizingSession] = useState(false)
     const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
     const [clearingStuck, setClearingStuck] = useState(false)
+    const [mensAlertIds, setMensAlertIds] = useState<Set<string>>(new Set())
 
     const activeSession = serverSessions.find(s => s.id === activeTabId) || null
     const activeCards = activeTabId ? (cardsBySession.get(activeTabId) || []) : []
@@ -126,6 +127,22 @@ export default function PresencaPage() {
     // DATA LOADING
     // ========================================================================
     useEffect(() => { loadClients(); loadSessions(); loadActiveClients() }, [])
+
+    // Buscar alertas de mensalidades (vencendo em 3 dias + atrasados)
+    useEffect(() => {
+        fetch('/api/studio/financeiro/mensalidades/alerts')
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const ids = new Set<string>([
+                        ...d.data.upcoming.map((m: any) => m.clientId),
+                        ...d.data.overdue.map((m: any) => m.clientId),
+                    ])
+                    setMensAlertIds(ids)
+                }
+            })
+            .catch(() => {})
+    }, [])
 
     // Poll for active sessions + active clients every 30s
     // Only update state when data actually changes to prevent scroll reset
@@ -622,7 +639,12 @@ export default function PresencaPage() {
                                             <span className="text-amber-500 font-bold text-xs">{initials(c.name)}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{c.name}</p>
+                                            <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                                                {c.name}
+                                                {mensAlertIds.has(c.id) && (
+                                                    <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">$</span>
+                                                )}
+                                            </p>
                                         </div>
                                         <Plus className="w-4 h-4 text-green-500 flex-shrink-0" />
                                     </button>
@@ -643,7 +665,14 @@ export default function PresencaPage() {
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${card.checkedIn ? 'bg-green-500/20 text-green-500' : 'bg-amber-500/20 text-amber-500'}`}>{initials(card.entry.clientName)}</div>
                                     <div className="min-w-0">
-                                        <p className="font-medium text-sm truncate">{card.entry.clientName}</p>
+                                        <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                                            {card.entry.clientName}
+                                            {mensAlertIds.has(card.entry.clientId) && (
+                                                <span className="flex-shrink-0 text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5 font-semibold">
+                                                    $ Vencendo
+                                                </span>
+                                            )}
+                                        </p>
                                         {/* Last pillar chip — more visible */}
                                         {card.sessionData?.lastLesson?.focus && (
                                             <div className="flex items-center gap-1">

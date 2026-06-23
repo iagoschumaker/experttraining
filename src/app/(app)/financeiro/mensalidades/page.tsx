@@ -1,7 +1,7 @@
 'use client'
 
 // ============================================================================
-// EXPERT PRO TRAINING — MENSALIDADES DE ALUNOS
+// KINEX PERFORMANCE — MENSALIDADES (Assinaturas Recorrentes)
 // ============================================================================
 
 import { useEffect, useState, useCallback } from 'react'
@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatsCard, StatsGrid } from '@/components/ui'
@@ -32,794 +31,663 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
-  Plus,
   TrendingUp,
   Calendar,
   Search,
   CreditCard,
-  Star,
+  Bell,
+  XCircle,
+  RefreshCw,
+  Settings,
   ChevronDown,
   ChevronRight,
   DollarSign,
+  Wallet,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/fetchWithAuth'
+import { cn } from '@/lib/utils'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-interface MensalidadeEntry {
+interface Mensalidade {
   id: string
-  description: string
+  clientId: string
+  clientName: string
+  clientEmail: string | null
+  clientPhone: string | null
+  clientIsActive: boolean
+  billingCycle: 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUAL' | 'ANNUAL'
   amount: number
-  date: string
-  dueDate: string | null
-  status: string
-  paidAt: string | null
-  paymentMethod: string | null
-  installment: number | null
-  totalInstallments: number | null
-  recurrenceId: string | null
-  category: { id: string; code: string; name: string }
+  adhesionDate: string
+  nextBillingDate: string
+  lastPaymentDate: string | null
+  status: 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'INACTIVE'
+  notes: string | null
+  isAlertDue: boolean
+  daysUntilDue: number
 }
 
-interface ClientMensalidade {
+interface ClientWithoutMens {
   id: string
   name: string
   email: string | null
   phone: string | null
-  status: 'ADIMPLENTE' | 'INADIMPLENTE' | 'ADIANTADO' | 'PENDENTE' | 'SEM_MENSALIDADE'
-  creditMonths: number
-  totalPending: number
-  totalOverdue: number
-  nextDueDate: string | null
-  lastPaymentDate: string | null
-  currentMonthPaid: boolean
-  recurrenceId: string | null
-  entries: MensalidadeEntry[]
 }
 
 interface Stats {
   total: number
   comMensalidade: number
-  adimplentes: number
-  inadimplentes: number
+  semMensalidade: number
+  ativos: number
   pendentes: number
-  adiantados: number
+  atrasados: number
+  inativos: number
+  alertas: number
   totalAReceber: number
-  totalOverdue: number
 }
 
-interface Category {
-  id: string
-  code: string
-  name: string
-  type: string
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const CYCLE_LABELS: Record<string, string> = {
+  MONTHLY: 'Mensal',
+  QUARTERLY: 'Trimestral',
+  SEMIANNUAL: 'Semestral',
+  ANNUAL: 'Anual',
 }
 
-const PAYMENT_METHODS = [
-  { value: 'PIX', label: 'PIX' },
-  { value: 'DINHEIRO', label: 'Dinheiro' },
-  { value: 'CARTAO_DEBITO', label: 'Cartão Débito' },
-  { value: 'CARTAO_CREDITO', label: 'Cartão Crédito' },
-  { value: 'TRANSFERENCIA', label: 'Transferência' },
-  { value: 'BOLETO', label: 'Boleto' },
-  { value: 'OUTRO', label: 'Outro' },
-]
+const STATUS_CONFIG = {
+  ACTIVE:   { label: 'Em dia',    color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+  PENDING:  { label: 'Pendente',  color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+  OVERDUE:  { label: 'Atrasado',  color: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  INACTIVE: { label: 'Inativo',   color: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
+}
 
-const STATUS_FILTER = [
-  { value: 'TODOS', label: 'Todos' },
-  { value: 'INADIMPLENTE', label: 'Inadimplentes' },
-  { value: 'PENDENTE', label: 'Pendentes' },
-  { value: 'ADIMPLENTE', label: 'Adimplentes' },
-  { value: 'ADIANTADO', label: 'Adiantados' },
-  { value: 'SEM_MENSALIDADE', label: 'Sem mensalidade' },
-]
+function formatCurrency(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+function formatDate(iso: string | null) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+// ─── Card de cada aluno ──────────────────────────────────────────────────────
+
+function MensalidadeCard({
+  m,
+  onPay,
+  onConfigure,
+}: {
+  m: Mensalidade
+  onPay: (m: Mensalidade) => void
+  onConfigure: (m: Mensalidade) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const cfg = STATUS_CONFIG[m.status]
+
+  return (
+    <div
+      className={cn(
+        'rounded-xl border transition-all',
+        m.status === 'OVERDUE'
+          ? 'border-red-500/30 bg-red-500/5'
+          : m.isAlertDue
+          ? 'border-yellow-500/30 bg-yellow-500/5'
+          : 'border-border bg-card'
+      )}
+    >
+      <div
+        className="flex items-center gap-3 p-4 cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {/* Status dot */}
+        <div className={cn(
+          'w-2.5 h-2.5 rounded-full flex-shrink-0',
+          m.status === 'ACTIVE' ? 'bg-emerald-400' :
+          m.status === 'PENDING' ? 'bg-yellow-400' :
+          m.status === 'OVERDUE' ? 'bg-red-400' : 'bg-zinc-500'
+        )} />
+
+        {/* Nome + badge */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-foreground truncate">{m.clientName}</span>
+            {m.isAlertDue && m.status !== 'OVERDUE' && (
+              <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <Bell className="w-2.5 h-2.5" />
+                Vence em {m.daysUntilDue}d
+              </span>
+            )}
+            {m.status === 'OVERDUE' && (
+              <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <AlertTriangle className="w-2.5 h-2.5" />
+                Em atraso
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+            <span>{CYCLE_LABELS[m.billingCycle]}</span>
+            <span>•</span>
+            <span>{formatCurrency(m.amount)}</span>
+            <span>•</span>
+            <span>Próx: {formatDate(m.nextBillingDate)}</span>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <Badge className={cn('text-xs font-medium border hidden sm:flex', cfg.color)}>
+          {cfg.label}
+        </Badge>
+
+        {/* Expand */}
+        {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-border/50 pt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-sm">
+            <div>
+              <span className="text-muted-foreground text-xs block mb-1">Adesão</span>
+              <span className="text-foreground">{formatDate(m.adhesionDate)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs block mb-1">Próx. cobrança</span>
+              <span className={cn(
+                m.status === 'OVERDUE' ? 'text-red-400' :
+                m.isAlertDue ? 'text-yellow-400' : 'text-foreground'
+              )}>{formatDate(m.nextBillingDate)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs block mb-1">Último pagamento</span>
+              <span className="text-foreground">{formatDate(m.lastPaymentDate)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs block mb-1">Aluno ativo</span>
+              <span className={m.clientIsActive ? 'text-emerald-400' : 'text-red-400'}>
+                {m.clientIsActive ? 'Sim' : 'Não'}
+              </span>
+            </div>
+          </div>
+          {m.notes && (
+            <p className="text-xs text-muted-foreground mb-3 bg-muted/30 rounded-lg p-2">{m.notes}</p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onPay(m) }}
+              className="flex-1 sm:flex-none"
+            >
+              <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+              Receber
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => { e.stopPropagation(); onConfigure(m) }}
+            >
+              <Settings className="w-3.5 h-3.5 mr-1.5" />
+              Configurar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Página principal ────────────────────────────────────────────────────────
 
 export default function MensalidadesPage() {
-  const [loading, setLoading] = useState(true)
-  const [clients, setClients] = useState<ClientMensalidade[]>([])
+  const [mensalidades, setMensalidades] = useState<Mensalidade[]>([])
+  const [clientsWithoutMens, setClientsWithoutMens] = useState<ClientWithoutMens[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('TODOS')
-  const [expandedClient, setExpandedClient] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'overdue' | 'alerts' | 'no_mens'>('all')
 
-  // Modal: nova mensalidade
-  const [newModalOpen, setNewModalOpen] = useState(false)
-  const [selectedClientForNew, setSelectedClientForNew] = useState<ClientMensalidade | null>(null)
-  const [savingNew, setSavingNew] = useState(false)
-  const [newForm, setNewForm] = useState({
-    categoryId: '',
-    description: '',
-    amount: '',
-    startDate: new Date().toISOString().split('T')[0],
-    monthsTotal: '12',
-    monthsPaidNow: '0',
-    paymentMethod: 'PIX',
-    notes: '',
-  })
+  // Modals
+  const [payModal, setPayModal] = useState<Mensalidade | null>(null)
+  const [configModal, setConfigModal] = useState<Mensalidade | ClientWithoutMens | null>(null)
+  const [isConfigNew, setIsConfigNew] = useState(false)
 
-  // Modal: quitar meses
-  const [payModalOpen, setPayModalOpen] = useState(false)
-  const [selectedClientForPay, setSelectedClientForPay] = useState<ClientMensalidade | null>(null)
-  const [savingPay, setSavingPay] = useState(false)
-  const [payForm, setPayForm] = useState({
-    monthsCount: '1',
-    paymentMethod: 'PIX',
-  })
+  // Form pay
+  const [payMethod, setPayMethod] = useState('PIX')
+  const [payDate, setPayDate] = useState('')
+  const [payCategory, setPayCategory] = useState('')
+  const [paying, setPaying] = useState(false)
 
-  const loadData = useCallback(async () => {
+  // Form config
+  const [configCycle, setConfigCycle] = useState<string>('MONTHLY')
+  const [configAmount, setConfigAmount] = useState('')
+  const [configAdhesion, setConfigAdhesion] = useState('')
+  const [configNotes, setConfigNotes] = useState('')
+  const [configuring, setConfiguring] = useState(false)
+
+  // Categories for payment
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
-      setLoading(true)
       const [mensRes, catRes] = await Promise.all([
         fetchWithAuth('/api/studio/financeiro/mensalidades'),
-        fetchWithAuth('/api/studio/financeiro/categories'),
+        fetchWithAuth('/api/studio/financeiro/categories?type=RECEITA'),
       ])
-      const [mensData, catData] = await Promise.all([mensRes.json(), catRes.json()])
-
+      const mensData = await mensRes.json()
+      const catData = await catRes.json()
       if (mensData.success) {
-        setClients(mensData.data.clients)
+        setMensalidades(mensData.data.mensalidades)
+        setClientsWithoutMens(mensData.data.clientsWithoutMens)
         setStats(mensData.data.stats)
       }
       if (catData.success) {
-        setCategories(catData.data.flat.filter((c: Category) => c.type === 'RECEITA'))
+        setCategories(catData.data?.slice(0, 20) ?? [])
       }
-    } catch {
-      toast.error('Erro ao carregar mensalidades')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  useEffect(() => { load() }, [load])
 
-  const handleNewMensalidade = async () => {
-    if (!selectedClientForNew) return
-    if (!newForm.categoryId || !newForm.description || !newForm.amount || !newForm.startDate) {
-      toast.error('Preencha todos os campos obrigatórios')
-      return
-    }
+  // Filter mensalidades
+  const filtered = mensalidades.filter(m => {
+    const matchSearch = !search ||
+      m.clientName.toLowerCase().includes(search.toLowerCase()) ||
+      m.clientEmail?.toLowerCase().includes(search.toLowerCase()) ||
+      m.clientPhone?.includes(search)
+    const matchStatus = filterStatus === 'all' || m.status === filterStatus
+    return matchSearch && matchStatus
+  })
 
-    setSavingNew(true)
+  const tabData = {
+    all: filtered,
+    overdue: filtered.filter(m => m.status === 'OVERDUE'),
+    alerts: filtered.filter(m => m.isAlertDue && m.status !== 'OVERDUE'),
+    no_mens: clientsWithoutMens,
+  }
+
+  // Handle pagamento
+  async function handlePay() {
+    if (!payModal) return
+    setPaying(true)
     try {
+      const res = await fetchWithAuth(`/api/studio/financeiro/mensalidades/${payModal.id}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethod: payMethod,
+          paidDate: payDate || undefined,
+          categoryId: payCategory || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(data.message)
+        setPayModal(null)
+        load()
+      } else {
+        toast.error(data.error)
+      }
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  // Handle configurar
+  async function handleConfigure() {
+    if (!configModal) return
+    setConfiguring(true)
+    try {
+      const clientId = 'clientId' in configModal ? configModal.clientId : configModal.id
       const res = await fetchWithAuth('/api/studio/financeiro/mensalidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientId: selectedClientForNew.id,
-          categoryId: newForm.categoryId,
-          description: newForm.description,
-          amount: parseFloat(newForm.amount),
-          startDate: newForm.startDate,
-          monthsTotal: parseInt(newForm.monthsTotal),
-          monthsPaidNow: parseInt(newForm.monthsPaidNow),
-          paymentMethod: newForm.paymentMethod || null,
-          notes: newForm.notes || null,
+          clientId,
+          billingCycle: configCycle,
+          amount: parseFloat(configAmount) || 0,
+          adhesionDate: configAdhesion || undefined,
+          notes: configNotes || undefined,
         }),
       })
-      const result = await res.json()
-      if (result.success) {
-        toast.success(result.message)
-        setNewModalOpen(false)
-        setSelectedClientForNew(null)
-        loadData()
+      const data = await res.json()
+      if (data.success) {
+        toast.success('Mensalidade configurada com sucesso')
+        setConfigModal(null)
+        load()
       } else {
-        toast.error(result.error)
+        toast.error(data.error)
       }
-    } catch {
-      toast.error('Erro ao salvar')
     } finally {
-      setSavingNew(false)
+      setConfiguring(false)
     }
   }
 
-  const handleQuitarMeses = async () => {
-    if (!selectedClientForPay?.recurrenceId) return
-
-    setSavingPay(true)
-    try {
-      const res = await fetchWithAuth('/api/studio/financeiro/mensalidades/quitar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recurrenceId: selectedClientForPay.recurrenceId,
-          monthsCount: parseInt(payForm.monthsCount),
-          paymentMethod: payForm.paymentMethod || null,
-        }),
-      })
-      const result = await res.json()
-      if (result.success) {
-        toast.success(result.message)
-        setPayModalOpen(false)
-        setSelectedClientForPay(null)
-        loadData()
-      } else {
-        toast.error(result.error)
-      }
-    } catch {
-      toast.error('Erro ao quitar')
-    } finally {
-      setSavingPay(false)
-    }
+  function openConfigure(m: Mensalidade) {
+    setIsConfigNew(false)
+    setConfigModal(m)
+    setConfigCycle(m.billingCycle)
+    setConfigAmount(m.amount.toString())
+    setConfigAdhesion(m.adhesionDate ? m.adhesionDate.slice(0, 10) : '')
+    setConfigNotes(m.notes ?? '')
   }
 
-  const openNewModal = (client: ClientMensalidade) => {
-    setSelectedClientForNew(client)
-    setNewForm({
-      categoryId: '',
-      description: `Mensalidade ${client.name}`,
-      amount: '',
-      startDate: new Date().toISOString().split('T')[0],
-      monthsTotal: '12',
-      monthsPaidNow: '0',
-      paymentMethod: 'PIX',
-      notes: '',
-    })
-    setNewModalOpen(true)
+  function openConfigureNew(c: ClientWithoutMens) {
+    setIsConfigNew(true)
+    setConfigModal(c)
+    setConfigCycle('MONTHLY')
+    setConfigAmount('')
+    setConfigAdhesion(new Date().toISOString().slice(0, 10))
+    setConfigNotes('')
   }
-
-  const openPayModal = (client: ClientMensalidade) => {
-    setSelectedClientForPay(client)
-    setPayForm({ monthsCount: '1', paymentMethod: 'PIX' })
-    setPayModalOpen(true)
-  }
-
-  const fmt = (v: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-
-  const fmtDate = (d: string | null) =>
-    d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
-
-  const fmtMonth = (d: string) => {
-    const date = new Date(d)
-    return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-  }
-
-  const statusBadge = (status: string) => {
-    switch (status) {
-      case 'ADIMPLENTE':
-        return <Badge className="bg-emerald-500/20 text-emerald-400 border-0">✓ Adimplente</Badge>
-      case 'ADIANTADO':
-        return <Badge className="bg-yellow-500/15 text-yellow-600 border-0"><Star className="h-3 w-3 mr-1" />Adiantado</Badge>
-      case 'INADIMPLENTE':
-        return <Badge className="bg-red-500/20 text-red-400 border-0">⚠ Inadimplente</Badge>
-      case 'PENDENTE':
-        return <Badge className="bg-amber-500/20 text-amber-400 border-0"><Clock className="h-3 w-3 mr-1" />Pendente</Badge>
-      default:
-        return <Badge className="bg-muted text-muted-foreground border-0">Sem mensalidade</Badge>
-    }
-  }
-
-  const entryStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID': return 'text-emerald-400'
-      case 'OVERDUE': return 'text-red-400'
-      case 'PENDING': return 'text-amber-400'
-      default: return 'text-muted-foreground'
-    }
-  }
-
-  const entryStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PAID': return 'Pago'
-      case 'OVERDUE': return 'Vencido'
-      case 'PENDING': return 'Pendente'
-      case 'CANCELED': return 'Cancelado'
-      default: return status
-    }
-  }
-
-  // Filtrar e ordenar clientes
-  const filteredClients = clients
-    .filter(c => {
-      const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase())
-      const matchStatus = statusFilter === 'TODOS' || c.status === statusFilter
-      return matchSearch && matchStatus
-    })
-    .sort((a, b) => {
-      // Ordenar: inadimplente primeiro, depois pendente, depois adimplente, depois sem mensalidade
-      const order = { INADIMPLENTE: 0, PENDENTE: 1, ADIMPLENTE: 2, ADIANTADO: 3, SEM_MENSALIDADE: 4 }
-      return (order[a.status] ?? 5) - (order[b.status] ?? 5)
-    })
-
-  const pendingMonths = parseInt(payForm.monthsCount) || 1
-  const payTotal = selectedClientForPay
-    ? (selectedClientForPay.entries.find(e => e.status === 'PENDING' || e.status === 'OVERDUE')?.amount ?? 0) * pendingMonths
-    : 0
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Users className="h-6 w-6 text-emerald-500" /> Mensalidades
-        </h1>
-        <StatsGrid columns={4}>
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28" />)}
-        </StatsGrid>
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20" />)}
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
         </div>
       </div>
     )
   }
 
+  const tabs = [
+    { key: 'all',     label: 'Todos',     count: filtered.length },
+    { key: 'overdue', label: 'Em atraso', count: tabData.overdue.length, alert: tabData.overdue.length > 0 },
+    { key: 'alerts',  label: 'Vencendo',  count: tabData.alerts.length, alert: tabData.alerts.length > 0 },
+    { key: 'no_mens', label: 'Sem config', count: tabData.no_mens.length },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-emerald-500" />
-            Mensalidades de Alunos
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {stats?.comMensalidade ?? 0} alunos com mensalidade ativa
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Mensalidades</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Assinaturas recorrentes dos alunos
+        </p>
       </div>
 
       {/* Stats */}
       {stats && (
-        <StatsGrid columns={4}>
+        <StatsGrid cols={4}>
           <StatsCard
-            title="Adimplentes"
-            value={String(stats.adimplentes + stats.adiantados)}
-            subtitle={`de ${stats.comMensalidade} alunos`}
-            icon={<CheckCircle className="h-4 w-4" />}
-            iconColor="text-emerald-500"
-            iconBgColor="bg-emerald-500/10"
+            title="Alunos"
+            value={stats.total}
+            icon={<Users className="w-5 h-5" />}
+            description={`${stats.comMensalidade} com mensalidade`}
           />
           <StatsCard
-            title="Inadimplentes"
-            value={String(stats.inadimplentes)}
-            subtitle={stats.inadimplentes > 0 ? '⚠️ Atenção' : 'Nenhum'}
-            icon={<AlertTriangle className="h-4 w-4" />}
-            iconColor={stats.inadimplentes > 0 ? 'text-red-500' : 'text-emerald-500'}
-            iconBgColor={stats.inadimplentes > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'}
+            title="Em dia"
+            value={stats.ativos}
+            icon={<CheckCircle className="w-5 h-5" />}
+            description={`${stats.pendentes} pendentes`}
+            variant="success"
           />
           <StatsCard
-            title="A Receber"
-            value={fmt(stats.totalAReceber)}
-            subtitle="Pendente + vencido"
-            icon={<TrendingUp className="h-4 w-4" />}
-            iconColor="text-amber-500"
-            iconBgColor="bg-amber-500/10"
+            title="Em atraso"
+            value={stats.atrasados}
+            icon={<AlertTriangle className="w-5 h-5" />}
+            variant={stats.atrasados > 0 ? 'danger' : 'default'}
           />
           <StatsCard
-            title="Em Atraso"
-            value={fmt(stats.totalOverdue)}
-            subtitle={`${stats.inadimplentes} alunos`}
-            icon={<DollarSign className="h-4 w-4" />}
-            iconColor={stats.totalOverdue > 0 ? 'text-red-500' : 'text-emerald-500'}
-            iconBgColor={stats.totalOverdue > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'}
+            title="A receber"
+            value={formatCurrency(stats.totalAReceber)}
+            icon={<DollarSign className="w-5 h-5" />}
+            variant="warning"
           />
         </StatsGrid>
       )}
 
-      {/* Filtros */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-52">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar aluno..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 bg-card"
-          />
+      {/* Alertas vencendo em 3 dias */}
+      {tabData.alerts.length > 0 && activeTab !== 'alerts' && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-400">
+          <Bell className="w-4 h-4 flex-shrink-0" />
+          <span>
+            <strong>{tabData.alerts.length}</strong> aluno{tabData.alerts.length !== 1 ? 's' : ''} com cobrança vencendo nos próximos 3 dias.
+          </span>
+          <button
+            className="ml-auto text-xs underline"
+            onClick={() => setActiveTab('alerts')}
+          >
+            Ver →
+          </button>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-44 bg-card">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_FILTER.map(s => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      )}
 
-      {/* Lista de clientes */}
-      <div className="space-y-2">
-        {filteredClients.length === 0 ? (
-          <Card className="bg-card border-border">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Nenhum aluno encontrado</p>
-            </CardContent>
-          </Card>
-        ) : filteredClients.map(client => {
-          const isExpanded = expandedClient === client.id
-          const hasPending = client.status === 'INADIMPLENTE' || client.status === 'PENDENTE'
-          const borderColor = client.status === 'INADIMPLENTE'
-            ? 'border-red-500/30'
-            : client.status === 'ADIANTADO'
-            ? 'border-yellow-500/30'
-            : 'border-border'
+      {/* Filters + Tabs */}
+      <div className="space-y-3">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar aluno..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-36 h-9">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="ACTIVE">Em dia</SelectItem>
+              <SelectItem value="PENDING">Pendente</SelectItem>
+              <SelectItem value="OVERDUE">Atrasado</SelectItem>
+              <SelectItem value="INACTIVE">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={load} className="h-9">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        </div>
 
-          return (
-            <Card key={client.id} className={`bg-card ${borderColor} transition-all`}>
-              <CardContent className="p-0">
-                {/* Client row */}
-                <div className="flex items-center gap-3 p-4">
-                  {/* Avatar */}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                    client.status === 'INADIMPLENTE' ? 'bg-red-500/20 text-red-400' :
-                    client.status === 'ADIANTADO' ? 'bg-yellow-500/15 text-yellow-600' :
-                    client.status === 'ADIMPLENTE' ? 'bg-emerald-500/20 text-emerald-400' :
-                    client.status === 'PENDENTE' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-muted text-muted-foreground'
-                  }`}>
-                    {client.name.charAt(0).toUpperCase()}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-foreground">{client.name}</p>
-                      {statusBadge(client.status)}
-                      {client.creditMonths >= 2 && (
-                        <span className="text-xs text-yellow-600">
-                          {client.creditMonths} meses adiantados
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
-                      {client.status !== 'SEM_MENSALIDADE' && (
-                        <>
-                          {client.nextDueDate && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {hasPending ? 'Venceu' : 'Próximo'}: {fmtDate(client.nextDueDate)}
-                            </span>
-                          )}
-                          {client.lastPaymentDate && (
-                            <span>Último pag.: {fmtDate(client.lastPaymentDate)}</span>
-                          )}
-                        </>
-                      )}
-                      {client.phone && <span>{client.phone}</span>}
-                    </div>
-                  </div>
-
-                  {/* Valores e ações */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {client.totalOverdue > 0 && (
-                      <span className="text-sm font-bold text-red-400">{fmt(client.totalOverdue)}</span>
-                    )}
-                    {client.totalPending > 0 && client.totalOverdue === 0 && (
-                      <span className="text-sm font-semibold text-amber-400">{fmt(client.totalPending)}</span>
-                    )}
-
-                    {/* Botão Pagar */}
-                    {(hasPending || client.status === 'ADIMPLENTE') && client.recurrenceId && (
-                      <Button
-                        size="sm"
-                        className={`h-8 text-xs ${hasPending ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-muted hover:bg-muted/80 text-muted-foreground'}`}
-                        onClick={() => openPayModal(client)}
-                      >
-                        <CreditCard className="h-3.5 w-3.5 mr-1" />
-                        Receber
-                      </Button>
-                    )}
-
-                    {/* Botão Nova Mensalidade */}
-                    {client.status === 'SEM_MENSALIDADE' && (
-                      <Button
-                        size="sm"
-                        className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() => openNewModal(client)}
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-                      </Button>
-                    )}
-
-                    {/* Botão expandir histórico */}
-                    {client.entries.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-muted-foreground"
-                        onClick={() => setExpandedClient(isExpanded ? null : client.id)}
-                      >
-                        {isExpanded
-                          ? <ChevronDown className="h-4 w-4" />
-                          : <ChevronRight className="h-4 w-4" />
-                        }
-                      </Button>
-                    )}
-
-                    {/* Add new recurrence when client already has one */}
-                    {client.status !== 'SEM_MENSALIDADE' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-muted-foreground hover:text-foreground"
-                        onClick={() => openNewModal(client)}
-                        title="Adicionar nova recorrência"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Histórico expandido */}
-                {isExpanded && client.entries.length > 0 && (
-                  <div className="border-t border-border bg-muted/20">
-                    <div className="px-4 py-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                        Histórico de mensalidades
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5">
-                        {client.entries.map(entry => (
-                          <div
-                            key={entry.id}
-                            className={`p-2 rounded-md border text-center text-xs ${
-                              entry.status === 'PAID'
-                                ? 'border-emerald-500/20 bg-emerald-500/5'
-                                : entry.status === 'OVERDUE'
-                                ? 'border-red-500/20 bg-red-500/5'
-                                : entry.status === 'CANCELED'
-                                ? 'border-muted bg-muted/30 opacity-40'
-                                : 'border-amber-500/20 bg-amber-500/5'
-                            }`}
-                          >
-                            <p className="font-medium text-foreground">{fmtMonth(entry.date)}</p>
-                            <p className={`font-semibold ${entryStatusColor(entry.status)}`}>
-                              {entryStatusLabel(entry.status)}
-                            </p>
-                            <p className="text-muted-foreground">{fmt(entry.amount)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Modal: Nova Mensalidade */}
-      <Dialog open={newModalOpen} onOpenChange={setNewModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              Nova Mensalidade
-              {selectedClientForNew && (
-                <span className="text-muted-foreground font-normal text-sm ml-2">
-                  — {selectedClientForNew.name}
-                </span>
+        {/* Tab buttons */}
+        <div className="flex gap-1 border-b border-border">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={cn(
+                'px-3 py-2 text-sm font-medium transition-all border-b-2 -mb-px flex items-center gap-1.5',
+                activeTab === tab.key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
-            </DialogTitle>
-          </DialogHeader>
+            >
+              {tab.label}
+              <span className={cn(
+                'text-xs rounded-full px-1.5 py-0.5',
+                tab.alert ? 'bg-red-500/20 text-red-400' : 'bg-muted text-muted-foreground'
+              )}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-          <div className="space-y-4">
-            {/* Categoria */}
-            <div>
-              <Label>Categoria *</Label>
-              <Select value={newForm.categoryId} onValueChange={v => setNewForm(f => ({ ...f, categoryId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Lista */}
+      <div className="space-y-2">
+        {activeTab !== 'no_mens' ? (
+          tabData[activeTab].length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              {activeTab === 'overdue'
+                ? '✓ Nenhum aluno em atraso'
+                : activeTab === 'alerts'
+                ? '✓ Nenhum vencimento nos próximos 3 dias'
+                : 'Nenhum aluno encontrado'}
             </div>
-
-            {/* Descrição */}
-            <div>
-              <Label>Descrição *</Label>
-              <Input
-                value={newForm.description}
-                onChange={e => setNewForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Ex: Mensalidade Personal"
+          ) : (
+            (tabData[activeTab] as Mensalidade[]).map(m => (
+              <MensalidadeCard
+                key={m.id}
+                m={m}
+                onPay={setPayModal}
+                onConfigure={openConfigure}
               />
+            ))
+          )
+        ) : (
+          // Alunos sem mensalidade configurada
+          clientsWithoutMens.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              ✓ Todos os alunos têm mensalidade configurada
             </div>
-
-            {/* Valor + Data início */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Valor mensal (R$) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={newForm.amount}
-                  onChange={e => setNewForm(f => ({ ...f, amount: e.target.value }))}
-                  placeholder="0,00"
-                />
+          ) : (
+            clientsWithoutMens.map(c => (
+              <div key={c.id} className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card">
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="font-medium text-foreground">{c.name}</span>
+                  {c.phone && <span className="text-xs text-muted-foreground ml-2">{c.phone}</span>}
+                </div>
+                <Button size="sm" variant="outline" onClick={() => openConfigureNew(c)}>
+                  <Settings className="w-3.5 h-3.5 mr-1.5" />
+                  Configurar
+                </Button>
               </div>
-              <div>
-                <Label>Início *</Label>
+            ))
+          )
+        )}
+      </div>
+
+      {/* Modal: Receber pagamento */}
+      <Dialog open={!!payModal} onOpenChange={() => setPayModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Pagamento</DialogTitle>
+          </DialogHeader>
+          {payModal && (
+            <div className="space-y-4 py-2">
+              <div className="bg-muted/30 rounded-lg p-3 text-sm space-y-1">
+                <div className="font-medium text-foreground">{payModal.clientName}</div>
+                <div className="text-muted-foreground">
+                  {CYCLE_LABELS[payModal.billingCycle]} · {formatCurrency(payModal.amount)}
+                </div>
+                <div className="text-muted-foreground text-xs">
+                  Próxima cobrança atual: {formatDate(payModal.nextBillingDate)}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Forma de pagamento</Label>
+                <Select value={payMethod} onValueChange={setPayMethod}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PIX">PIX</SelectItem>
+                    <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                    <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
+                    <SelectItem value="CARTAO_CREDITO">Cartão Crédito</SelectItem>
+                    <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+                    <SelectItem value="BOLETO">Boleto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do recebimento (opcional)</Label>
                 <Input
                   type="date"
-                  value={newForm.startDate}
-                  onChange={e => setNewForm(f => ({ ...f, startDate: e.target.value }))}
+                  value={payDate}
+                  onChange={e => setPayDate(e.target.value)}
                 />
               </div>
+              {categories.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Categoria (opcional)</Label>
+                  <Select value={payCategory} onValueChange={setPayCategory}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
-
-            {/* Total de meses + Meses pagos agora */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Total de meses</Label>
-                <Select value={newForm.monthsTotal} onValueChange={v => setNewForm(f => ({ ...f, monthsTotal: v, monthsPaidNow: '0' }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 6, 12, 24].map(n => (
-                      <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'mês' : 'meses'}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Já pagos agora</Label>
-                <Select value={newForm.monthsPaidNow} onValueChange={v => setNewForm(f => ({ ...f, monthsPaidNow: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: parseInt(newForm.monthsTotal) + 1 }, (_, i) => i).map(n => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n === 0 ? 'Nenhum' : `${n} ${n === 1 ? 'mês' : 'meses'}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Resumo do pagamento antecipado */}
-            {parseInt(newForm.monthsPaidNow) > 0 && newForm.amount && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm">
-                <p className="text-emerald-400 font-semibold">
-                  💳 Recebendo agora: {fmt(parseFloat(newForm.amount) * parseInt(newForm.monthsPaidNow))}
-                </p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  {newForm.monthsPaidNow} meses × {fmt(parseFloat(newForm.amount))} — marcados como PAGO
-                </p>
-                {parseInt(newForm.monthsTotal) - parseInt(newForm.monthsPaidNow) > 0 && (
-                  <p className="text-muted-foreground text-xs">
-                    {parseInt(newForm.monthsTotal) - parseInt(newForm.monthsPaidNow)} meses restantes ficarão como PENDENTE
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Forma de pagamento */}
-            {parseInt(newForm.monthsPaidNow) > 0 && (
-              <div>
-                <Label>Forma de Pagamento</Label>
-                <Select value={newForm.paymentMethod} onValueChange={v => setNewForm(f => ({ ...f, paymentMethod: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map(m => (
-                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Observações */}
-            <div>
-              <Label>Observações</Label>
-              <Textarea
-                value={newForm.notes}
-                onChange={e => setNewForm(f => ({ ...f, notes: e.target.value }))}
-                rows={2}
-                placeholder="Opcional..."
-              />
-            </div>
-          </div>
-
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewModalOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={handleNewMensalidade}
-              disabled={savingNew}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {savingNew ? 'Salvando...' : 'Criar Mensalidade'}
+            <Button variant="outline" onClick={() => setPayModal(null)}>Cancelar</Button>
+            <Button onClick={handlePay} disabled={paying}>
+              {paying ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+              Confirmar Recebimento
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Quitar meses */}
-      <Dialog open={payModalOpen} onOpenChange={setPayModalOpen}>
-        <DialogContent className="max-w-sm">
+      {/* Modal: Configurar mensalidade */}
+      <Dialog open={!!configModal} onOpenChange={() => setConfigModal(null)}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Registrar Pagamento
-              {selectedClientForPay && (
-                <span className="text-muted-foreground font-normal text-sm ml-2">
-                  — {selectedClientForPay.name}
-                </span>
-              )}
+              {isConfigNew ? 'Configurar Mensalidade' : 'Editar Mensalidade'}
             </DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Status atual */}
-            {selectedClientForPay && (
-              <div className="p-3 rounded-lg bg-muted/30 space-y-1 text-sm">
-                {selectedClientForPay.totalOverdue > 0 && (
-                  <p className="text-red-400">
-                    ⚠️ Em atraso: <strong>{fmt(selectedClientForPay.totalOverdue)}</strong>
-                  </p>
-                )}
-                {selectedClientForPay.totalPending > 0 && (
-                  <p className="text-amber-400">
-                    Pendente: <strong>{fmt(selectedClientForPay.totalPending)}</strong>
-                  </p>
-                )}
-                {selectedClientForPay.nextDueDate && (
-                  <p className="text-muted-foreground text-xs">
-                    Próximo vencimento: {fmtDate(selectedClientForPay.nextDueDate)}
-                  </p>
-                )}
+          {configModal && (
+            <div className="space-y-4 py-2">
+              <div className="bg-muted/30 rounded-lg p-3 text-sm font-medium text-foreground">
+                {'clientName' in configModal ? configModal.clientName : configModal.name}
               </div>
-            )}
-
-            {/* Quantos meses pagar */}
-            <div>
-              <Label>Quantos meses pagar agora?</Label>
-              <Select value={payForm.monthsCount} onValueChange={v => setPayForm(f => ({ ...f, monthsCount: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 6, 12].map(n => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n} {n === 1 ? 'mês' : 'meses'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Forma de pagamento */}
-            <div>
-              <Label>Forma de Pagamento</Label>
-              <Select value={payForm.paymentMethod} onValueChange={v => setPayForm(f => ({ ...f, paymentMethod: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map(m => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Total a receber */}
-            {selectedClientForPay && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <p className="text-sm text-emerald-400 font-semibold">
-                  💰 Total a receber: {fmt(
-                    (selectedClientForPay.entries.find(e =>
-                      e.status === 'OVERDUE' || e.status === 'PENDING'
-                    )?.amount ?? 0) * parseInt(payForm.monthsCount)
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Os {payForm.monthsCount} meses mais antigos serão marcados como pagos
+              <div className="space-y-2">
+                <Label>Ciclo de cobrança</Label>
+                <Select value={configCycle} onValueChange={setConfigCycle}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHLY">Mensal</SelectItem>
+                    <SelectItem value="QUARTERLY">Trimestral (3 meses)</SelectItem>
+                    <SelectItem value="SEMIANNUAL">Semestral (6 meses)</SelectItem>
+                    <SelectItem value="ANNUAL">Anual (12 meses)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Ex: 150.00"
+                  value={configAmount}
+                  onChange={e => setConfigAmount(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data de adesão</Label>
+                <Input
+                  type="date"
+                  value={configAdhesion}
+                  onChange={e => setConfigAdhesion(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Data em que o studio recebeu o pagamento inicial do aluno.
                 </p>
               </div>
-            )}
-          </div>
-
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Input
+                  placeholder="Plano especial, desconto..."
+                  value={configNotes}
+                  onChange={e => setConfigNotes(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayModalOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={handleQuitarMeses}
-              disabled={savingPay}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {savingPay ? 'Registrando...' : 'Confirmar Pagamento'}
+            <Button variant="outline" onClick={() => setConfigModal(null)}>Cancelar</Button>
+            <Button onClick={handleConfigure} disabled={configuring}>
+              {configuring ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -58,6 +58,7 @@ model Studio {
   financialEntries     FinancialEntry[]
   clientPlans          ClientPlan[]
   clientSubscriptions  ClientSubscription[]
+  clientMensalidades   ClientMensalidade[]
 
   @@index([isPaid])
   @@index([paymentDueDate])
@@ -255,6 +256,7 @@ model Client {
   workouts           Workout[]
   financialEntries   FinancialEntry[]
   clientSubscriptions ClientSubscription[]
+  mensalidade        ClientMensalidade?
 
   @@index([studioId])
   @@index([trainerId])
@@ -805,4 +807,41 @@ model ClientSubscription {
   @@index([status])
   @@index([endDate])
   @@map("client_subscriptions")
+}
+
+// ─── MENSALIDADES RECORRENTES DE ALUNOS ───
+enum MensalidadeCycle {
+  MONTHLY     // 1 mês
+  QUARTERLY   // 3 meses
+  SEMIANNUAL  // 6 meses
+  ANNUAL      // 12 meses
+}
+
+enum MensalidadeStatus {
+  ACTIVE    // em dia
+  PENDING   // configurado mas aguardando pagamento
+  OVERDUE   // passou da data sem pagamento
+  INACTIVE  // desativado
+}
+
+model ClientMensalidade {
+  id              String           @id @default(cuid())
+  clientId        String           @unique @map("client_id")
+  studioId        String           @map("studio_id")
+  billingCycle    MensalidadeCycle @default(MONTHLY) @map("billing_cycle")
+  amount          Decimal          @default(0) @db.Decimal(10, 2)
+  adhesionDate    DateTime         @default(now()) @map("adhesion_date")
+  nextBillingDate DateTime         @map("next_billing_date")
+  lastPaymentDate DateTime?        @map("last_payment_date")
+  status          MensalidadeStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  studio  Studio  @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  @@index([studioId, nextBillingDate])
+  @@index([studioId, status])
+  @@map("client_mensalidades")
 }

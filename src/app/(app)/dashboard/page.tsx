@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatsCard, StatsGrid } from '@/components/ui'
-import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle, Cake, Gift, CreditCard } from 'lucide-react'
+import { Users, ClipboardCheck, Dumbbell, TrendingUp, AlertCircle, Cake, Gift, CreditCard, Bell, Clock } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
@@ -60,6 +60,11 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mensAlertas, setMensAlertas] = useState<{
+    upcoming: Array<{ id: string; clientId: string; clientName: string; amount: number; nextBillingDate: string; daysUntilDue: number }>
+    overdue: Array<{ id: string; clientId: string; clientName: string; amount: number; nextBillingDate: string; daysOverdue: number }>
+    totalAlerts: number
+  } | null>(null)
 
   useEffect(() => {
     async function loadDashboard() {
@@ -81,6 +86,12 @@ export default function DashboardPage() {
     }
 
     loadDashboard()
+
+    // Buscar alertas de mensalidades (sem bloquear dashboard)
+    fetch('/api/studio/financeiro/mensalidades/alerts')
+      .then(r => r.json())
+      .then(d => { if (d.success) setMensAlertas(d.data) })
+      .catch(() => {})
   }, [])
 
   if (loading) {
@@ -156,6 +167,46 @@ export default function DashboardPage() {
               )}
               <Link href="/financeiro/mensalidades" className="inline-block mt-3 text-xs text-red-400 hover:underline font-medium">
                 Ver todos no módulo de mensalidades →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Alertas de mensalidades vencendo em 3 dias */}
+      {mensAlertas && mensAlertas.upcoming.length > 0 && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Bell className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-400 mb-1">
+                Cobranças vencendo em breve ({mensAlertas.upcoming.length})
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Alunos com mensalidade vencendo nos próximos 3 dias:
+              </p>
+              <div className="space-y-2">
+                {mensAlertas.upcoming.map(c => (
+                  <Link
+                    key={c.id}
+                    href="/financeiro/mensalidades"
+                    className="flex items-center justify-between p-2 bg-card/50 rounded border border-border hover:border-yellow-500/40 transition-colors"
+                  >
+                    <div>
+                      <span className="font-medium text-sm">{c.clientName}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {c.daysUntilDue === 0 ? "Vence hoje" : `Vence em ${c.daysUntilDue}d`}
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold text-yellow-400">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c.amount)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              <Link href="/financeiro/mensalidades" className="inline-block mt-3 text-xs text-yellow-400 hover:underline font-medium">
+                Ver no módulo de mensalidades →
               </Link>
             </div>
           </div>

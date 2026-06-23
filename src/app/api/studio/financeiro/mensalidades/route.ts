@@ -1,14 +1,28 @@
 // ============================================================================
-// EXPERT PRO TRAINING — MENSALIDADES API
-// ============================================================================
-// GET  /api/studio/financeiro/mensalidades — Listar alunos com status de mensalidade
-// POST /api/studio/financeiro/mensalidades — Criar mensalidade para um aluno
+// KINEX PERFORMANCE — MENSALIDADES API (Assinaturas Recorrentes)
+// GET  — Lista alunos com status de assinatura recorrente
+// POST — Configura/atualiza mensalidade de um aluno
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth/protection'
-import { parseLocalDate } from '@/lib/date-utils'
+
+// Mapear ciclo para número de meses
+const CYCLE_MONTHS: Record<string, number> = {
+  MONTHLY: 1,
+  QUARTERLY: 3,
+  SEMIANNUAL: 6,
+  ANNUAL: 12,
+}
+
+// Calcular próxima data de cobrança a partir de uma data base
+function calcNextBillingDate(fromDate: Date, cycle: string): Date {
+  const months = CYCLE_MONTHS[cycle] ?? 1
+  const next = new Date(fromDate)
+  next.setMonth(next.getMonth() + months)
+  return next
+}
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
@@ -17,156 +31,104 @@ export async function GET(request: NextRequest) {
   }
 
   const { studioId } = auth
+  const now = new Date()
 
   try {
-    // Auto-OVERDUE: marcar lançamentos PENDING com dueDate vencido
-    await prisma.financialEntry.updateMany({
+    // Auto-OVERDUE: se nextBillingDate já passou e está PENDING → OVERDUE
+    // E atualiza isActive do cliente
+    const overdueUpdated = await prisma.clientMensalidade.findMany({
       where: {
         studioId,
         status: 'PENDING',
-        dueDate: { lt: new Date() },
+        nextBillingDate: { lt: now },
       },
-      data: { status: 'OVERDUE' },
+      select: { id: true, clientId: true },
     })
 
-    // Buscar todos os clientes do studio
-    const clients = await prisma.client.findMany({
+    if (overdueUpdated.length > 0) {
+      const overdueIds = overdueUpdated.map(m => m.id)
+      const overdueClientIds = overdueUpdated.map(m => m.clientId)
+      await prisma.clientMensalidade.updateMany({
+        where: { id: { in: overdueIds } },
+        data: { status: 'OVERDUE' },
+      })
+      // Marcar alunos como inativos
+      await prisma.client.updateMany({
+        where: { id: { in: overdueClientIds } },
+        data: { isActive: false },
+      })
+    }
+
+    // Buscar todas as mensalidades do studio com dados do cliente
+    const mensalidades = await prisma.clientMensalidade.findMany({
+      where: { studioId },
+      include: {
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            isActive: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { client: { name: 'asc' } },
+    })
+
+    // Alunos sem mensalidade (no studio com FINANCEIRO mas ainda não configurados)
+    const clientsWithMens = new Set(mensalidades.map(m => m.clientId))
+    const allClients = await prisma.client.findMany({
       where: { studioId, isActive: true },
       select: { id: true, name: true, email: true, phone: true },
       orderBy: { name: 'asc' },
     })
+    const clientsWithoutMens = allClients.filter(c => !clientsWithMens.has(c.id))
 
-    // Buscar todos os lançamentos de RECEITA vinculados a clientes
-    const entries = await prisma.financialEntry.findMany({
-      where: {
-        studioId,
-        clientId: { not: null },
-        type: 'RECEITA',
-        status: { not: 'CANCELED' },
-      },
-      include: {
-        category: { select: { id: true, code: true, name: true } },
-      },
-      orderBy: { date: 'asc' },
-    })
+    // 3 dias antes = alerta
+    const alertDate = new Date(now)
+    alertDate.setDate(alertDate.getDate() + 3)
 
-    const now = new Date()
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const formattedMensalidades = mensalidades.map(m => ({
+      id: m.id,
+      clientId: m.clientId,
+      clientName: m.client.name,
+      clientEmail: m.client.email,
+      clientPhone: m.client.phone,
+      clientIsActive: m.client.isActive,
+      billingCycle: m.billingCycle,
+      amount: parseFloat(m.amount.toString()),
+      adhesionDate: m.adhesionDate.toISOString(),
+      nextBillingDate: m.nextBillingDate.toISOString(),
+      lastPaymentDate: m.lastPaymentDate?.toISOString() ?? null,
+      status: m.status,
+      notes: m.notes,
+      // Alerta: vence em até 3 dias
+      isAlertDue: m.status !== 'OVERDUE' && m.nextBillingDate <= alertDate,
+      daysUntilDue: Math.ceil((m.nextBillingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    }))
 
-    // Agrupar lançamentos por cliente
-    const entriesByClient: Record<string, typeof entries> = {}
-    for (const entry of entries) {
-      const cid = entry.clientId!
-      if (!entriesByClient[cid]) entriesByClient[cid] = []
-      entriesByClient[cid].push(entry)
-    }
-
-    // Montar resultado por cliente
-    const clientsWithStatus = clients.map(client => {
-      const clientEntries = entriesByClient[client.id] || []
-
-      if (clientEntries.length === 0) {
-        return {
-          ...client,
-          status: 'SEM_MENSALIDADE',
-          creditMonths: 0,
-          totalPending: 0,
-          totalOverdue: 0,
-          nextDueDate: null,
-          lastPaymentDate: null,
-          currentMonthPaid: false,
-          recurrenceId: null,
-          entries: [],
-        }
-      }
-
-      // Calcular totais
-      const pendingEntries = clientEntries.filter(e => e.status === 'PENDING')
-      const overdueEntries = clientEntries.filter(e => e.status === 'OVERDUE')
-      const paidEntries = clientEntries.filter(e => e.status === 'PAID')
-
-      const totalPending = pendingEntries.reduce((s, e) => s + parseFloat(e.amount.toString()), 0)
-      const totalOverdue = overdueEntries.reduce((s, e) => s + parseFloat(e.amount.toString()), 0)
-
-      // Verifica se o mês atual está pago
-      const currentMonthPaid = paidEntries.some(e => {
-        const d = new Date(e.date)
-        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-        return monthKey === currentMonth
-      })
-
-      // Próximo vencimento: menor data dentre PENDING e OVERDUE
-      const unpaidEntries = [...pendingEntries, ...overdueEntries].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      )
-      const nextDueDate = unpaidEntries[0]?.dueDate ?? unpaidEntries[0]?.date ?? null
-
-      // Último pagamento
-      const lastPaid = paidEntries.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      )[0]
-      const lastPaymentDate = lastPaid?.paidAt ?? lastPaid?.date ?? null
-
-      // Meses de crédito: quantas parcelas PAID têm data futura (acima do mês atual)
-      const creditMonths = paidEntries.filter(e => {
-        const d = new Date(e.date)
-        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-        return monthKey > currentMonth
-      }).length
-
-      // Status geral
-      let status: string
-      if (overdueEntries.length > 0) {
-        status = 'INADIMPLENTE'
-      } else if (creditMonths >= 2) {
-        status = 'ADIANTADO'
-      } else if (currentMonthPaid) {
-        status = 'ADIMPLENTE'
-      } else if (pendingEntries.length > 0) {
-        status = 'PENDENTE'
-      } else {
-        status = 'ADIMPLENTE'
-      }
-
-      // recurrenceId da mensalidade principal (mais recente)
-      const recurrenceId = clientEntries
-        .filter(e => e.recurrenceId)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.recurrenceId ?? null
-
-      return {
-        ...client,
-        status,
-        creditMonths,
-        totalPending,
-        totalOverdue,
-        nextDueDate,
-        lastPaymentDate,
-        currentMonthPaid,
-        recurrenceId,
-        entries: clientEntries.slice(-24).map(e => ({
-          ...e,
-          amount: parseFloat(e.amount.toString()),
-        })),
-      }
-    })
-
-    // Estatísticas gerais
-    const withMensalidade = clientsWithStatus.filter(c => c.status !== 'SEM_MENSALIDADE')
+    // Estatísticas
     const stats = {
-      total: clients.length,
-      comMensalidade: withMensalidade.length,
-      adimplentes: withMensalidade.filter(c => c.status === 'ADIMPLENTE' || c.status === 'ADIANTADO').length,
-      inadimplentes: withMensalidade.filter(c => c.status === 'INADIMPLENTE').length,
-      pendentes: withMensalidade.filter(c => c.status === 'PENDENTE').length,
-      adiantados: withMensalidade.filter(c => c.status === 'ADIANTADO').length,
-      totalAReceber: withMensalidade.reduce((s, c) => s + c.totalPending + c.totalOverdue, 0),
-      totalOverdue: withMensalidade.reduce((s, c) => s + c.totalOverdue, 0),
+      total: allClients.length,
+      comMensalidade: mensalidades.length,
+      semMensalidade: clientsWithoutMens.length,
+      ativos: mensalidades.filter(m => m.status === 'ACTIVE').length,
+      pendentes: mensalidades.filter(m => m.status === 'PENDING').length,
+      atrasados: mensalidades.filter(m => m.status === 'OVERDUE').length,
+      inativos: mensalidades.filter(m => m.status === 'INACTIVE').length,
+      alertas: formattedMensalidades.filter(m => m.isAlertDue).length,
+      totalAReceber: mensalidades
+        .filter(m => m.status === 'PENDING' || m.status === 'OVERDUE')
+        .reduce((s, m) => s + parseFloat(m.amount.toString()), 0),
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        clients: clientsWithStatus,
+        mensalidades: formattedMensalidades,
+        clientsWithoutMens: clientsWithoutMens,
         stats,
       },
     })
@@ -182,25 +144,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
   }
 
-  const { studioId, userId } = auth
+  const { studioId } = auth
 
   try {
     const body = await request.json()
-    const {
-      clientId,
-      categoryId,
-      description,
-      amount,
-      startDate,
-      monthsTotal,    // total de meses da recorrência
-      monthsPaidNow,  // quantos meses já foram pagos agora (antecipado)
-      paymentMethod,
-      notes,
-    } = body
+    const { clientId, billingCycle, amount, adhesionDate, notes } = body
 
-    if (!clientId || !categoryId || !description || !amount || !startDate || !monthsTotal) {
+    if (!clientId || !billingCycle || amount === undefined) {
       return NextResponse.json(
-        { success: false, error: 'Campos obrigatórios: clientId, categoryId, description, amount, startDate, monthsTotal' },
+        { success: false, error: 'Campos obrigatórios: clientId, billingCycle, amount' },
         { status: 400 }
       )
     }
@@ -213,57 +165,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Aluno não encontrado' }, { status: 404 })
     }
 
-    const recurrenceId = `REC-MENS-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const parsedAmount = parseFloat(amount)
-    const paidCount = Math.min(parseInt(monthsPaidNow) || 0, parseInt(monthsTotal))
-    const total = parseInt(monthsTotal)
-    const start = parseLocalDate(startDate)
-    const now = new Date()
+    const adhesion = adhesionDate ? new Date(adhesionDate) : new Date()
+    const nextBillingDate = calcNextBillingDate(adhesion, billingCycle)
 
-    const entries = []
-
-    for (let i = 0; i < total; i++) {
-      const entryDate = new Date(start)
-      entryDate.setMonth(entryDate.getMonth() + i)
-
-      const isPaid = i < paidCount
-      const status = isPaid ? 'PAID' : 'PENDING'
-
-      const entry = await prisma.financialEntry.create({
-        data: {
-          studioId,
-          categoryId,
-          clientId,
-          type: 'RECEITA',
-          description: `${description} (${i + 1}/${total})`,
-          amount: parsedAmount,
-          date: entryDate,
-          dueDate: entryDate,
-          status,
-          paidAt: isPaid ? now : null,
-          paymentMethod: isPaid && paymentMethod ? (paymentMethod as any) : null,
-          recurrenceId,
-          installment: i + 1,
-          totalInstallments: total,
-          notes: notes || null,
-          createdById: userId,
-        } as any,
-        include: {
-          category: { select: { id: true, code: true, name: true } },
-          client: { select: { id: true, name: true } },
-        },
-      })
-
-      entries.push({ ...entry, amount: parseFloat(entry.amount.toString()) })
-    }
+    // Criar ou atualizar mensalidade (upsert)
+    const mensalidade = await (prisma as any).clientMensalidade.upsert({
+      where: { clientId_studioId: { clientId, studioId } },
+      create: {
+        clientId,
+        studioId,
+        billingCycle,
+        amount: parseFloat(amount),
+        adhesionDate: adhesion,
+        nextBillingDate,
+        status: 'PENDING',
+        notes: notes ?? null,
+      },
+      update: {
+        billingCycle,
+        amount: parseFloat(amount),
+        adhesionDate: adhesion,
+        nextBillingDate,
+        notes: notes ?? null,
+        updatedAt: new Date(),
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      data: entries,
-      message: `${total} mensalidades criadas${paidCount > 0 ? `, ${paidCount} já pagas` : ''}`,
+      data: {
+        ...mensalidade,
+        amount: parseFloat(mensalidade.amount.toString()),
+      },
+      message: 'Mensalidade configurada com sucesso',
     }, { status: 201 })
   } catch (error) {
     console.error('Mensalidades POST error:', error)
-    return NextResponse.json({ success: false, error: 'Erro ao criar mensalidade' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro ao configurar mensalidade' }, { status: 500 })
   }
 }
