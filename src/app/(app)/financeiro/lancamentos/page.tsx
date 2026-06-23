@@ -482,7 +482,7 @@ export default function LancamentosPage() {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{entry.description}</p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {entry.category.code} - {entry.category.name}
+                              {entry.category.name}
                               {entry.client && ` · ${entry.client.name}`}
                               {entry.installment && ` · ${entry.installment}/${entry.totalInstallments}`}
                               {' · '}{fmtDate(entry.date)}

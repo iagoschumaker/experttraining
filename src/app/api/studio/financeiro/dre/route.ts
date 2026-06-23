@@ -36,17 +36,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Buscar todas as categorias do studio
+    // Buscar categorias GLOBAIS do sistema (não per-studio)
     const categories = await prisma.financialCategory.findMany({
-      where: { studioId, isActive: true },
+      where: { studioId: null, isSystem: true, isActive: true },
       orderBy: { code: 'asc' },
     })
 
     // Regime de caixa (cash): apenas PAID
     // Regime de competência (accrual): PAID + PENDING
-    const statusFilter = basis === 'accrual'
-      ? { in: ['PAID', 'PENDING'] as const }
-      : { in: ['PAID'] as const }
+    const statusFilter: { in: ('PAID' | 'PENDING')[] } = basis === 'accrual'
+      ? { in: ['PAID', 'PENDING'] }
+      : { in: ['PAID'] }
 
     // Buscar lançamentos do período
     const entries = await prisma.financialEntry.findMany({

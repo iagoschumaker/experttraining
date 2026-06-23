@@ -21,7 +21,7 @@ import {
   TrendingDown,
   TrendingUp,
   BarChart2,
-  FolderTree,
+
   CreditCard,
   BadgeDollarSign,
   Tag,
@@ -111,13 +111,7 @@ const sidebarLinks: SidebarLink[] = [
     icon: <BarChart2 className="w-5 h-5" />,
     module: 'FINANCEIRO',
   },
-  {
-    href: '/financeiro/categorias',
-    label: 'Plano de Contas',
-    icon: <FolderTree className="w-5 h-5" />,
-    module: 'FINANCEIRO',
-    requiresAdmin: true,
-  },
+
   // ─── GESTÃO ───
   {
     href: '/planos-aluno',

@@ -255,6 +255,64 @@ export async function seedDefaultCategories(studioId: string): Promise<void> {
 }
 
 /**
+ * Semeia o plano de contas como categorias GLOBAIS do sistema (studioId = null, isSystem = true).
+ * Chamado uma única vez pelo superadmin — todas os studios usam essas categorias.
+ */
+async function seedGlobalCategory(
+  cat: CategorySeed,
+  parentId: string | null
+): Promise<string> {
+  // Busca por código com studioId null
+  const existing = await prisma.financialCategory.findFirst({
+    where: { code: cat.code, studioId: null },
+  })
+
+  let id: string
+  if (existing) {
+    await prisma.financialCategory.update({
+      where: { id: existing.id },
+      data: { name: cat.name, type: cat.type, isSystem: true, isActive: true },
+    })
+    id = existing.id
+  } else {
+    const created = await prisma.financialCategory.create({
+      data: {
+        studioId: null,
+        parentId,
+        code: cat.code,
+        name: cat.name,
+        type: cat.type,
+        isSystem: true,
+        isActive: true,
+      },
+    })
+    id = created.id
+  }
+
+  if (cat.children) {
+    for (const child of cat.children) {
+      await seedGlobalCategory(child, id)
+    }
+  }
+  return id
+}
+
+export async function seedGlobalCategories(): Promise<{ created: number; updated: number }> {
+  let created = 0
+  let updated = 0
+
+  for (const cat of DEFAULT_CATEGORIES) {
+    const existing = await prisma.financialCategory.findFirst({
+      where: { code: cat.code, studioId: null },
+    })
+    if (existing) updated++; else created++
+    await seedGlobalCategory(cat, null)
+  }
+
+  return { created, updated }
+}
+
+/**
  * Retorna a árvore de categorias flat (útil para APIs).
  */
 export function getDefaultCategoryTree(): CategorySeed[] {
