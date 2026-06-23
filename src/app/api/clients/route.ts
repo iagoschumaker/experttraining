@@ -61,16 +61,21 @@ export async function GET(request: NextRequest) {
     const trainerId = searchParams.get('trainerId')
     const includeInactive = searchParams.get('includeInactive') === 'true'
     const onlyActive = searchParams.get('onlyActive') === 'true'
+    const onlyInactive = searchParams.get('onlyInactive') === 'true'
 
-    // Build where clause — por padrão mostra TODOS (ativos + inativos)
+    // Build where clause
     const where: any = {
       studioId: payload.studioId,
     }
 
-    // Se explicitamente solicitado apenas ativos
+    // Filtro de ativo/inativo — passado pela UI via query param
     if (onlyActive) {
       where.isActive = true
+    } else if (onlyInactive) {
+      where.isActive = false
     }
+    // Sem nenhum param → retorna todos (usado pela presença e outros)
+
 
     if (search) {
       where.OR = [

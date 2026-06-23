@@ -113,11 +113,12 @@ export default function ClientsPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        pageSize: '10',
+        pageSize: '20',
       })
       if (search) params.set('search', search)
-      // Aba 'inactive' filtra apenas inativos via API (onlyActive=false já é default)
-      // Aba 'all' traz todos, aba 'inactive' filtra client-side após fetch
+      // Passa filtro de ativo/inativo para a API (server-side)
+      if (activeTab === 'all') params.set('onlyActive', 'true')
+      if (activeTab === 'inactive') params.set('onlyInactive', 'true')
 
       const res = await fetch(`/api/clients?${params}`)
       const data: ClientsResponse = await res.json()
@@ -133,6 +134,11 @@ export default function ClientsPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    setPage(1)
+    fetchClients()
+  }, [activeTab])
 
   useEffect(() => {
     fetchClients()
@@ -256,12 +262,8 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      {/* TAB: Ativos + Inativos (compartilham o mesmo card, filtrados client-side) */}
-      {(activeTab === 'all' || activeTab === 'inactive') && (() => {
-        const displayedClients = activeTab === 'inactive'
-          ? clients.filter(c => !c.isActive)
-          : clients.filter(c => c.isActive)
-        return (
+      {/* TAB: Ativos ou Inativos — filtro passado para a API (server-side) */}
+      {(activeTab === 'all' || activeTab === 'inactive') && (
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -302,7 +304,7 @@ export default function ClientsPage() {
             <>
               {/* Mobile: Cards */}
               <div className="md:hidden space-y-3">
-                {displayedClients.map((client) => (
+                {clients.map((client) => (
                   <div key={client.id} className="p-4 border rounded-lg bg-card">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -364,7 +366,7 @@ export default function ClientsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {displayedClients.map((client) => (
+                    {clients.map((client) => (
                       <tr key={client.id}>
                         <td data-label="Nome" className="font-medium">
                           <div className="flex items-center gap-2">
@@ -483,8 +485,7 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
-      )
-      })()}
+      )}
 
       {/* TAB: Aniversários */}
       {activeTab === 'birthdays' && (
