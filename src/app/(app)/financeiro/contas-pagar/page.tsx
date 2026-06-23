@@ -138,16 +138,14 @@ export default function ContasPagarPage() {
           <CardContent>
             <div className="space-y-2">
               {overdue.map(e => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 group">
-                  <div>
-                    <p className="text-sm font-medium">{e.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {e.category.name} · Venceu {fmtDate(e.dueDate!)}
-                    </p>
+                <div key={e.id} className="p-3 rounded-lg bg-red-500/5">
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <p className="text-sm font-medium truncate flex-1">{e.description}</p>
+                    <span className="text-sm font-bold text-red-400 flex-shrink-0">{fmt(e.amount)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-red-400">{fmt(e.amount)}</span>
-                    <Button size="sm" className="bg-emerald-600 h-7" onClick={() => handleMarkPaid(e.id)}>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-muted-foreground">{e.category.name} · Venceu {fmtDate(e.dueDate!)}</p>
+                    <Button size="sm" className="bg-emerald-600 h-7 flex-shrink-0" onClick={() => handleMarkPaid(e.id)}>
                       <CheckCircle className="h-3 w-3 mr-1" /> Pagar
                     </Button>
                   </div>
@@ -173,22 +171,17 @@ export default function ContasPagarPage() {
               {upcoming
                 .sort((a, b) => (a.dueDate || a.date).localeCompare(b.dueDate || b.date))
                 .map(e => (
-                  <div key={e.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 group">
-                    <div>
-                      <p className="text-sm font-medium">{e.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {e.category.name}
-                        {e.dueDate && ` · Vence ${fmtDate(e.dueDate)}`}
-                      </p>
+                  <div key={e.id} className="p-3 rounded-lg hover:bg-muted/50">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <p className="text-sm font-medium truncate flex-1">{e.description}</p>
+                      <span className="text-sm font-semibold text-amber-400 flex-shrink-0">{fmt(e.amount)}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-amber-400">{fmt(e.amount)}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="opacity-0 group-hover:opacity-100 text-emerald-500 h-7"
-                        onClick={() => handleMarkPaid(e.id)}
-                      >
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        {e.category.name}{e.dueDate && ` · Vence ${fmtDate(e.dueDate)}`}
+                      </p>
+                      <Button size="sm" variant="ghost" className="text-emerald-500 h-7 flex-shrink-0"
+                        onClick={() => handleMarkPaid(e.id)}>
                         <CheckCircle className="h-4 w-4" />
                       </Button>
                     </div>
@@ -210,12 +203,12 @@ export default function ContasPagarPage() {
           <CardContent>
             <div className="space-y-1">
               {paid.slice(0, 10).map(e => (
-                <div key={e.id} className="flex items-center justify-between p-2 rounded-lg opacity-60">
-                  <div>
-                    <p className="text-sm">{e.description}</p>
+                <div key={e.id} className="flex items-center justify-between gap-2 p-2 rounded-lg opacity-60 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm truncate">{e.description}</p>
                     <p className="text-xs text-muted-foreground">{e.category.name} · {fmtDate(e.date)}</p>
                   </div>
-                  <span className="text-sm text-muted-foreground line-through">{fmt(e.amount)}</span>
+                  <span className="text-sm text-muted-foreground line-through flex-shrink-0">{fmt(e.amount)}</span>
                 </div>
               ))}
             </div>

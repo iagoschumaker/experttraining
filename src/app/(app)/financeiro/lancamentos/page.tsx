@@ -370,7 +370,7 @@ export default function LancamentosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-emerald-500" />
@@ -380,10 +380,10 @@ export default function LancamentosPage() {
         </div>
         <Button
           onClick={() => { resetForm(); setDialogOpen(true) }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white flex-shrink-0"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Novo Lançamento
+          Novo
         </Button>
       </div>
 
@@ -452,7 +452,7 @@ export default function LancamentosPage() {
                       {MONTH_NAMES[mo - 1]} {yr}
                       <Badge className="bg-muted text-muted-foreground text-[10px] ml-1">{monthEntries.length}</Badge>
                     </CardTitle>
-                    <div className="flex gap-3 text-xs">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
                       <span className="text-emerald-400 font-semibold">+{fmt(monthReceita)}</span>
                       <span className="text-red-400 font-semibold">-{fmt(monthDespesa)}</span>
                       <span className={`font-bold ${monthReceita - monthDespesa >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
@@ -464,8 +464,9 @@ export default function LancamentosPage() {
                 <CardContent>
                   <div className="space-y-0.5">
                     {monthEntries.map(entry => (
-                      <div key={entry.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 group">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div key={entry.id} className="p-2.5 rounded-lg hover:bg-muted/50">
+                        {/* Linha 1: ícone + descrição + valor */}
+                        <div className="flex items-center gap-2 min-w-0">
                           <div className={`p-1.5 rounded-md flex-shrink-0 ${
                             entry.type === 'RECEITA' ? 'bg-emerald-500/10' :
                             entry.type === 'CUSTO' ? 'bg-orange-500/10' :
@@ -478,9 +479,9 @@ export default function LancamentosPage() {
                               : <ArrowDownRight className="h-4 w-4 text-red-500" />
                             }
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{entry.description}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground truncate">
                               {entry.category.code} - {entry.category.name}
                               {entry.client && ` · ${entry.client.name}`}
                               {entry.installment && ` · ${entry.installment}/${entry.totalInstallments}`}
@@ -488,60 +489,57 @@ export default function LancamentosPage() {
                               {entry.dueDate && ` · Venc: ${fmtDate(entry.dueDate)}`}
                             </p>
                           </div>
-                          {entry.recurrenceId && (
-                            <Badge className="bg-yellow-500/15 text-yellow-600 text-[10px] ml-2 flex-shrink-0">
-                              <RefreshCw className="h-3 w-3 mr-1" /> Recorrente
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 ml-2">
-                          {/* Status badge */}
-                          <Badge className={
-                            entry.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
-                            entry.status === 'OVERDUE' ? 'bg-red-500/20 text-red-400' :
-                            entry.status === 'CANCELED' ? 'bg-muted text-muted-foreground' :
-                            'bg-amber-500/20 text-amber-400'
-                          }>
-                            {entry.status === 'PAID' ? 'Pago' :
-                             entry.status === 'OVERDUE' ? 'Vencido' :
-                             entry.status === 'CANCELED' ? 'Cancelado' : 'Pendente'}
-                          </Badge>
-                          {/* Valor */}
-                          <span className={`text-sm font-semibold whitespace-nowrap min-w-[90px] text-right ${
+                          <span className={`text-sm font-bold flex-shrink-0 ${
                             entry.type === 'RECEITA' ? 'text-emerald-400' :
                             entry.type === 'CUSTO' ? 'text-orange-400' :
                             'text-red-400'
                           }`}>
                             {entry.type !== 'RECEITA' ? '-' : '+'}{fmt(entry.amount)}
                           </span>
-                          {/* Ações sempre visíveis */}
+                        </div>
+                        {/* Linha 2: badges + ações */}
+                        <div className="flex flex-wrap items-center gap-1 mt-1.5 pl-9">
+                          <Badge className={
+                            entry.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400 text-[10px]' :
+                            entry.status === 'OVERDUE' ? 'bg-red-500/20 text-red-400 text-[10px]' :
+                            entry.status === 'CANCELED' ? 'bg-muted text-muted-foreground text-[10px]' :
+                            'bg-amber-500/20 text-amber-400 text-[10px]'
+                          }>
+                            {entry.status === 'PAID' ? 'Pago' :
+                             entry.status === 'OVERDUE' ? 'Vencido' :
+                             entry.status === 'CANCELED' ? 'Cancelado' : 'Pendente'}
+                          </Badge>
+                          {entry.recurrenceId && (
+                            <Badge className="bg-yellow-500/15 text-yellow-600 text-[10px]">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Rec.
+                            </Badge>
+                          )}
                           {(entry.status === 'PENDING' || entry.status === 'OVERDUE') && (
-                            <Button size="sm" className={`h-7 px-2 text-xs ${
+                            <Button size="sm" className={`h-6 px-2 text-xs ${
                               entry.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
-                            }`}
-                              onClick={() => handleMarkPaid(entry.id)} title="Marcar como pago">
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
+                            }`} onClick={() => handleMarkPaid(entry.id)}>
+                              <CheckCircle className="h-3 w-3 mr-1" /> Pagar
                             </Button>
                           )}
                           {entry.status === 'PAID' && (
-                            <Button size="sm" variant="outline" className="h-7 px-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs"
-                              onClick={() => handleRevertToPending(entry.id)} title="Voltar para pendente">
-                              <Undo2 className="h-3.5 w-3.5 mr-1" /> Desfazer
+                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs border-amber-500/30 text-amber-400"
+                              onClick={() => handleRevertToPending(entry.id)}>
+                              <Undo2 className="h-3 w-3 mr-1" /> Desfazer
                             </Button>
                           )}
                           {entry.recurrenceId && entry.status !== 'CANCELED' && (
-                            <Button variant="ghost" size="sm" className="h-7 px-1.5 text-orange-500"
-                              onClick={() => handleCancelRecurrence(entry.recurrenceId!)} title="Cancelar recorrência">
-                              <XCircle className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="h-6 px-1.5 text-orange-500"
+                              onClick={() => handleCancelRecurrence(entry.recurrenceId!)}>
+                              <XCircle className="h-3.5 w-3.5" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-yellow-600 opacity-0 group-hover:opacity-100"
-                            onClick={() => handleOpenEdit(entry)} title="Editar lançamento">
-                            <Edit className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-yellow-600"
+                            onClick={() => handleOpenEdit(entry)}>
+                            <Edit className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-red-500 opacity-0 group-hover:opacity-100"
-                            onClick={() => handleDelete(entry.id)} title="Excluir">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-red-500"
+                            onClick={() => handleDelete(entry.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </div>

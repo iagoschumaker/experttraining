@@ -125,7 +125,7 @@ export default function DREPage() {
                 {fmt(node.totalPending)} pend.
               </span>
             )}
-            <span className={`text-sm font-medium whitespace-nowrap min-w-[100px] text-right ${
+            <span className={`text-sm font-medium text-right flex-shrink-0 ${
               node.type === 'RECEITA' ? 'text-emerald-400' :
               node.total > 0 ? 'text-red-400' : 'text-muted-foreground'
             }`}>
@@ -210,7 +210,7 @@ export default function DREPage() {
 
       {/* Resumo */}
       {data && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <Card className="bg-emerald-500/5 border-emerald-500/20">
             <CardContent className="pt-4 pb-3">
               <p className="text-xs text-emerald-400">Receita</p>

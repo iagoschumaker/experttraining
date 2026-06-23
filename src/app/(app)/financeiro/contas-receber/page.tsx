@@ -1,7 +1,7 @@
 'use client'
 
 // ============================================================================
-// EXPERT PRO TRAINING — CONTAS A RECEBER
+// EXPERT PRO TRAINING — CONTAS A RECEBER (mobile-first)
 // ============================================================================
 
 import { useEffect, useState } from 'react'
@@ -150,18 +150,18 @@ export default function ContasReceberPage() {
               {Object.entries(byClient)
                 .sort((a, b) => b[1].total - a[1].total)
                 .map(([key, info]) => (
-                  <div key={key} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
-                    <div>
-                      <p className="text-sm font-medium">{info.name}</p>
-                      <p className="text-xs text-muted-foreground">{info.count} receitas pendentes</p>
+                  <div key={key} className="p-3 rounded-lg hover:bg-muted/50">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <p className="text-sm font-medium truncate flex-1">{info.name}</p>
+                      <span className="text-sm font-semibold text-amber-400 flex-shrink-0">{fmt(info.total)}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-muted-foreground">{info.count} receitas pendentes</p>
                       {info.overdue > 0 && (
-                        <Badge className="bg-red-500/20 text-red-400 text-xs">
+                        <Badge className="bg-red-500/20 text-red-400 text-[10px]">
                           {fmt(info.overdue)} atrasado
                         </Badge>
                       )}
-                      <span className="text-sm font-semibold text-amber-400">{fmt(info.total)}</span>
                     </div>
                   </div>
                 ))}
@@ -190,31 +190,33 @@ export default function ContasReceberPage() {
                 .map(e => {
                   const isOverdue = e.dueDate && new Date(e.dueDate) < now
                   return (
-                    <div key={e.id} className={`flex items-center justify-between p-3 rounded-lg group ${
-                      isOverdue ? 'bg-red-500/5' : 'hover:bg-muted/50'
-                    }`}>
-                      <div>
-                        <p className="text-sm font-medium">{e.description}</p>
-                        <p className="text-xs text-muted-foreground">
+                    <div key={e.id} className={`p-3 rounded-lg ${isOverdue ? 'bg-red-500/5' : 'hover:bg-muted/50'}`}>
+                      {/* Linha 1: descrição + valor */}
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <p className="text-sm font-medium truncate flex-1">{e.description}</p>
+                        <span className={`text-sm font-semibold flex-shrink-0 ${isOverdue ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {fmt(e.amount)}
+                        </span>
+                      </div>
+                      {/* Linha 2: meta + botão */}
+                      <div className="flex items-center justify-between mt-1 gap-2">
+                        <p className="text-xs text-muted-foreground truncate flex-1">
                           {e.category.name}
                           {e.client && ` · ${e.client.name}`}
                           {e.dueDate && ` · ${isOverdue ? 'Venceu' : 'Vence'} ${fmtDate(e.dueDate)}`}
                         </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {isOverdue && (
-                          <Badge className="bg-red-500/20 text-red-400 text-xs">Atrasado</Badge>
-                        )}
-                        <span className={`text-sm font-semibold ${isOverdue ? 'text-red-400' : 'text-emerald-400'}`}>
-                          {fmt(e.amount)}
-                        </span>
-                        <Button
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 bg-emerald-600 h-7"
-                          onClick={() => handleMarkPaid(e.id)}
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" /> Receber
-                        </Button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {isOverdue && (
+                            <Badge className="bg-red-500/20 text-red-400 text-[10px]">Atrasado</Badge>
+                          )}
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 h-7 text-xs px-2"
+                            onClick={() => handleMarkPaid(e.id)}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" /> Receber
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )

@@ -124,7 +124,7 @@ export default function FinanceiroDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-emerald-500" />
@@ -268,7 +268,7 @@ export default function FinanceiroDashboardPage() {
             ) : (
               <div className="space-y-2">
                 {upcomingDue.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                  <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{item.description}</p>
                       <p className="text-xs text-muted-foreground">
@@ -309,9 +309,9 @@ export default function FinanceiroDashboardPage() {
           ) : (
             <div className="space-y-1">
               {recentEntries.map(entry => (
-                <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`p-1.5 rounded-md ${
+                <div key={entry.id} className="p-3 rounded-lg hover:bg-muted/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`p-1.5 rounded-md flex-shrink-0 ${
                       entry.type === 'RECEITA' ? 'bg-emerald-500/10' : 'bg-red-500/10'
                     }`}>
                       {entry.type === 'RECEITA'
@@ -319,29 +319,29 @@ export default function FinanceiroDashboardPage() {
                         : <ArrowDownRight className="h-4 w-4 text-red-500" />
                       }
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{entry.description}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground truncate">
                         {entry.category.name}
                         {entry.client && ` · ${entry.client.name}`}
                         {' · '}{fmtDate(entry.date)}
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <Badge className={
-                      entry.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
-                      entry.status === 'OVERDUE' ? 'bg-red-500/20 text-red-400' :
-                      'bg-amber-500/20 text-amber-400'
-                    }>
-                      {entry.status === 'PAID' ? 'Pago' :
-                       entry.status === 'OVERDUE' ? 'Vencido' : 'Pendente'}
-                    </Badge>
-                    <span className={`text-sm font-semibold whitespace-nowrap ${
-                      entry.type === 'RECEITA' ? 'text-emerald-400' : 'text-red-400'
-                    }`}>
-                      {entry.type === 'DESPESA' ? '-' : '+'}{fmt(entry.amount)}
-                    </span>
+                    <div className="flex-shrink-0 text-right">
+                      <Badge className={`text-[10px] ${
+                        entry.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
+                        entry.status === 'OVERDUE' ? 'bg-red-500/20 text-red-400' :
+                        'bg-amber-500/20 text-amber-400'
+                      }`}>
+                        {entry.status === 'PAID' ? 'Pago' :
+                         entry.status === 'OVERDUE' ? 'Vencido' : 'Pendente'}
+                      </Badge>
+                      <p className={`text-sm font-semibold ${
+                        entry.type === 'RECEITA' ? 'text-emerald-400' : 'text-red-400'
+                      }`}>
+                        {entry.type === 'DESPESA' ? '-' : '+'}{fmt(entry.amount)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
