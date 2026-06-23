@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar todas as mensalidades do studio com dados do cliente
-    const mensalidades = await prisma.clientMensalidade.findMany({
+    const mensalidades = await (prisma as any).clientMensalidade.findMany({
       where: { studioId },
       include: {
         client: {
@@ -72,6 +72,9 @@ export async function GET(request: NextRequest) {
             isActive: true,
             status: true,
           },
+        },
+        studioPlan: {
+          select: { id: true, name: true },
         },
       },
       orderBy: { client: { name: 'asc' } },
@@ -97,6 +100,8 @@ export async function GET(request: NextRequest) {
       clientEmail: m.client.email,
       clientPhone: m.client.phone,
       clientIsActive: m.client.isActive,
+      planId: m.planId ?? null,
+      planName: m.studioPlan?.name ?? null,
       billingCycle: m.billingCycle,
       amount: parseFloat(m.amount.toString()),
       adhesionDate: m.adhesionDate.toISOString(),
@@ -148,44 +153,63 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { clientId, billingCycle, amount, adhesionDate, notes } = body
+    const { clientId, billingCycle, amount, adhesionDate, notes, planId } = body
 
-    if (!clientId || !billingCycle || amount === undefined) {
-      return NextResponse.json(
-        { success: false, error: 'Campos obrigatórios: clientId, billingCycle, amount' },
-        { status: 400 }
-      )
+    if (!clientId) {
+      return NextResponse.json({ success: false, error: 'Campo obrigatorio: clientId' }, { status: 400 })
     }
 
-    // Verificar que o cliente pertence ao studio
-    const client = await prisma.client.findFirst({
-      where: { id: clientId, studioId },
-    })
+    const client = await prisma.client.findFirst({ where: { id: clientId, studioId } })
     if (!client) {
-      return NextResponse.json({ success: false, error: 'Aluno não encontrado' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Aluno nao encontrado' }, { status: 404 })
+    }
+
+    // Se planId informado, busca plano para pegar ciclo e valor padrao
+    let resolvedCycle = billingCycle
+    let resolvedAmount = (amount !== undefined && amount !== null && amount !== '') ? parseFloat(amount) : 0
+    let resolvedPlanId = planId ?? null
+
+    if (planId) {
+      const plan = await (prisma as any).studioPlan.findFirst({
+        where: { id: planId, studioId, isActive: true },
+      })
+      if (plan) {
+        resolvedCycle = resolvedCycle ?? plan.billingCycle
+        if (amount === undefined || amount === null || amount === '') {
+          resolvedAmount = parseFloat(plan.price.toString())
+        }
+      } else {
+        resolvedPlanId = null
+      }
+    }
+
+    if (!resolvedCycle) {
+      return NextResponse.json({ success: false, error: 'Informe billingCycle ou selecione um plano' }, { status: 400 })
     }
 
     const adhesion = adhesionDate ? new Date(adhesionDate) : new Date()
-    const nextBillingDate = calcNextBillingDate(adhesion, billingCycle)
+    const nextBillingDate = calcNextBillingDate(adhesion, resolvedCycle)
 
-    // Criar ou atualizar mensalidade (upsert)
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
-      where: { clientId_studioId: { clientId, studioId } },
+      where: { clientId },
       create: {
         clientId,
         studioId,
-        billingCycle,
-        amount: parseFloat(amount),
+        planId: resolvedPlanId,
+        billingCycle: resolvedCycle,
+        amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
-        status: 'PENDING',
+        status: resolvedAmount > 0 ? 'ACTIVE' : 'PENDING',
         notes: notes ?? null,
       },
       update: {
-        billingCycle,
-        amount: parseFloat(amount),
+        planId: resolvedPlanId,
+        billingCycle: resolvedCycle,
+        amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
+        status: resolvedAmount > 0 ? 'ACTIVE' : 'PENDING',
         notes: notes ?? null,
         updatedAt: new Date(),
       },

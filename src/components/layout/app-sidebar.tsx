@@ -24,6 +24,7 @@ import {
   FolderTree,
   CreditCard,
   BadgeDollarSign,
+  Tag,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
@@ -84,6 +85,13 @@ const sidebarLinks: SidebarLink[] = [
     label: 'Mensalidades',
     icon: <BadgeDollarSign className="w-5 h-5" />,
     module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/planos',
+    label: 'Planos',
+    icon: <Tag className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+    requiresAdmin: true,
   },
   {
     href: '/financeiro/contas-pagar',

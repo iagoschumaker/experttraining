@@ -64,8 +64,18 @@ interface Mensalidade {
   lastPaymentDate: string | null
   status: 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'INACTIVE'
   notes: string | null
+  planId: string | null
+  planName: string | null
   isAlertDue: boolean
   daysUntilDue: number
+}
+
+interface StudioPlan {
+  id: string
+  name: string
+  description: string | null
+  billingCycle: 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUAL' | 'ANNUAL'
+  price: number
 }
 
 interface ClientWithoutMens {
@@ -248,6 +258,8 @@ export default function MensalidadesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<'all' | 'overdue' | 'alerts' | 'no_mens'>('all')
 
+  const [studioPlans, setStudioPlans] = useState<StudioPlan[]>([])
+
   // Modals
   const [payModal, setPayModal] = useState<Mensalidade | null>(null)
   const [configModal, setConfigModal] = useState<Mensalidade | ClientWithoutMens | null>(null)
@@ -260,6 +272,7 @@ export default function MensalidadesPage() {
   const [paying, setPaying] = useState(false)
 
   // Form config
+  const [configPlanId, setConfigPlanId] = useState<string>('')
   const [configCycle, setConfigCycle] = useState<string>('MONTHLY')
   const [configAmount, setConfigAmount] = useState('')
   const [configAdhesion, setConfigAdhesion] = useState('')
@@ -272,12 +285,14 @@ export default function MensalidadesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [mensRes, catRes] = await Promise.all([
+      const [mensRes, catRes, plansRes] = await Promise.all([
         fetchWithAuth('/api/studio/financeiro/mensalidades'),
         fetchWithAuth('/api/studio/financeiro/categories?type=RECEITA'),
+        fetchWithAuth('/api/studio/financeiro/planos'),
       ])
       const mensData = await mensRes.json()
       const catData = await catRes.json()
+      const plansData = await plansRes.json()
       if (mensData.success) {
         setMensalidades(mensData.data.mensalidades)
         setClientsWithoutMens(mensData.data.clientsWithoutMens)
@@ -285,6 +300,9 @@ export default function MensalidadesPage() {
       }
       if (catData.success) {
         setCategories(catData.data?.slice(0, 20) ?? [])
+      }
+      if (plansData.success) {
+        setStudioPlans(plansData.data)
       }
     } finally {
       setLoading(false)
@@ -348,8 +366,9 @@ export default function MensalidadesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId,
-          billingCycle: configCycle,
-          amount: parseFloat(configAmount) || 0,
+          planId: configPlanId || undefined,
+          billingCycle: configCycle || undefined,
+          amount: configAmount !== '' ? parseFloat(configAmount) : undefined,
           adhesionDate: configAdhesion || undefined,
           notes: configNotes || undefined,
         }),
@@ -370,6 +389,7 @@ export default function MensalidadesPage() {
   function openConfigure(m: Mensalidade) {
     setIsConfigNew(false)
     setConfigModal(m)
+    setConfigPlanId(m.planId ?? '')
     setConfigCycle(m.billingCycle)
     setConfigAmount(m.amount.toString())
     setConfigAdhesion(m.adhesionDate ? m.adhesionDate.slice(0, 10) : '')
@@ -379,6 +399,7 @@ export default function MensalidadesPage() {
   function openConfigureNew(c: ClientWithoutMens) {
     setIsConfigNew(true)
     setConfigModal(c)
+    setConfigPlanId('')
     setConfigCycle('MONTHLY')
     setConfigAmount('')
     setConfigAdhesion(new Date().toISOString().slice(0, 10))
@@ -639,6 +660,45 @@ export default function MensalidadesPage() {
               <div className="bg-muted/30 rounded-lg p-3 text-sm font-medium text-foreground">
                 {'clientName' in configModal ? configModal.clientName : configModal.name}
               </div>
+
+              {/* Seletor de plano */}
+              {studioPlans.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Plano do studio (opcional)</Label>
+                  <Select
+                    value={configPlanId || '__none__'}
+                    onValueChange={(v) => {
+                      if (v === '__none__') {
+                        setConfigPlanId('')
+                        return
+                      }
+                      setConfigPlanId(v)
+                      const plan = studioPlans.find(p => p.id === v)
+                      if (plan) {
+                        setConfigCycle(plan.billingCycle)
+                        // Pre-fill valor apenas se vazio
+                        if (!configAmount) setConfigAmount(plan.price.toString())
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sem plano vinculado</SelectItem>
+                      {studioPlans.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} — {p.billingCycle === 'MONTHLY' ? 'Mensal' : p.billingCycle === 'QUARTERLY' ? 'Trimestral' : p.billingCycle === 'SEMIANNUAL' ? 'Semestral' : 'Anual'} · R$ {p.price.toFixed(2)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Ao selecionar um plano, o ciclo e valor são preenchidos automaticamente. Você pode alterar o valor abaixo.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Ciclo de cobrança</Label>
                 <Select value={configCycle} onValueChange={setConfigCycle}>

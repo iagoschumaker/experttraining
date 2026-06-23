@@ -59,6 +59,7 @@ model Studio {
   clientPlans          ClientPlan[]
   clientSubscriptions  ClientSubscription[]
   clientMensalidades   ClientMensalidade[]
+  studioPlans          StudioPlan[]
 
   @@index([isPaid])
   @@index([paymentDueDate])
@@ -828,6 +829,7 @@ model ClientMensalidade {
   id              String           @id @default(cuid())
   clientId        String           @unique @map("client_id")
   studioId        String           @map("studio_id")
+  planId          String?          @map("plan_id")          // plano template (opcional)
   billingCycle    MensalidadeCycle @default(MONTHLY) @map("billing_cycle")
   amount          Decimal          @default(0) @db.Decimal(10, 2)
   adhesionDate    DateTime         @default(now()) @map("adhesion_date")
@@ -838,10 +840,30 @@ model ClientMensalidade {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
 
-  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  studio  Studio  @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  studio      Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  studioPlan  StudioPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
 
   @@index([studioId, nextBillingDate])
   @@index([studioId, status])
   @@map("client_mensalidades")
+}
+
+// ─── PLANOS DO STUDIO (templates de mensalidade) ───
+model StudioPlan {
+  id           String           @id @default(cuid())
+  studioId     String           @map("studio_id")
+  name         String
+  description  String?
+  billingCycle MensalidadeCycle @map("billing_cycle")
+  price        Decimal          @db.Decimal(10, 2)
+  isActive     Boolean          @default(true) @map("is_active")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  studio              Studio              @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  clientMensalidades  ClientMensalidade[]
+
+  @@index([studioId])
+  @@map("studio_plans")
 }
