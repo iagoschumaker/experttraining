@@ -179,11 +179,16 @@ export default function ClientsPage() {
   }
 
   // Delete client
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este aluno?')) return
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = confirm(
+      `Excluir "${name}" deste studio?\n\n` +
+      `Todos os dados deste aluno neste studio serão removidos (avaliações, treinos, presenças, mensalidades).\n` +
+      `Se o aluno estiver em outros studios, não será afetado.`
+    )
+    if (!confirmed) return
 
     try {
-      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/studio/clients/${id}`, { method: 'DELETE' })
       const data = await res.json()
 
       if (data.success) {
@@ -348,6 +353,16 @@ export default function ClientsPage() {
                           <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
                         </Link>
                       )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Excluir aluno"
+                          onClick={() => handleDelete(client.id, client.name)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -442,7 +457,7 @@ export default function ClientsPage() {
                                 size="sm"
                                 className="h-8 w-8 p-0"
                                 title="Excluir"
-                                onClick={() => handleDelete(client.id)}
+                                onClick={() => handleDelete(client.id, client.name)}
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>

@@ -54,6 +54,7 @@ import {
   Star,
   UserX,
   UserCheck,
+  Trash2,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
@@ -1752,6 +1753,24 @@ export default function ClientDetailPage() {
                 Nova Avaliação
               </Button>
             </Link>
+            {isAdmin && (
+              <Button
+                className="rounded-full shadow-lg px-5 h-11 gap-2 bg-red-700 hover:bg-red-800 text-white"
+                onClick={async () => {
+                  const ok = confirm(
+                    `Excluir "${client.name}" deste studio?\n\n` +
+                    `Todos os dados (avaliações, treinos, presenças, mensalidades) serão removidos permanentemente.\n` +
+                    `Se o aluno estiver em outros studios, não será afetado.`
+                  )
+                  if (!ok) return
+                  const res = await fetch(`/api/studio/clients/${client.id}`, { method: 'DELETE' })
+                  if (res.ok) { router.push('/clients') }
+                  else { alert('Erro ao excluir aluno') }
+                }}
+              >
+                <Trash2 className="w-4 h-4" /> Excluir Aluno
+              </Button>
+            )}
           </>
         )}
         <Button

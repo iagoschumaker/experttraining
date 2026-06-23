@@ -598,40 +598,36 @@ export async function DELETE(
       },
     })
 
-    // Hard delete — remover tudo relacionado ao cliente
-    // 1. Remover vínculos aula-aluno
-    await prisma.lessonClient.deleteMany({
-      where: { clientId },
-    })
+    // Hard delete — remover tudo relacionado ao cliente neste studio
+    // 1. Remover mensalidade do cliente
+    await (prisma as any).clientMensalidade.deleteMany({ where: { clientId } })
 
-    // 2. Buscar treinos do cliente
+    // 2. Remover lançamentos financeiros vinculados ao cliente neste studio
+    await prisma.financialEntry.deleteMany({ where: { clientId, studioId } })
+
+    // 3. Remover vínculos aula-aluno
+    await prisma.lessonClient.deleteMany({ where: { clientId } })
+
+    // 4. Buscar treinos do cliente
     const workouts = await prisma.workout.findMany({
       where: { clientId },
       select: { id: true },
     })
     const workoutIds = workouts.map((w: any) => w.id)
 
-    // 3. Remover aulas dos treinos
+    // 5. Remover aulas dos treinos
     if (workoutIds.length > 0) {
-      await prisma.lesson.deleteMany({
-        where: { workoutId: { in: workoutIds } },
-      })
+      await prisma.lesson.deleteMany({ where: { workoutId: { in: workoutIds } } })
     }
 
-    // 4. Remover treinos
-    await prisma.workout.deleteMany({
-      where: { clientId },
-    })
+    // 6. Remover treinos
+    await prisma.workout.deleteMany({ where: { clientId } })
 
-    // 5. Remover avaliações
-    await prisma.assessment.deleteMany({
-      where: { clientId },
-    })
+    // 7. Remover avaliações
+    await prisma.assessment.deleteMany({ where: { clientId } })
 
-    // 6. Remover o cliente
-    await prisma.client.delete({
-      where: { id: clientId },
-    })
+    // 8. Remover o cliente
+    await prisma.client.delete({ where: { id: clientId } })
 
     return NextResponse.json({
       success: true,
