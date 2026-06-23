@@ -30,6 +30,7 @@ import {
 // ============================================================================
 interface Client {
     id: string; name: string; email: string | null; status: string; level?: string
+    isActive?: boolean; inactiveReason?: 'PAYMENT' | 'MANUAL' | null
 }
 
 interface SessionExercise {
@@ -181,21 +182,37 @@ export default function PresencaPage() {
     async function loadClients() {
         setLoadingClients(true)
         try {
+            // 1. Carrega clientes via workouts (para associar ao treino)
             const res = await fetchWithAuth('/api/studio/workouts?status=ACTIVE&pageSize=500')
             const data = await res.json()
+            const cMap = new Map<string, Client>()
+            const wMap = new Map<string, string>()
             if (data.success) {
-                const cMap = new Map<string, Client>()
-                const wMap = new Map<string, string>()
                 const items = data.data?.items || data.data || []
                 for (const w of items) {
                     if (w.isActive && w.client && !cMap.has(w.client.id)) {
-                        cMap.set(w.client.id, { id: w.client.id, name: w.client.name, email: w.client.email || null, status: 'ACTIVE', level: w.client.level })
+                        cMap.set(w.client.id, { id: w.client.id, name: w.client.name, email: w.client.email || null, status: 'ACTIVE', level: w.client.level, isActive: true })
                         wMap.set(w.client.id, w.id)
                     }
                 }
-                const sorted = Array.from(cMap.values()).sort((a, b) => a.name.localeCompare(b.name))
-                setAllClients(sorted); setClients(sorted); setClientWorkoutMap(wMap)
             }
+            // 2. Complementa com TODOS os clientes (ativos + inativos) para que
+            //    inativos também apareçam em presenç a com badge de aviso
+            const resAll = await fetchWithAuth('/api/clients?pageSize=500&page=1')
+            const dataAll = await resAll.json()
+            if (dataAll.success) {
+                for (const c of (dataAll.data?.items || [])) {
+                    if (!cMap.has(c.id)) {
+                        cMap.set(c.id, { id: c.id, name: c.name, email: c.email || null, status: c.isActive ? 'ACTIVE' : 'INACTIVE', level: c.level, isActive: c.isActive, inactiveReason: c.inactiveReason })
+                    } else {
+                        // Atualiza o isActive do registro já existente
+                        const existing = cMap.get(c.id)!
+                        cMap.set(c.id, { ...existing, isActive: c.isActive, inactiveReason: c.inactiveReason })
+                    }
+                }
+            }
+            const sorted = Array.from(cMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+            setAllClients(sorted); setClients(sorted); setClientWorkoutMap(wMap)
         } catch (err) { console.error(err) }
         finally { setLoadingClients(false) }
     }
@@ -691,6 +708,10 @@ export default function PresencaPage() {
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium truncate flex items-center gap-1.5">
                                                 {c.name}
+                                                {/* Badge de inativo manual */}
+                                                {c.isActive === false && c.inactiveReason !== 'PAYMENT' && (
+                                                    <span className="flex-shrink-0 text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-full px-1.5 py-0.5 font-bold">INATIVO</span>
+                                                )}
                                                 {mensStatusMap.get(c.id) === 'overdue' && (
                                                     <span className="flex-shrink-0 text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 font-bold">INAD</span>
                                                 )}

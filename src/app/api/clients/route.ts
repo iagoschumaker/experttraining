@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - CLIENTS API
 // ============================================================================
 // GET /api/clients - Lista clientes do studio
@@ -59,11 +59,17 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     const trainerId = searchParams.get('trainerId')
+    const includeInactive = searchParams.get('includeInactive') === 'true'
+    const onlyActive = searchParams.get('onlyActive') === 'true'
 
-    // Build where clause
+    // Build where clause — por padrão mostra TODOS (ativos + inativos)
     const where: any = {
       studioId: payload.studioId,
-      isActive: true,
+    }
+
+    // Se explicitamente solicitado apenas ativos
+    if (onlyActive) {
+      where.isActive = true
     }
 
     if (search) {
@@ -85,7 +91,7 @@ export async function GET(request: NextRequest) {
     // Get clients with pagination
     const clients = await prisma.client.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
@@ -115,19 +121,35 @@ export async function GET(request: NextRequest) {
           take: 1,
           select: { createdAt: true },
         },
+        // Inclui mensalidade para inferir motivo de inativação
+        mensalidade: {
+          select: {
+            status: true,
+            nextBillingDate: true,
+          },
+        },
       },
     })
+
+    // Adicionar campo inactiveReason inferido
+    const clientsWithReason = clients.map((c: any) => ({
+      ...c,
+      inactiveReason: !c.isActive
+        ? (c.mensalidade?.status === 'OVERDUE' ? 'PAYMENT' : 'MANUAL')
+        : null,
+    }))
 
     return NextResponse.json({
       success: true,
       data: {
-        items: clients,
+        items: clientsWithReason,
         total,
         page,
         pageSize,
         totalPages: Math.ceil(total / pageSize),
       },
     })
+
   } catch (error) {
     console.error('List clients error:', error)
     return NextResponse.json(

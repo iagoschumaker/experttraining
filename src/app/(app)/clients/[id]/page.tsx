@@ -52,6 +52,8 @@ import {
   CreditCard,
   CheckCircle,
   Star,
+  UserX,
+  UserCheck,
 } from 'lucide-react'
 import { useAuth } from '@/hooks'
 import { ClientGoalsForm } from '@/components/clients/client-goals-form'
@@ -86,6 +88,7 @@ interface Client {
   notes: string | null
   goal: string | null
   isActive: boolean
+  mensalidade?: { status: string } | null
   gender: string | null
   createdAt: string
   trainerId: string | null
@@ -592,8 +595,10 @@ export default function ClientDetailPage() {
             <Separator />
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Status</span>
-              <Badge variant={client.isActive ? 'default' : 'secondary'}>
-                {client.isActive ? 'Ativo' : 'Inativo'}
+              <Badge variant={client.isActive ? 'default' : 'destructive'}>
+                {client.isActive ? 'Ativo'
+                  : client.mensalidade?.status === 'OVERDUE' ? '⚠ Pagamento Atrasado'
+                  : 'Inativo (Manual)'}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
@@ -1720,6 +1725,26 @@ export default function ClientDetailPage() {
                   Editar Aluno
                 </Button>
               </Link>
+            )}
+            {canEdit && (
+              <Button
+                className={`rounded-full shadow-lg px-5 h-11 gap-2 ${
+                  client.isActive
+                    ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+                onClick={async () => {
+                  if (!confirm(client.isActive ? 'Desativar este aluno?' : 'Reativar este aluno?')) return
+                  const res = await fetch(`/api/studio/clients/${client.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive: !client.isActive }),
+                  })
+                  if (res.ok) { setClient((c: any) => c ? { ...c, isActive: !c.isActive } : c); setFabOpen(false) }
+                }}
+              >
+                {client.isActive ? <><UserX className="w-4 h-4" /> Desativar Aluno</> : <><UserCheck className="w-4 h-4" /> Reativar Aluno</>}
+              </Button>
             )}
             <Link href={`/assessments/new?clientId=${client.id}`} onClick={() => setFabOpen(false)}>
               <Button className="rounded-full shadow-lg px-5 h-11 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white gap-2">

@@ -47,18 +47,14 @@ interface Client {
   phone: string | null
   objectives: string | null
   isActive: boolean
+  inactiveReason: 'PAYMENT' | 'MANUAL' | null
   createdAt: string
   birthDate: string | null
   trainerId: string | null
-  trainer?: {
-    id: string
-    name: string
-  } | null
-  _count?: {
-    assessments: number
-    workouts: number
-  }
+  trainer?: { id: string; name: string } | null
+  _count?: { assessments: number; workouts: number }
   assessments?: { createdAt: string }[]
+  mensalidade?: { status: string; nextBillingDate: string } | null
 }
 
 interface ClientsResponse {
@@ -81,7 +77,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [activeTab, setActiveTab] = useState<'all' | 'birthdays'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'birthdays' | 'inactive'>('all')
   const [allClients, setAllClients] = useState<Client[]>([])
   const [loadingBirthdays, setLoadingBirthdays] = useState(false)
 
@@ -120,6 +116,8 @@ export default function ClientsPage() {
         pageSize: '10',
       })
       if (search) params.set('search', search)
+      // Aba 'inactive' filtra apenas inativos via API (onlyActive=false já é default)
+      // Aba 'all' traz todos, aba 'inactive' filtra client-side após fetch
 
       const res = await fetch(`/api/clients?${params}`)
       const data: ClientsResponse = await res.json()
@@ -240,7 +238,14 @@ export default function ClientsPage() {
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
             activeTab === 'all' ? 'bg-yellow-500/15 text-yellow-600 border-b-2 border-yellow-500' : 'text-muted-foreground hover:text-foreground'
           }`}>
-          <Users className="h-4 w-4" /> Todos
+          <Users className="h-4 w-4" /> Ativos
+        </button>
+        <button
+          onClick={() => setActiveTab('inactive')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            activeTab === 'inactive' ? 'bg-red-500/15 text-red-400 border-b-2 border-red-500' : 'text-muted-foreground hover:text-foreground'
+          }`}>
+          <AlertTriangle className="h-4 w-4" /> Inativos
         </button>
         <button
           onClick={() => setActiveTab('birthdays')}
@@ -251,8 +256,12 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      {/* TAB: Todos */}
-      {activeTab === 'all' && (
+      {/* TAB: Ativos + Inativos (compartilham o mesmo card, filtrados client-side) */}
+      {(activeTab === 'all' || activeTab === 'inactive') && (() => {
+        const displayedClients = activeTab === 'inactive'
+          ? clients.filter(c => !c.isActive)
+          : clients.filter(c => c.isActive)
+        return (
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -293,7 +302,7 @@ export default function ClientsPage() {
             <>
               {/* Mobile: Cards */}
               <div className="md:hidden space-y-3">
-                {clients.map((client) => (
+                {displayedClients.map((client) => (
                   <div key={client.id} className="p-4 border rounded-lg bg-card">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -310,9 +319,14 @@ export default function ClientsPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">{client.email || client.phone || '-'}</div>
                       </div>
-                      <Badge variant={client.isActive ? 'default' : 'secondary'}>
-                        {client.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
+                      <Badge
+                          variant={client.isActive ? 'default' : 'destructive'}
+                          className={client.isActive ? '' : 'text-xs'}
+                        >
+                          {client.isActive ? 'Ativo'
+                            : client.inactiveReason === 'PAYMENT' ? '⚠ Pagamento Atrasado'
+                            : 'Inativo'}
+                        </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                       <div><span className="text-muted-foreground">Personal:</span> {client.trainer?.name || '-'}</div>
@@ -350,7 +364,7 @@ export default function ClientsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {clients.map((client) => (
+                    {displayedClients.map((client) => (
                       <tr key={client.id}>
                         <td data-label="Nome" className="font-medium">
                           <div className="flex items-center gap-2">
@@ -393,9 +407,12 @@ export default function ClientsPage() {
                         </td>
                         <td data-label="Status">
                           <Badge
-                            variant={client.isActive ? 'default' : 'secondary'}
+                            variant={client.isActive ? 'default' : 'destructive'}
+                            className={client.isActive ? '' : 'text-xs'}
                           >
-                            {client.isActive ? 'Ativo' : 'Inativo'}
+                            {client.isActive ? 'Ativo'
+                              : client.inactiveReason === 'PAYMENT' ? '⚠ Pagamento Atrasado'
+                              : 'Inativo'}
                           </Badge>
                         </td>
                         <td data-label="Ações">
@@ -466,7 +483,8 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
-      )}
+      )
+      })()}
 
       {/* TAB: Aniversários */}
       {activeTab === 'birthdays' && (
