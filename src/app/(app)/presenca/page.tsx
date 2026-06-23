@@ -119,12 +119,15 @@ export default function PresencaPage() {
     const [savingWeightKey, setSavingWeightKey] = useState<string | null>(null)
     const [clearingStuck, setClearingStuck] = useState(false)
     const [mensAlertIds, setMensAlertIds] = useState<Set<string>>(new Set())
-    // clientId -> 'overdue' | 'upcoming'
-    const [mensStatusMap, setMensStatusMap] = useState<Map<string, 'overdue' | 'upcoming'>>(new Map())
+    // clientId -> status completo de mensalidade
+    type MensStatus = 'no_plan' | 'pending' | 'overdue' | 'upcoming' | 'active'
+    const [mensStatusMap, setMensStatusMap] = useState<Map<string, MensStatus>>(new Map())
 
     // Modal de confirmação de pagamento pendente ao iniciar sessão
     const [paymentWarningModal, setPaymentWarningModal] = useState<{
-        overdue: { id: string; name: string }[]
+        no_plan:  { id: string; name: string }[]
+        pending:  { id: string; name: string }[]
+        overdue:  { id: string; name: string }[]
         upcoming: { id: string; name: string }[]
         forceStart: () => void
     } | null>(null)
@@ -140,22 +143,21 @@ export default function PresencaPage() {
     // ========================================================================
     useEffect(() => { loadClients(); loadSessions(); loadActiveClients() }, [])
 
-    // Buscar alertas de mensalidades (vencendo em 3 dias + atrasados)
+    // Buscar status COMPLETO de mensalidades de todos os alunos (com autenticação)
     useEffect(() => {
-        fetch('/api/studio/financeiro/mensalidades/alerts')
+        fetchWithAuth('/api/studio/financeiro/mensalidades/status')
             .then(r => r.json())
             .then(d => {
                 if (d.success) {
-                    const ids = new Set<string>([
-                        ...d.data.upcoming.map((m: any) => m.clientId),
-                        ...d.data.overdue.map((m: any) => m.clientId),
-                    ])
-                    setMensAlertIds(ids)
-                    // Mapa detalhado: clientId -> 'overdue' | 'upcoming'
-                    const statusMap = new Map<string, 'overdue' | 'upcoming'>()
-                    d.data.overdue.forEach((m: any) => statusMap.set(m.clientId, 'overdue'))
-                    d.data.upcoming.forEach((m: any) => { if (!statusMap.has(m.clientId)) statusMap.set(m.clientId, 'upcoming') })
+                    type MensStatus = 'no_plan' | 'pending' | 'overdue' | 'upcoming' | 'active'
+                    const statusMap = new Map<string, MensStatus>()
+                    const alertIds = new Set<string>()
+                    Object.entries(d.data).forEach(([clientId, info]: [string, any]) => {
+                        statusMap.set(clientId, info.status as MensStatus)
+                        if (info.status !== 'active') alertIds.add(clientId)
+                    })
                     setMensStatusMap(statusMap)
+                    setMensAlertIds(alertIds)
                 }
             })
             .catch(() => {})
@@ -348,30 +350,30 @@ export default function PresencaPage() {
         const selected = allClients.filter(c => selectedIds.has(c.id))
         const selectedIds_list = selected.map(c => c.id)
 
-        // Verificar status de mensalidades dos alunos selecionados
+        // Verificar status COMPLETO de mensalidades dos alunos selecionados
+        const no_plan = selected.filter(c => mensStatusMap.get(c.id) === 'no_plan')
+        const pending  = selected.filter(c => mensStatusMap.get(c.id) === 'pending')
         const overdue  = selected.filter(c => mensStatusMap.get(c.id) === 'overdue')
         const upcoming = selected.filter(c => mensStatusMap.get(c.id) === 'upcoming')
 
-        // Se houver alunos em atraso → abre modal de aviso (bloqueio + confirmação)
-        if (overdue.length > 0 || upcoming.length > 0) {
-            // Alunos OK são os que nem estão overdue nem upcoming
-            const allowedIds = selectedIds_list.filter(id => mensStatusMap.get(id) !== 'overdue')
+        // Só exibe modal se o mapa já foi carregado (tem dados)
+        const hasData = mensStatusMap.size > 0
 
+        if (hasData && (no_plan.length > 0 || pending.length > 0 || overdue.length > 0 || upcoming.length > 0)) {
             setPaymentWarningModal({
-                overdue: overdue.map(c => ({ id: c.id, name: c.name })),
+                no_plan:  no_plan.map(c => ({ id: c.id, name: c.name })),
+                pending:  pending.map(c => ({ id: c.id, name: c.name })),
+                overdue:  overdue.map(c => ({ id: c.id, name: c.name })),
                 upcoming: upcoming.map(c => ({ id: c.id, name: c.name })),
-                // forceStart: inicia com TODOS (trainer sobrescreve)
                 forceStart: () => {
                     setPaymentWarningModal(null)
                     doStartGroupSession(selectedIds_list)
                 },
             })
-            // Se há alunos sem pendência, permite iniciar já sem eles (auto-remove overdue)
-            // A ação de "Iniciar sem inadimplentes" remove os overdue automaticamente
             return
         }
 
-        // Nenhum problema de pagamento → inicia normalmente
+        // Todos em dia ou mapa sem dados → inicia normalmente
         await doStartGroupSession(selectedIds_list)
     }
 
@@ -1071,12 +1073,30 @@ export default function PresencaPage() {
                     </DialogHeader>
 
                     <div className="space-y-3 py-2">
-                        {/* Alunos em atraso — bloqueados */}
+                        {/* Sem plano configurado */}
+                        {paymentWarningModal && paymentWarningModal.no_plan.length > 0 && (
+                            <div className="rounded-xl border border-zinc-500/30 bg-zinc-500/5 p-3 space-y-2">
+                                <p className="text-sm font-semibold text-zinc-300 flex items-center gap-1.5">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Sem mensalidade configurada:
+                                </p>
+                                <ul className="space-y-1">
+                                    {paymentWarningModal.no_plan.map(c => (
+                                        <li key={c.id} className="text-sm text-zinc-400 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-zinc-500 flex-shrink-0" />
+                                            {c.name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Em atraso */}
                         {paymentWarningModal && paymentWarningModal.overdue.length > 0 && (
                             <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 space-y-2">
                                 <p className="text-sm font-semibold text-red-400 flex items-center gap-1.5">
                                     <CreditCard className="w-4 h-4" />
-                                    Inadimplente(s) — removido(s) automaticamente:
+                                    Inadimplente(s) — em atraso:
                                 </p>
                                 <ul className="space-y-1">
                                     {paymentWarningModal.overdue.map(c => (
@@ -1089,7 +1109,25 @@ export default function PresencaPage() {
                             </div>
                         )}
 
-                        {/* Alunos vencendo em breve — aviso, mas podem entrar */}
+                        {/* Pendente — não pagou ainda */}
+                        {paymentWarningModal && paymentWarningModal.pending.length > 0 && (
+                            <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 space-y-2">
+                                <p className="text-sm font-semibold text-orange-400 flex items-center gap-1.5">
+                                    <CreditCard className="w-4 h-4" />
+                                    Pagamento pendente — ainda não pagou:
+                                </p>
+                                <ul className="space-y-1">
+                                    {paymentWarningModal.pending.map(c => (
+                                        <li key={c.id} className="text-sm text-orange-300 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
+                                            {c.name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Vencendo em breve */}
                         {paymentWarningModal && paymentWarningModal.upcoming.length > 0 && (
                             <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
                                 <p className="text-sm font-semibold text-yellow-400 flex items-center gap-1.5">
@@ -1109,36 +1147,29 @@ export default function PresencaPage() {
                     </div>
 
                     <DialogFooter className="flex-col sm:flex-row gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPaymentWarningModal(null)}
-                            className="w-full sm:w-auto"
-                        >
+                        <Button variant="outline" size="sm" onClick={() => setPaymentWarningModal(null)} className="w-full sm:w-auto">
                             Cancelar
                         </Button>
-                        {/* Iniciar sem os inadimplentes (apenas os OK + upcoming) */}
-                        {paymentWarningModal && paymentWarningModal.overdue.length > 0 && (
+                        {paymentWarningModal && (paymentWarningModal.overdue.length > 0 || paymentWarningModal.pending.length > 0 || paymentWarningModal.no_plan.length > 0) && (
                             <Button
                                 size="sm"
                                 variant="outline"
                                 className="w-full sm:w-auto border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
                                 onClick={() => {
-                                    const overdueIds = new Set(paymentWarningModal.overdue.map(c => c.id))
-                                    const allowedIds = Array.from(selectedIds).filter(id => !overdueIds.has(id))
+                                    const blockedIds = new Set([
+                                        ...(paymentWarningModal.overdue.map(c => c.id)),
+                                        ...(paymentWarningModal.pending.map(c => c.id)),
+                                        ...(paymentWarningModal.no_plan.map(c => c.id)),
+                                    ])
+                                    const allowedIds = Array.from(selectedIds).filter(id => !blockedIds.has(id))
                                     setPaymentWarningModal(null)
                                     if (allowedIds.length > 0) doStartGroupSession(allowedIds)
                                 }}
                             >
-                                Iniciar sem inadimplentes
+                                Iniciar sem pendentes
                             </Button>
                         )}
-                        {/* Forçar entrada de todos — personal override */}
-                        <Button
-                            size="sm"
-                            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
-                            onClick={paymentWarningModal?.forceStart}
-                        >
+                        <Button size="sm" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={paymentWarningModal?.forceStart}>
                             Liberar mesmo assim
                         </Button>
                     </DialogFooter>
