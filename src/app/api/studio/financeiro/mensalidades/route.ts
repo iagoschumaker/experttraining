@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar todas as mensalidades do studio com dados do cliente
-    const mensalidades = await (prisma as any).clientMensalidade.findMany({
+    const mensalidadesRaw = await (prisma as any).clientMensalidade.findMany({
       where: { studioId },
       include: {
         client: {
@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
             phone: true,
             isActive: true,
             status: true,
+            studioId: true, // ← necessário para garantir isolamento SaaS
           },
         },
         studioPlan: {
@@ -79,6 +80,10 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { client: { name: 'asc' } },
     })
+
+    // ISOLAMENTO SAAS: descartar qualquer mensalidade cujo cliente não pertence ao studio atual.
+    // Isso previne vazamento de dados caso haja registros inconsistentes no banco.
+    const mensalidades = mensalidadesRaw.filter((m: any) => m.client?.studioId === studioId)
 
     // Alunos sem mensalidade — busca TODOS os alunos do studio (independente de isActive)
     // para não excluir alunos que foram marcados como inativos por outra razão
@@ -192,7 +197,9 @@ export async function POST(request: NextRequest) {
     const nextBillingDate = calcNextBillingDate(adhesion, resolvedCycle)
 
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
-      where: { clientId },
+      // Usa chave composta clientId+studioId para garantir que apenas o registro
+      // do studio atual seja afetado — nunca o de outro studio.
+      where: { clientId_studioId: { clientId, studioId } },
       create: {
         clientId,
         studioId,

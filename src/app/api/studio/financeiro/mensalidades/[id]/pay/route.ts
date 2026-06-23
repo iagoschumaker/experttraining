@@ -31,14 +31,19 @@ export async function POST(
     const body = await request.json()
     const { paymentMethod, notes, categoryId, paidDate } = body
 
-    // Buscar mensalidade
+    // Buscar mensalidade — ISOLAMENTO: verifica studioId para evitar acesso cross-studio
     const mensalidade = await (prisma as any).clientMensalidade.findFirst({
       where: { id, studioId },
-      include: { client: true },
+      include: { client: { select: { id: true, name: true, studioId: true } } },
     })
 
     if (!mensalidade) {
       return NextResponse.json({ success: false, error: 'Mensalidade não encontrada' }, { status: 404 })
+    }
+
+    // Segurança extra: garantir que o cliente pertence ao studio atual
+    if (mensalidade.client?.studioId !== studioId) {
+      return NextResponse.json({ success: false, error: 'Acesso negado' }, { status: 403 })
     }
 
     const now = paidDate ? new Date(paidDate) : new Date()
@@ -52,12 +57,13 @@ export async function POST(
     const nextBillingDate = new Date(baseDate)
     nextBillingDate.setMonth(nextBillingDate.getMonth() + months)
 
-    // Buscar categoria padrão de mensalidade se não informada
+    // Buscar categoria padrão de RECEITA nas categorias GLOBAIS (não per-studio)
     let resolvedCategoryId = categoryId
     if (!resolvedCategoryId) {
       const defaultCat = await prisma.financialCategory.findFirst({
         where: {
-          studioId,
+          studioId: null,  // categorias globais
+          isSystem: true,
           type: 'RECEITA',
           isActive: true,
         },
