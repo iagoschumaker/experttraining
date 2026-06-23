@@ -5,7 +5,6 @@
 // ============================================================================
 
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,19 +29,15 @@ import {
   Users,
   CheckCircle,
   AlertTriangle,
-  Clock,
-  TrendingUp,
-  Calendar,
   Search,
   CreditCard,
   Bell,
-  XCircle,
   RefreshCw,
   Settings,
   ChevronDown,
   ChevronRight,
   DollarSign,
-  Wallet,
+  Tag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/fetchWithAuth'
@@ -100,17 +95,17 @@ interface Stats {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const CYCLE_LABELS: Record<string, string> = {
-  MONTHLY: 'Mensal',
-  QUARTERLY: 'Trimestral',
+  MONTHLY:    'Mensal',
+  QUARTERLY:  'Trimestral',
   SEMIANNUAL: 'Semestral',
-  ANNUAL: 'Anual',
+  ANNUAL:     'Anual',
 }
 
 const STATUS_CONFIG = {
-  ACTIVE:   { label: 'Em dia',    color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  PENDING:  { label: 'Pendente',  color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
-  OVERDUE:  { label: 'Atrasado',  color: 'bg-red-500/15 text-red-400 border-red-500/30' },
-  INACTIVE: { label: 'Inativo',   color: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
+  ACTIVE:   { label: 'Em dia',   color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+  PENDING:  { label: 'Pendente', color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+  OVERDUE:  { label: 'Atrasado', color: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  INACTIVE: { label: 'Inativo',  color: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
 }
 
 function formatCurrency(value: number) {
@@ -137,32 +132,34 @@ function MensalidadeCard({
   const cfg = STATUS_CONFIG[m.status]
 
   return (
-    <div
-      className={cn(
-        'rounded-xl border transition-all',
-        m.status === 'OVERDUE'
-          ? 'border-red-500/30 bg-red-500/5'
-          : m.isAlertDue
-          ? 'border-yellow-500/30 bg-yellow-500/5'
-          : 'border-border bg-card'
-      )}
-    >
+    <div className={cn(
+      'rounded-xl border transition-all',
+      m.status === 'OVERDUE'
+        ? 'border-red-500/30 bg-red-500/5'
+        : m.isAlertDue
+        ? 'border-yellow-500/30 bg-yellow-500/5'
+        : 'border-border bg-card'
+    )}>
       <div
         className="flex items-center gap-3 p-4 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
-        {/* Status dot */}
         <div className={cn(
           'w-2.5 h-2.5 rounded-full flex-shrink-0',
-          m.status === 'ACTIVE' ? 'bg-emerald-400' :
-          m.status === 'PENDING' ? 'bg-yellow-400' :
-          m.status === 'OVERDUE' ? 'bg-red-400' : 'bg-zinc-500'
+          m.status === 'ACTIVE'   ? 'bg-emerald-400' :
+          m.status === 'PENDING'  ? 'bg-yellow-400'  :
+          m.status === 'OVERDUE'  ? 'bg-red-400'     : 'bg-zinc-500'
         )} />
 
-        {/* Nome + badge */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-foreground truncate">{m.clientName}</span>
+            {m.planName && (
+              <span className="text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <Tag className="w-2.5 h-2.5" />
+                {m.planName}
+              </span>
+            )}
             {m.isAlertDue && m.status !== 'OVERDUE' && (
               <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 flex items-center gap-1">
                 <Bell className="w-2.5 h-2.5" />
@@ -185,33 +182,32 @@ function MensalidadeCard({
           </div>
         </div>
 
-        {/* Status badge */}
         <Badge className={cn('text-xs font-medium border hidden sm:flex', cfg.color)}>
           {cfg.label}
         </Badge>
 
-        {/* Expand */}
-        {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+        {expanded
+          ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
       </div>
 
-      {/* Expanded details */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-border/50 pt-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-sm">
             <div>
               <span className="text-muted-foreground text-xs block mb-1">Adesão</span>
-              <span className="text-foreground">{formatDate(m.adhesionDate)}</span>
+              <span>{formatDate(m.adhesionDate)}</span>
             </div>
             <div>
               <span className="text-muted-foreground text-xs block mb-1">Próx. cobrança</span>
               <span className={cn(
                 m.status === 'OVERDUE' ? 'text-red-400' :
-                m.isAlertDue ? 'text-yellow-400' : 'text-foreground'
+                m.isAlertDue ? 'text-yellow-400' : ''
               )}>{formatDate(m.nextBillingDate)}</span>
             </div>
             <div>
               <span className="text-muted-foreground text-xs block mb-1">Último pagamento</span>
-              <span className="text-foreground">{formatDate(m.lastPaymentDate)}</span>
+              <span>{formatDate(m.lastPaymentDate)}</span>
             </div>
             <div>
               <span className="text-muted-foreground text-xs block mb-1">Aluno ativo</span>
@@ -224,19 +220,11 @@ function MensalidadeCard({
             <p className="text-xs text-muted-foreground mb-3 bg-muted/30 rounded-lg p-2">{m.notes}</p>
           )}
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onPay(m) }}
-              className="flex-1 sm:flex-none"
-            >
+            <Button size="sm" onClick={(e) => { e.stopPropagation(); onPay(m) }} className="flex-1 sm:flex-none">
               <CreditCard className="w-3.5 h-3.5 mr-1.5" />
               Receber
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => { e.stopPropagation(); onConfigure(m) }}
-            >
+            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onConfigure(m) }}>
               <Settings className="w-3.5 h-3.5 mr-1.5" />
               Configurar
             </Button>
@@ -249,86 +237,99 @@ function MensalidadeCard({
 
 // ─── Página principal ────────────────────────────────────────────────────────
 
+type TabKey = 'all' | 'overdue' | 'alerts' | 'no_mens'
+
 export default function MensalidadesPage() {
   const [mensalidades, setMensalidades] = useState<Mensalidade[]>([])
   const [clientsWithoutMens, setClientsWithoutMens] = useState<ClientWithoutMens[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
+  const [studioPlans, setStudioPlans] = useState<StudioPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [activeTab, setActiveTab] = useState<'all' | 'overdue' | 'alerts' | 'no_mens'>('all')
+  const [activeTab, setActiveTab] = useState<TabKey>('all')
 
-  const [studioPlans, setStudioPlans] = useState<StudioPlan[]>([])
-
-  // Modals
+  // Modal: pagar
   const [payModal, setPayModal] = useState<Mensalidade | null>(null)
-  const [configModal, setConfigModal] = useState<Mensalidade | ClientWithoutMens | null>(null)
-  const [isConfigNew, setIsConfigNew] = useState(false)
-
-  // Form pay
   const [payMethod, setPayMethod] = useState('PIX')
   const [payDate, setPayDate] = useState('')
-  const [payCategory, setPayCategory] = useState('')
   const [paying, setPaying] = useState(false)
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [payCategory, setPayCategory] = useState('')
 
-  // Form config
-  const [configPlanId, setConfigPlanId] = useState<string>('')
-  const [configCycle, setConfigCycle] = useState<string>('MONTHLY')
+  // Modal: configurar
+  const [configModal, setConfigModal] = useState<Mensalidade | ClientWithoutMens | null>(null)
+  const [isConfigNew, setIsConfigNew] = useState(false)
+  const [configPlanId, setConfigPlanId] = useState('')
   const [configAmount, setConfigAmount] = useState('')
   const [configAdhesion, setConfigAdhesion] = useState('')
   const [configNotes, setConfigNotes] = useState('')
   const [configuring, setConfiguring] = useState(false)
 
-  // Categories for payment
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  // ─── Carregamento dos dados (fetches independentes para não bloquear uns aos outros) ───
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const loadMensalidades = useCallback(async () => {
     try {
-      const [mensRes, catRes, plansRes] = await Promise.all([
-        fetchWithAuth('/api/studio/financeiro/mensalidades'),
-        fetchWithAuth('/api/studio/financeiro/categories?type=RECEITA'),
-        fetchWithAuth('/api/studio/financeiro/planos'),
-      ])
-      const mensData = await mensRes.json()
-      const catData = await catRes.json()
-      const plansData = await plansRes.json()
-      if (mensData.success) {
-        setMensalidades(mensData.data.mensalidades)
-        setClientsWithoutMens(mensData.data.clientsWithoutMens)
-        setStats(mensData.data.stats)
+      const res = await fetchWithAuth('/api/studio/financeiro/mensalidades')
+      const data = await res.json()
+      if (data.success) {
+        setMensalidades(data.data.mensalidades ?? [])
+        setClientsWithoutMens(data.data.clientsWithoutMens ?? [])
+        setStats(data.data.stats ?? null)
       }
-      if (catData.success) {
-        setCategories(catData.data?.slice(0, 20) ?? [])
-      }
-      if (plansData.success) {
-        setStudioPlans(plansData.data)
-      }
-    } finally {
-      setLoading(false)
+    } catch (e) {
+      console.error('Mensalidades load error:', e)
     }
   }, [])
 
+  const loadPlans = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/studio/financeiro/planos')
+      const data = await res.json()
+      if (data.success) setStudioPlans(data.data ?? [])
+    } catch (e) {
+      console.error('Plans load error:', e)
+    }
+  }, [])
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/studio/financeiro/categories?type=RECEITA')
+      const data = await res.json()
+      if (data.success) setCategories(data.data?.slice(0, 20) ?? [])
+    } catch (e) {
+      // sem categorias, não bloqueia
+    }
+  }, [])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    await Promise.allSettled([loadMensalidades(), loadPlans(), loadCategories()])
+    setLoading(false)
+  }, [loadMensalidades, loadPlans, loadCategories])
+
   useEffect(() => { load() }, [load])
 
-  // Filter mensalidades
+  // ─── Filtros ─────────────────────────────────────────────────────────────
+
   const filtered = mensalidades.filter(m => {
     const matchSearch = !search ||
       m.clientName.toLowerCase().includes(search.toLowerCase()) ||
-      m.clientEmail?.toLowerCase().includes(search.toLowerCase()) ||
-      m.clientPhone?.includes(search)
+      (m.clientEmail?.toLowerCase() ?? '').includes(search.toLowerCase()) ||
+      (m.clientPhone ?? '').includes(search)
     const matchStatus = filterStatus === 'all' || m.status === filterStatus
     return matchSearch && matchStatus
   })
 
-  const tabData = {
-    all: filtered,
-    overdue: filtered.filter(m => m.status === 'OVERDUE'),
-    alerts: filtered.filter(m => m.isAlertDue && m.status !== 'OVERDUE'),
-    no_mens: clientsWithoutMens,
+  const tabData: Record<TabKey, Mensalidade[] | ClientWithoutMens[]> = {
+    all:      filtered,
+    overdue:  filtered.filter(m => m.status === 'OVERDUE'),
+    alerts:   filtered.filter(m => m.isAlertDue && m.status !== 'OVERDUE'),
+    no_mens:  clientsWithoutMens,
   }
 
-  // Handle pagamento
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
   async function handlePay() {
     if (!payModal) return
     setPaying(true)
@@ -344,7 +345,7 @@ export default function MensalidadesPage() {
       })
       const data = await res.json()
       if (data.success) {
-        toast.success(data.message)
+        toast.success(data.message ?? 'Pagamento registrado')
         setPayModal(null)
         load()
       } else {
@@ -355,19 +356,24 @@ export default function MensalidadesPage() {
     }
   }
 
-  // Handle configurar
   async function handleConfigure() {
     if (!configModal) return
+    if (!configPlanId) {
+      toast.error('Selecione um plano')
+      return
+    }
     setConfiguring(true)
     try {
       const clientId = 'clientId' in configModal ? configModal.clientId : configModal.id
+      // Busca dados do plano para saber o ciclo
+      const plan = studioPlans.find(p => p.id === configPlanId)
       const res = await fetchWithAuth('/api/studio/financeiro/mensalidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId,
-          planId: configPlanId || undefined,
-          billingCycle: configCycle || undefined,
+          planId: configPlanId,
+          billingCycle: plan?.billingCycle,
           amount: configAmount !== '' ? parseFloat(configAmount) : undefined,
           adhesionDate: configAdhesion || undefined,
           notes: configNotes || undefined,
@@ -390,8 +396,7 @@ export default function MensalidadesPage() {
     setIsConfigNew(false)
     setConfigModal(m)
     setConfigPlanId(m.planId ?? '')
-    setConfigCycle(m.billingCycle)
-    setConfigAmount(m.amount.toString())
+    setConfigAmount(m.amount > 0 ? m.amount.toString() : '')
     setConfigAdhesion(m.adhesionDate ? m.adhesionDate.slice(0, 10) : '')
     setConfigNotes(m.notes ?? '')
   }
@@ -400,11 +405,12 @@ export default function MensalidadesPage() {
     setIsConfigNew(true)
     setConfigModal(c)
     setConfigPlanId('')
-    setConfigCycle('MONTHLY')
     setConfigAmount('')
     setConfigAdhesion(new Date().toISOString().slice(0, 10))
     setConfigNotes('')
   }
+
+  // ─── Loading skeleton ─────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -421,10 +427,10 @@ export default function MensalidadesPage() {
   }
 
   const tabs = [
-    { key: 'all',     label: 'Todos',     count: filtered.length },
-    { key: 'overdue', label: 'Em atraso', count: tabData.overdue.length, alert: tabData.overdue.length > 0 },
-    { key: 'alerts',  label: 'Vencendo',  count: tabData.alerts.length, alert: tabData.alerts.length > 0 },
-    { key: 'no_mens', label: 'Sem config', count: tabData.no_mens.length },
+    { key: 'all'     as TabKey, label: 'Todos',      count: (tabData.all as Mensalidade[]).length },
+    { key: 'overdue' as TabKey, label: 'Em atraso',  count: (tabData.overdue as Mensalidade[]).length, alert: (tabData.overdue as Mensalidade[]).length > 0 },
+    { key: 'alerts'  as TabKey, label: 'Vencendo',   count: (tabData.alerts as Mensalidade[]).length,  alert: (tabData.alerts as Mensalidade[]).length > 0 },
+    { key: 'no_mens' as TabKey, label: 'Sem config', count: (tabData.no_mens as ClientWithoutMens[]).length },
   ]
 
   return (
@@ -432,9 +438,7 @@ export default function MensalidadesPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Mensalidades</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Assinaturas recorrentes dos alunos
-        </p>
+        <p className="text-sm text-muted-foreground mt-0.5">Assinaturas recorrentes dos alunos</p>
       </div>
 
       {/* Stats */}
@@ -444,7 +448,7 @@ export default function MensalidadesPage() {
             title="Alunos"
             value={stats.total}
             icon={<Users className="w-5 h-5" />}
-            description={`${stats.comMensalidade} com mensalidade`}
+            description={`${stats.comMensalidade} configurados`}
           />
           <StatsCard
             title="Em dia"
@@ -468,23 +472,20 @@ export default function MensalidadesPage() {
         </StatsGrid>
       )}
 
-      {/* Alertas vencendo em 3 dias */}
-      {tabData.alerts.length > 0 && activeTab !== 'alerts' && (
+      {/* Banner: vencendo em 3 dias */}
+      {(tabData.alerts as Mensalidade[]).length > 0 && activeTab !== 'alerts' && (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-400">
           <Bell className="w-4 h-4 flex-shrink-0" />
           <span>
-            <strong>{tabData.alerts.length}</strong> aluno{tabData.alerts.length !== 1 ? 's' : ''} com cobrança vencendo nos próximos 3 dias.
+            <strong>{(tabData.alerts as Mensalidade[]).length}</strong> aluno(s) com cobrança vencendo em até 3 dias.
           </span>
-          <button
-            className="ml-auto text-xs underline"
-            onClick={() => setActiveTab('alerts')}
-          >
+          <button className="ml-auto text-xs underline" onClick={() => setActiveTab('alerts')}>
             Ver →
           </button>
         </div>
       )}
 
-      {/* Filters + Tabs */}
+      {/* Filtros + Tabs */}
       <div className="space-y-3">
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
@@ -513,12 +514,12 @@ export default function MensalidadesPage() {
           </Button>
         </div>
 
-        {/* Tab buttons */}
+        {/* Abas */}
         <div className="flex gap-1 border-b border-border">
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
+              onClick={() => setActiveTab(tab.key)}
               className={cn(
                 'px-3 py-2 text-sm font-medium transition-all border-b-2 -mb-px flex items-center gap-1.5',
                 activeTab === tab.key
@@ -541,32 +542,24 @@ export default function MensalidadesPage() {
       {/* Lista */}
       <div className="space-y-2">
         {activeTab !== 'no_mens' ? (
-          tabData[activeTab].length === 0 ? (
+          (tabData[activeTab] as Mensalidade[]).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
-              {activeTab === 'overdue'
-                ? '✓ Nenhum aluno em atraso'
-                : activeTab === 'alerts'
-                ? '✓ Nenhum vencimento nos próximos 3 dias'
+              {activeTab === 'overdue'  ? '✓ Nenhum aluno em atraso'
+                : activeTab === 'alerts' ? '✓ Nenhum vencimento nos próximos 3 dias'
                 : 'Nenhum aluno encontrado'}
             </div>
           ) : (
             (tabData[activeTab] as Mensalidade[]).map(m => (
-              <MensalidadeCard
-                key={m.id}
-                m={m}
-                onPay={setPayModal}
-                onConfigure={openConfigure}
-              />
+              <MensalidadeCard key={m.id} m={m} onPay={setPayModal} onConfigure={openConfigure} />
             ))
           )
         ) : (
-          // Alunos sem mensalidade configurada
-          clientsWithoutMens.length === 0 ? (
+          (tabData.no_mens as ClientWithoutMens[]).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               ✓ Todos os alunos têm mensalidade configurada
             </div>
           ) : (
-            clientsWithoutMens.map(c => (
+            (tabData.no_mens as ClientWithoutMens[]).map(c => (
               <div key={c.id} className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card">
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-500 flex-shrink-0" />
                 <div className="flex-1">
@@ -583,7 +576,7 @@ export default function MensalidadesPage() {
         )}
       </div>
 
-      {/* Modal: Receber pagamento */}
+      {/* ─── Modal: Receber pagamento ─── */}
       <Dialog open={!!payModal} onOpenChange={() => setPayModal(null)}>
         <DialogContent>
           <DialogHeader>
@@ -592,12 +585,12 @@ export default function MensalidadesPage() {
           {payModal && (
             <div className="space-y-4 py-2">
               <div className="bg-muted/30 rounded-lg p-3 text-sm space-y-1">
-                <div className="font-medium text-foreground">{payModal.clientName}</div>
+                <div className="font-medium">{payModal.clientName}</div>
                 <div className="text-muted-foreground">
                   {CYCLE_LABELS[payModal.billingCycle]} · {formatCurrency(payModal.amount)}
                 </div>
                 <div className="text-muted-foreground text-xs">
-                  Próxima cobrança atual: {formatDate(payModal.nextBillingDate)}
+                  Próxima cobrança: {formatDate(payModal.nextBillingDate)}
                 </div>
               </div>
               <div className="space-y-2">
@@ -616,11 +609,7 @@ export default function MensalidadesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Data do recebimento (opcional)</Label>
-                <Input
-                  type="date"
-                  value={payDate}
-                  onChange={e => setPayDate(e.target.value)}
-                />
+                <Input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} />
               </div>
               {categories.length > 0 && (
                 <div className="space-y-2">
@@ -640,97 +629,95 @@ export default function MensalidadesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayModal(null)}>Cancelar</Button>
             <Button onClick={handlePay} disabled={paying}>
-              {paying ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+              {paying
+                ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                : <CreditCard className="w-4 h-4 mr-2" />}
               Confirmar Recebimento
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Configurar mensalidade */}
+      {/* ─── Modal: Configurar mensalidade ─── */}
       <Dialog open={!!configModal} onOpenChange={() => setConfigModal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {isConfigNew ? 'Configurar Mensalidade' : 'Editar Mensalidade'}
-            </DialogTitle>
+            <DialogTitle>{isConfigNew ? 'Configurar Mensalidade' : 'Editar Mensalidade'}</DialogTitle>
           </DialogHeader>
           {configModal && (
             <div className="space-y-4 py-2">
-              <div className="bg-muted/30 rounded-lg p-3 text-sm font-medium text-foreground">
+              {/* Nome do aluno */}
+              <div className="bg-muted/30 rounded-lg p-3 text-sm font-medium">
                 {'clientName' in configModal ? configModal.clientName : configModal.name}
               </div>
 
-              {/* Seletor de plano */}
+              {/* Seletor de plano — sempre visível */}
               <div className="space-y-2">
-                <Label>Plano do studio</Label>
+                <Label>Plano *</Label>
                 {studioPlans.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground text-center">
-                    Nenhum plano criado.{' '}
-                    <a href="/financeiro/planos" className="text-primary underline" target="_blank">Criar planos →</a>
+                  <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground text-center space-y-2">
+                    <p>Nenhum plano criado ainda.</p>
+                    <a
+                      href="/financeiro/planos"
+                      target="_blank"
+                      className="inline-flex items-center gap-1 text-primary text-xs underline"
+                    >
+                      <Tag className="w-3 h-3" /> Criar planos →
+                    </a>
                   </div>
                 ) : (
-                  <>
-                    <Select
-                      value={configPlanId || '__none__'}
-                      onValueChange={(v) => {
-                        if (v === '__none__') {
-                          setConfigPlanId('')
-                          return
-                        }
-                        setConfigPlanId(v)
-                        const plan = studioPlans.find(p => p.id === v)
-                        if (plan) {
-                          setConfigCycle(plan.billingCycle)
-                          // Pre-fill valor se estiver vazio ou for zero
-                          if (!configAmount || parseFloat(configAmount) === 0) {
-                            setConfigAmount(plan.price.toString())
-                          }
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar plano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Sem plano vinculado</SelectItem>
-                        {studioPlans.map(p => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} — {p.billingCycle === 'MONTHLY' ? 'Mensal' : p.billingCycle === 'QUARTERLY' ? 'Trimestral' : p.billingCycle === 'SEMIANNUAL' ? 'Semestral' : 'Anual'} · R$ {p.price.toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Ao selecionar, ciclo e valor são preenchidos. Você pode ajustar o valor abaixo.
-                    </p>
-                  </>
+                  <Select
+                    value={configPlanId || ''}
+                    onValueChange={(v) => {
+                      setConfigPlanId(v)
+                      const plan = studioPlans.find(p => p.id === v)
+                      if (plan && (!configAmount || parseFloat(configAmount) === 0)) {
+                        setConfigAmount(plan.price.toString())
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um plano..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {studioPlans.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{p.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {CYCLE_LABELS[p.billingCycle]} · {formatCurrency(p.price)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
 
+              {/* Valor — pode sobrescrever o padrão do plano */}
               <div className="space-y-2">
-                <Label>Ciclo de cobrança</Label>
-                <Select value={configCycle} onValueChange={setConfigCycle}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MONTHLY">Mensal</SelectItem>
-                    <SelectItem value="QUARTERLY">Trimestral (3 meses)</SelectItem>
-                    <SelectItem value="SEMIANNUAL">Semestral (6 meses)</SelectItem>
-                    <SelectItem value="ANNUAL">Anual (12 meses)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Valor (R$)</Label>
+                <Label>
+                  Valor (R$)
+                  <span className="text-xs text-muted-foreground ml-1 font-normal">
+                    — opcional, sobrescreve o valor do plano
+                  </span>
+                </Label>
                 <Input
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="Ex: 150.00"
+                  placeholder={
+                    configPlanId
+                      ? `Padrão: R$ ${studioPlans.find(p => p.id === configPlanId)?.price.toFixed(2) ?? '0.00'}`
+                      : 'Selecione um plano primeiro'
+                  }
                   value={configAmount}
                   onChange={e => setConfigAmount(e.target.value)}
                 />
               </div>
+
+              {/* Data de adesão */}
               <div className="space-y-2">
                 <Label>Data de adesão</Label>
                 <Input
@@ -739,13 +726,15 @@ export default function MensalidadesPage() {
                   onChange={e => setConfigAdhesion(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Data em que o studio recebeu o pagamento inicial do aluno.
+                  Data em que o aluno aderiu / fez o primeiro pagamento.
                 </p>
               </div>
+
+              {/* Observações */}
               <div className="space-y-2">
                 <Label>Observações</Label>
                 <Input
-                  placeholder="Plano especial, desconto..."
+                  placeholder="Desconto especial, condição diferenciada..."
                   value={configNotes}
                   onChange={e => setConfigNotes(e.target.value)}
                 />
@@ -754,8 +743,10 @@ export default function MensalidadesPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfigModal(null)}>Cancelar</Button>
-            <Button onClick={handleConfigure} disabled={configuring}>
-              {configuring ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+            <Button onClick={handleConfigure} disabled={configuring || studioPlans.length === 0}>
+              {configuring
+                ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                : <Settings className="w-4 h-4 mr-2" />}
               Salvar
             </Button>
           </DialogFooter>
