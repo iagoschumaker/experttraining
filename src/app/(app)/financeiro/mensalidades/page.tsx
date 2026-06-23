@@ -36,7 +36,7 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
-  DollarSign,
+
   Tag,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -464,10 +464,11 @@ export default function MensalidadesPage() {
             variant={stats.atrasados > 0 ? 'danger' : 'default'}
           />
           <StatsCard
-            title="A receber"
-            value={formatCurrency(stats.totalAReceber)}
-            icon={<DollarSign className="w-5 h-5" />}
-            variant="warning"
+            title="Sem config"
+            value={stats.semMensalidade}
+            icon={<Settings className="w-5 h-5" />}
+            description="sem plano vinculado"
+            variant={stats.semMensalidade > 0 ? 'warning' : 'default'}
           />
         </StatsGrid>
       )}

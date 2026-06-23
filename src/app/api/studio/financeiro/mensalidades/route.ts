@@ -80,11 +80,12 @@ export async function GET(request: NextRequest) {
       orderBy: { client: { name: 'asc' } },
     })
 
-    // Alunos sem mensalidade (no studio com FINANCEIRO mas ainda não configurados)
+    // Alunos sem mensalidade — busca TODOS os alunos do studio (independente de isActive)
+    // para não excluir alunos que foram marcados como inativos por outra razão
     const clientsWithMens = new Set(mensalidades.map(m => m.clientId))
     const allClients = await prisma.client.findMany({
-      where: { studioId, isActive: true },
-      select: { id: true, name: true, email: true, phone: true },
+      where: { studioId },
+      select: { id: true, name: true, email: true, phone: true, isActive: true },
       orderBy: { name: 'asc' },
     })
     const clientsWithoutMens = allClients.filter(c => !clientsWithMens.has(c.id))
