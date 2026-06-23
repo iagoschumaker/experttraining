@@ -662,42 +662,51 @@ export default function MensalidadesPage() {
               </div>
 
               {/* Seletor de plano */}
-              {studioPlans.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Plano do studio (opcional)</Label>
-                  <Select
-                    value={configPlanId || '__none__'}
-                    onValueChange={(v) => {
-                      if (v === '__none__') {
-                        setConfigPlanId('')
-                        return
-                      }
-                      setConfigPlanId(v)
-                      const plan = studioPlans.find(p => p.id === v)
-                      if (plan) {
-                        setConfigCycle(plan.billingCycle)
-                        // Pre-fill valor apenas se vazio
-                        if (!configAmount) setConfigAmount(plan.price.toString())
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar plano" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Sem plano vinculado</SelectItem>
-                      {studioPlans.map(p => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} — {p.billingCycle === 'MONTHLY' ? 'Mensal' : p.billingCycle === 'QUARTERLY' ? 'Trimestral' : p.billingCycle === 'SEMIANNUAL' ? 'Semestral' : 'Anual'} · R$ {p.price.toFixed(2)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Ao selecionar um plano, o ciclo e valor são preenchidos automaticamente. Você pode alterar o valor abaixo.
-                  </p>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Plano do studio</Label>
+                {studioPlans.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground text-center">
+                    Nenhum plano criado.{' '}
+                    <a href="/financeiro/planos" className="text-primary underline" target="_blank">Criar planos →</a>
+                  </div>
+                ) : (
+                  <>
+                    <Select
+                      value={configPlanId || '__none__'}
+                      onValueChange={(v) => {
+                        if (v === '__none__') {
+                          setConfigPlanId('')
+                          return
+                        }
+                        setConfigPlanId(v)
+                        const plan = studioPlans.find(p => p.id === v)
+                        if (plan) {
+                          setConfigCycle(plan.billingCycle)
+                          // Pre-fill valor se estiver vazio ou for zero
+                          if (!configAmount || parseFloat(configAmount) === 0) {
+                            setConfigAmount(plan.price.toString())
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar plano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem plano vinculado</SelectItem>
+                        {studioPlans.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name} — {p.billingCycle === 'MONTHLY' ? 'Mensal' : p.billingCycle === 'QUARTERLY' ? 'Trimestral' : p.billingCycle === 'SEMIANNUAL' ? 'Semestral' : 'Anual'} · R$ {p.price.toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Ao selecionar, ciclo e valor são preenchidos. Você pode ajustar o valor abaixo.
+                    </p>
+                  </>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label>Ciclo de cobrança</Label>
