@@ -16,11 +16,34 @@ const CYCLE_MONTHS: Record<string, number> = {
   ANNUAL: 12,
 }
 
-// Calcular próxima data de cobrança a partir de uma data base
-function calcNextBillingDate(fromDate: Date, cycle: string): Date {
+/**
+ * Calcula a PRÓXIMA data de cobrança futura com base na data de adesão.
+ *
+ * Lógica:
+ * - Parte da data de adesão, avança 1 ciclo (primeiro vencimento)
+ * - Continua avançando até encontrar uma data estritamente FUTURA (> now)
+ *
+ * Exemplos (ciclo MONTHLY, hoje = 03/07/2026):
+ *   adhesion = 01/01/2026 → Fev → Mar → Abr → Mai → Jun → Jul → 01/08/2026 ✅
+ *   adhesion = 01/06/2026 → Jul → 01/08/2026 ✅
+ *   adhesion = 05/07/2026 → 05/08/2026 ✅ (adesão no futuro próximo)
+ *
+ * Exemplos (ciclo ANNUAL, hoje = 03/07/2026):
+ *   adhesion = 01/01/2025 → 01/01/2026 → 01/01/2027 ✅
+ *   adhesion = 01/01/2026 → 01/01/2027 ✅
+ *
+ * Exemplos (ciclo SEMIANNUAL, hoje = 03/07/2026):
+ *   adhesion = 01/01/2026 → 01/07/2026 → 01/01/2027 ✅
+ */
+function calcSmartNextBillingDate(adhesionDate: Date, cycle: string, now: Date = new Date()): Date {
   const months = CYCLE_MONTHS[cycle] ?? 1
-  const next = new Date(fromDate)
+  const next = new Date(adhesionDate)
+  // Primeiro vencimento: 1 ciclo após adesão
   next.setMonth(next.getMonth() + months)
+  // Avançar enquanto ainda estiver no passado ou hoje
+  while (next <= now) {
+    next.setMonth(next.getMonth() + months)
+  }
   return next
 }
 
@@ -34,32 +57,34 @@ export async function GET(request: NextRequest) {
   const now = new Date()
 
   try {
-    // Auto-OVERDUE: se nextBillingDate já passou e está PENDING → OVERDUE
-    // E atualiza isActive do cliente
-    const overdueUpdated = await prisma.clientMensalidade.findMany({
+    // ── Auto-OVERDUE ─────────────────────────────────────────────────────────
+    // Se nextBillingDate já passou e status é ACTIVE ou PENDING → OVERDUE + bloquear aluno.
+    // Cobrindo ACTIVE garante que planos configurados com data histórica (ex: adhesionDate = Jan,
+    // configurado agora em Jul) que geraram nextBillingDate futuro correto, só ficam OVERDUE
+    // quando de fato o próximo vencimento passar — nunca ao serem configurados.
+    const overdueToMark = await (prisma as any).clientMensalidade.findMany({
       where: {
         studioId,
-        status: 'PENDING',
+        status: { in: ['ACTIVE', 'PENDING'] },
         nextBillingDate: { lt: now },
       },
       select: { id: true, clientId: true },
     })
 
-    if (overdueUpdated.length > 0) {
-      const overdueIds = overdueUpdated.map(m => m.id)
-      const overdueClientIds = overdueUpdated.map(m => m.clientId)
-      await prisma.clientMensalidade.updateMany({
+    if (overdueToMark.length > 0) {
+      const overdueIds = overdueToMark.map((m: any) => m.id)
+      const overdueClientIds = overdueToMark.map((m: any) => m.clientId)
+      await (prisma as any).clientMensalidade.updateMany({
         where: { id: { in: overdueIds } },
         data: { status: 'OVERDUE' },
       })
-      // Marcar alunos como inativos
       await prisma.client.updateMany({
         where: { id: { in: overdueClientIds } },
         data: { isActive: false },
       })
     }
 
-    // Buscar todas as mensalidades do studio com dados do cliente
+    // ── Buscar mensalidades do studio ────────────────────────────────────────
     const mensalidadesRaw = await (prisma as any).clientMensalidade.findMany({
       where: { studioId },
       include: {
@@ -71,7 +96,7 @@ export async function GET(request: NextRequest) {
             phone: true,
             isActive: true,
             status: true,
-            studioId: true, // ← necessário para garantir isolamento SaaS
+            studioId: true, // necessário para isolamento SaaS
           },
         },
         studioPlan: {
@@ -81,12 +106,10 @@ export async function GET(request: NextRequest) {
       orderBy: { client: { name: 'asc' } },
     })
 
-    // ISOLAMENTO SAAS: descartar qualquer mensalidade cujo cliente não pertence ao studio atual.
-    // Isso previne vazamento de dados caso haja registros inconsistentes no banco.
+    // ISOLAMENTO SAAS: descartar qualquer mensalidade cujo cliente não pertence ao studio atual
     const mensalidades = mensalidadesRaw.filter((m: any) => m.client?.studioId === studioId)
 
-    // Alunos sem mensalidade: apenas ATIVOS do studio sem plano configurado.
-    // isActive: true é essencial — clientes inativos (que saíram) NÃO devem aparecer.
+    // Alunos ATIVOS do studio sem mensalidade configurada
     const clientsWithMens = new Set(mensalidades.map((m: any) => m.clientId))
     const allClients = await prisma.client.findMany({
       where: { studioId, isActive: true },
@@ -95,12 +118,11 @@ export async function GET(request: NextRequest) {
     })
     const clientsWithoutMens = allClients.filter(c => !clientsWithMens.has(c.id))
 
-
-    // 3 dias antes = alerta
+    // Alerta: vencimento nos próximos 3 dias
     const alertDate = new Date(now)
     alertDate.setDate(alertDate.getDate() + 3)
 
-    const formattedMensalidades = mensalidades.map(m => ({
+    const formattedMensalidades = mensalidades.map((m: any) => ({
       id: m.id,
       clientId: m.clientId,
       clientName: m.client.name,
@@ -116,37 +138,38 @@ export async function GET(request: NextRequest) {
       lastPaymentDate: m.lastPaymentDate?.toISOString() ?? null,
       status: m.status,
       notes: m.notes,
-      // Alerta: vence em até 3 dias
       isAlertDue: m.status !== 'OVERDUE' && m.nextBillingDate <= alertDate,
       daysUntilDue: Math.ceil((m.nextBillingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
     }))
 
-    // Estatísticas
     const stats = {
       total: allClients.length,
       comMensalidade: mensalidades.length,
       semMensalidade: clientsWithoutMens.length,
-      ativos: mensalidades.filter(m => m.status === 'ACTIVE').length,
-      pendentes: mensalidades.filter(m => m.status === 'PENDING').length,
-      atrasados: mensalidades.filter(m => m.status === 'OVERDUE').length,
-      inativos: mensalidades.filter(m => m.status === 'INACTIVE').length,
-      alertas: formattedMensalidades.filter(m => m.isAlertDue).length,
+      ativos: mensalidades.filter((m: any) => m.status === 'ACTIVE').length,
+      pendentes: mensalidades.filter((m: any) => m.status === 'PENDING').length,
+      atrasados: mensalidades.filter((m: any) => m.status === 'OVERDUE').length,
+      inativos: mensalidades.filter((m: any) => m.status === 'INACTIVE').length,
+      alertas: formattedMensalidades.filter((m: any) => m.isAlertDue).length,
       totalAReceber: mensalidades
-        .filter(m => m.status === 'PENDING' || m.status === 'OVERDUE')
-        .reduce((s, m) => s + parseFloat(m.amount.toString()), 0),
+        .filter((m: any) => m.status === 'PENDING' || m.status === 'OVERDUE')
+        .reduce((s: number, m: any) => s + parseFloat(m.amount.toString()), 0),
     }
 
     return NextResponse.json({
       success: true,
       data: {
         mensalidades: formattedMensalidades,
-        clientsWithoutMens: clientsWithoutMens,
+        clientsWithoutMens,
         stats,
       },
     })
   } catch (error: any) {
     console.error('=== Mensalidades GET error ===', error?.message, error?.code, JSON.stringify(error?.meta))
-    return NextResponse.json({ success: false, error: 'Erro ao buscar mensalidades', detail: error?.message }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: 'Erro ao buscar mensalidades', detail: error?.message },
+      { status: 500 }
+    )
   }
 }
 
@@ -166,12 +189,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Campo obrigatorio: clientId' }, { status: 400 })
     }
 
+    // Verificação de segurança: aluno deve pertencer ao studio
     const client = await prisma.client.findFirst({ where: { id: clientId, studioId } })
     if (!client) {
-      return NextResponse.json({ success: false, error: 'Aluno nao encontrado' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Aluno não encontrado neste studio' }, { status: 404 })
     }
 
-    // Se planId informado, busca plano para pegar ciclo e valor padrao
+    // Resolver ciclo e valor: prioridade ao que foi enviado, fallback ao plano
     let resolvedCycle = billingCycle
     let resolvedAmount = (amount !== undefined && amount !== null && amount !== '') ? parseFloat(amount) : 0
     let resolvedPlanId = planId ?? null
@@ -186,21 +210,30 @@ export async function POST(request: NextRequest) {
           resolvedAmount = parseFloat(plan.price.toString())
         }
       } else {
-        resolvedPlanId = null
+        resolvedPlanId = null // plano não encontrado neste studio, ignorar
       }
     }
 
     if (!resolvedCycle) {
-      return NextResponse.json({ success: false, error: 'Informe billingCycle ou selecione um plano' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: 'Selecione um plano ou informe o ciclo de cobrança' },
+        { status: 400 }
+      )
     }
 
     const adhesion = adhesionDate ? new Date(adhesionDate) : new Date()
-    const nextBillingDate = calcNextBillingDate(adhesion, resolvedCycle)
+    const now = new Date()
+
+    // ── Data inteligente ─────────────────────────────────────────────────────
+    // calcSmartNextBillingDate SEMPRE retorna uma data FUTURA.
+    // Se o aluno aderiu em janeiro e estamos configurando em julho (MONTHLY):
+    //   → nextBillingDate = 01/08/2026 (próximo vencimento real)
+    //   → O sistema não marca como OVERDUE imediatamente
+    //   → Quando agosto chegar e não pagar → auto-OVERDUE no próximo GET
+    const nextBillingDate = calcSmartNextBillingDate(adhesion, resolvedCycle, now)
 
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
-      // clientId é @unique — constraint client_mensalidades_client_id_key adicionada ao banco.
-      // Segurança garantida: client.studioId === studioId verificado acima (linha 169).
-      where: { clientId },
+      where: { clientId }, // clientId @unique no schema + UNIQUE(client_id) no banco
       create: {
         clientId,
         studioId,
@@ -218,22 +251,35 @@ export async function POST(request: NextRequest) {
         amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
-        status: 'ACTIVE',
+        status: 'ACTIVE', // reativar se estava OVERDUE
         notes: notes ?? null,
         updatedAt: new Date(),
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...mensalidade,
-        amount: parseFloat(mensalidade.amount.toString()),
+    // Reativar o aluno ao configurar/atualizar mensalidade
+    await prisma.client.update({
+      where: { id: clientId },
+      data: { isActive: true },
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          ...mensalidade,
+          amount: parseFloat(mensalidade.amount.toString()),
+          nextBillingDate: nextBillingDate.toISOString(),
+        },
+        message: `Mensalidade configurada! Próxima cobrança: ${nextBillingDate.toLocaleDateString('pt-BR')}`,
       },
-      message: 'Mensalidade configurada com sucesso',
-    }, { status: 201 })
+      { status: 201 }
+    )
   } catch (error: any) {
     console.error('=== Mensalidades POST error ===', error?.message, error?.code, JSON.stringify(error?.meta))
-    return NextResponse.json({ success: false, error: 'Erro ao configurar mensalidade', detail: error?.message }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: 'Erro ao configurar mensalidade', detail: error?.message },
+      { status: 500 }
+    )
   }
 }

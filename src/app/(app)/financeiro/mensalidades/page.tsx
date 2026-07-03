@@ -4,7 +4,7 @@
 // KINEX PERFORMANCE — MENSALIDADES (Assinaturas Recorrentes)
 // ============================================================================
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -115,6 +115,21 @@ function formatCurrency(value: number) {
 function formatDate(iso: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+// Mesma lógica do backend — calcula próxima cobrança futura
+const CYCLE_MONTHS_UI: Record<string, number> = {
+  MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, ANNUAL: 12,
+}
+function calcSmartNextBillingDateUI(adhesionDate: Date, cycle: string): Date {
+  const months = CYCLE_MONTHS_UI[cycle] ?? 1
+  const next = new Date(adhesionDate)
+  next.setMonth(next.getMonth() + months)
+  const now = new Date()
+  while (next <= now) {
+    next.setMonth(next.getMonth() + months)
+  }
+  return next
 }
 
 // ─── Card de cada aluno ──────────────────────────────────────────────────────
@@ -265,6 +280,18 @@ export default function MensalidadesPage() {
   const [configAdhesion, setConfigAdhesion] = useState('')
   const [configNotes, setConfigNotes] = useState('')
   const [configuring, setConfiguring] = useState(false)
+
+  // Preview: próxima data de cobrança calculada em tempo real
+  const previewNextBillingDate = useMemo(() => {
+    if (!configAdhesion || !configPlanId) return null
+    const plan = studioPlans.find(p => p.id === configPlanId)
+    if (!plan) return null
+    try {
+      const adhesion = new Date(configAdhesion)
+      if (isNaN(adhesion.getTime())) return null
+      return calcSmartNextBillingDateUI(adhesion, plan.billingCycle)
+    } catch { return null }
+  }, [configAdhesion, configPlanId, studioPlans])
 
   // ─── Carregamento dos dados (fetches independentes para não bloquear uns aos outros) ───
 
@@ -730,6 +757,22 @@ export default function MensalidadesPage() {
                   Data em que o aluno aderiu / fez o primeiro pagamento.
                 </p>
               </div>
+
+              {/* Preview: próxima cobrança calculada */}
+              {previewNextBillingDate && (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start gap-2">
+                  <CreditCard className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-medium text-primary">Próxima cobrança:</span>
+                    <span className="ml-1 text-foreground font-semibold">
+                      {previewNextBillingDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Calculado com base na adesão e no ciclo do plano selecionado.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Observações */}
               <div className="space-y-2">
