@@ -198,8 +198,8 @@ export async function POST(request: NextRequest) {
     const nextBillingDate = calcNextBillingDate(adhesion, resolvedCycle)
 
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
-      // clientId é @unique no schema — cada aluno tem no máximo 1 mensalidade.
-      // A validação de studio já foi feita acima (client.studioId === studioId).
+      // clientId é @unique — constraint client_mensalidades_client_id_key adicionada ao banco.
+      // Segurança garantida: client.studioId === studioId verificado acima (linha 169).
       where: { clientId },
       create: {
         clientId,
