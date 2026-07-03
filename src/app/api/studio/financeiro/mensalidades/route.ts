@@ -144,9 +144,9 @@ export async function GET(request: NextRequest) {
         stats,
       },
     })
-  } catch (error) {
-    console.error('Mensalidades GET error:', error)
-    return NextResponse.json({ success: false, error: 'Erro ao buscar mensalidades' }, { status: 500 })
+  } catch (error: any) {
+    console.error('=== Mensalidades GET error ===', error?.message, error?.code, JSON.stringify(error?.meta))
+    return NextResponse.json({ success: false, error: 'Erro ao buscar mensalidades', detail: error?.message }, { status: 500 })
   }
 }
 
@@ -232,8 +232,8 @@ export async function POST(request: NextRequest) {
       },
       message: 'Mensalidade configurada com sucesso',
     }, { status: 201 })
-  } catch (error) {
-    console.error('Mensalidades POST error:', error)
-    return NextResponse.json({ success: false, error: 'Erro ao configurar mensalidade' }, { status: 500 })
+  } catch (error: any) {
+    console.error('=== Mensalidades POST error ===', error?.message, error?.code, JSON.stringify(error?.meta))
+    return NextResponse.json({ success: false, error: 'Erro ao configurar mensalidade', detail: error?.message }, { status: 500 })
   }
 }
