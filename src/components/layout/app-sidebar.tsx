@@ -21,8 +21,6 @@ import {
   TrendingDown,
   TrendingUp,
   BarChart2,
-
-  CreditCard,
   BadgeDollarSign,
   Tag,
 } from 'lucide-react'
@@ -113,12 +111,6 @@ const sidebarLinks: SidebarLink[] = [
   },
 
   // ─── GESTÃO ───
-  {
-    href: '/planos-aluno',
-    label: 'Planos de Aluno',
-    icon: <CreditCard className="w-5 h-5" />,
-    requiresAdmin: true,
-  },
   {
     href: '/team',
     label: 'Equipe',
