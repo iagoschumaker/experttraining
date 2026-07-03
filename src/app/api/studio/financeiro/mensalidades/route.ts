@@ -198,9 +198,9 @@ export async function POST(request: NextRequest) {
     const nextBillingDate = calcNextBillingDate(adhesion, resolvedCycle)
 
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
-      // Usa chave composta clientId+studioId para garantir que apenas o registro
-      // do studio atual seja afetado — nunca o de outro studio.
-      where: { clientId_studioId: { clientId, studioId } },
+      // clientId é @unique no schema — cada aluno tem no máximo 1 mensalidade.
+      // A validação de studio já foi feita acima (client.studioId === studioId).
+      where: { clientId },
       create: {
         clientId,
         studioId,
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
         amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
-        status: resolvedAmount > 0 ? 'ACTIVE' : 'PENDING',
+        status: 'ACTIVE',
         notes: notes ?? null,
       },
       update: {
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
         amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
-        status: resolvedAmount > 0 ? 'ACTIVE' : 'PENDING',
+        status: 'ACTIVE',
         notes: notes ?? null,
         updatedAt: new Date(),
       },
