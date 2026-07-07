@@ -59,6 +59,7 @@ interface SessionData {
         attendanceRate: number; attendanceRateLabel: string; attendanceStatus: string
         currentWeek: number; currentPhaseLabel: string
         sessionsCompleted: number; sessionsExpectedByNow: number
+        sessionsPerWeek: number; targetWeeks: number; sessionsForMinimumPhase: number
         canReassess: boolean; mustExtend: boolean; isComplete: boolean
     }
     client: { id: string; name: string }; workoutName: string; checkedInToday?: boolean
@@ -824,29 +825,93 @@ export default function PresencaPage() {
                                     )}
                                     {card.sessionData && !card.loading && (
                                         <div className="divide-y divide-muted/30">
-                                            {/* Progress + 85% bar */}
-                                            <div className="px-3 py-1.5">
-                                                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                                                    <span>{card.sessionData.session.periodization?.phaseLabel || card.sessionData.progress.currentPhaseLabel}</span>
-                                                    <span>Sem. {card.sessionData.progress.currentWeek}</span>
-                                                </div>
+                                            {/* ── Painel de Frequência ── */}
+                                            <div className="px-3 py-2.5">
                                                 {(() => {
-                                                    const pct = Math.round((card.sessionData!.progress.attendanceRate ?? 0) * 100)
-                                                    const st = card.sessionData!.progress.attendanceStatus
-                                                    const cl = st === 'ON_TRACK' ? 'bg-green-500' : st === 'BELOW_TARGET' ? 'bg-yellow-500' : 'bg-red-500'
-                                                    const tc = st === 'ON_TRACK' ? 'text-green-500' : st === 'BELOW_TARGET' ? 'text-yellow-500' : 'text-red-500'
-                                                    return (<>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                                                                <div className={`h-full rounded-full ${cl}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                                                    const prog = card.sessionData!.progress
+                                                    const pct = Math.round((prog.attendanceRate ?? 0) * 100)
+                                                    const st  = prog.attendanceStatus
+                                                    const isOk  = st === 'ON_TRACK'
+                                                    const isMid = st === 'BELOW_TARGET'
+                                                    const barCl = isOk ? 'bg-emerald-500' : isMid ? 'bg-yellow-500' : 'bg-red-500'
+                                                    const txtCl = isOk ? 'text-emerald-400' : isMid ? 'text-yellow-400' : 'text-red-400'
+                                                    const bgCl  = isOk ? 'bg-emerald-500/8' : isMid ? 'bg-yellow-500/8' : 'bg-red-500/8'
+                                                    // Derivar semanas de calendário a partir dos dados disponíveis
+                                                    const spw = prog.sessionsPerWeek || 3
+                                                    const calWeeks = spw > 0
+                                                        ? Math.round(prog.sessionsExpectedByNow / spw)
+                                                        : prog.currentWeek
+                                                    const minSess = prog.sessionsForMinimumPhase || Math.ceil(6 * spw * 0.85)
+                                                    const faltam  = Math.max(0, minSess - prog.sessionsCompleted)
+                                                    return (
+                                                        <div className={`rounded-lg border ${isOk ? 'border-emerald-500/20' : isMid ? 'border-yellow-500/20' : 'border-red-500/20'} ${bgCl} p-2.5`}>
+                                                            {/* Linha 1: título + badges + % */}
+                                                            <div className="flex items-center justify-between gap-2 mb-2">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Frequência</span>
+                                                                    {prog.canReassess && (
+                                                                        <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5">
+                                                                            <Flag className="w-2.5 h-2.5" /> Apto p/ reavaliação
+                                                                        </span>
+                                                                    )}
+                                                                    {prog.mustExtend && !prog.canReassess && (
+                                                                        <span className="text-[9px] bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5">
+                                                                            <AlertTriangle className="w-2.5 h-2.5" /> Estender
+                                                                        </span>
+                                                                    )}
+                                                                    {st === 'CRITICAL' && (
+                                                                        <span className="text-[9px] bg-red-500/15 text-red-400 border border-red-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5">
+                                                                            <AlertTriangle className="w-2.5 h-2.5" /> Crítico
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <span className={`text-base font-bold tabular-nums leading-none ${txtCl}`}>{pct}%</span>
                                                             </div>
-                                                            <span className={`text-[10px] font-bold ${tc}`}>{pct}%</span>
+
+                                                            {/* Linha 2: barra de progresso com marcador de meta 85% */}
+                                                            <div className="relative h-2.5 bg-muted/20 rounded-full overflow-hidden mb-1.5">
+                                                                <div
+                                                                    className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${barCl}`}
+                                                                    style={{ width: `${Math.min(100, pct)}%` }}
+                                                                />
+                                                                {/* Marcador da meta 85% */}
+                                                                <div
+                                                                    className="absolute inset-y-0 w-0.5 bg-white/30"
+                                                                    style={{ left: '85%' }}
+                                                                />
+                                                            </div>
+
+                                                            {/* Linha 3: cálculo detalhado */}
+                                                            <div className="flex items-center justify-between gap-1">
+                                                                <div className="text-[9px] text-muted-foreground leading-snug">
+                                                                    <span className="font-medium text-foreground/70">{prog.sessionsCompleted}</span>
+                                                                    <span> feitas · </span>
+                                                                    <span className="font-medium text-foreground/70">{prog.sessionsExpectedByNow}</span>
+                                                                    <span> esperadas</span>
+                                                                    {calWeeks > 0 && (
+                                                                        <span className="text-muted-foreground/60">
+                                                                            {' '}({calWeeks} sem × {spw}x/sem)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {prog.canReassess
+                                                                    ? <span className="text-[9px] text-emerald-400 font-medium shrink-0">85% atingido ✓</span>
+                                                                    : faltam > 0
+                                                                        ? <span className="text-[9px] text-muted-foreground shrink-0">faltam {faltam} p/ avançar</span>
+                                                                        : <span className="text-[9px] text-muted-foreground shrink-0">meta: 85%</span>
+                                                                }
+                                                            </div>
+
+                                                            {/* Linha 4: fase + semana (só se não for óbvio) */}
+                                                            <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-muted/20">
+                                                                <span className="text-[9px] text-muted-foreground">
+                                                                    {card.sessionData!.session.periodization?.phaseLabel || prog.currentPhaseLabel}
+                                                                </span>
+                                                                <span className="text-[9px] text-muted-foreground/40">·</span>
+                                                                <span className="text-[9px] text-muted-foreground">Sem. {prog.currentWeek}</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
-                                                            <span>{card.sessionData!.progress.sessionsCompleted} sessões</span>
-                                                            <span>Meta: 85%</span>
-                                                        </div>
-                                                    </>)
+                                                    )
                                                 })()}
                                             </div>
                                             {/* Preparation */}
