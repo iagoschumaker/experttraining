@@ -854,14 +854,15 @@ export default function PresencaPage() {
                                                     const attendedDays  = new Set(
                                                         weekLessons.map(iso => {
                                                             const d = new Date(iso)
-                                                            const dow = d.getDay() // 0=Dom,1=Seg...
-                                                            return dow === 0 ? 6 : dow - 1
+                                                            // Usar UTC para consistência com como as lições são gravadas (noon UTC)
+                                                            const dow = d.getUTCDay() // 0=Dom, 1=Seg...
+                                                            return dow === 0 ? 6 : dow - 1 // 0=Seg...6=Dom
                                                         })
                                                     )
-                                                    // Dia de hoje (0=Seg...6=Dom)
-                                                    const todayBRTStr = new Date().toLocaleDateString('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' })
-                                                    const todayIdx = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(todayBRTStr)
-                                                    const todayDayIdx = todayIdx === 0 ? 6 : todayIdx - 1
+                                                    // Dia de hoje em Brasília via aritmética UTC pura (UTC-3)
+                                                    const nowBrazilMs = Date.now() - 3 * 60 * 60 * 1000
+                                                    const brazilDow = new Date(nowBrazilMs).getUTCDay() // 0=Dom
+                                                    const todayDayIdx = brazilDow === 0 ? 6 : brazilDow - 1 // 0=Seg...6=Dom
 
                                                     // Data de início formatada
                                                     const firstDate = card.sessionData!.firstLessonDate
@@ -872,65 +873,73 @@ export default function PresencaPage() {
                                                         <div className={`rounded-lg border ${brdCl} ${bgCl} p-2.5 space-y-2`}>
 
                                                             {/* Linha 1: título + badges + % */}
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Frequência</span>
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">Frequência</span>
                                                                     {prog.canReassess && (
-                                                                        <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5">
+                                                                        <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5 shrink-0">
                                                                             <Flag className="w-2.5 h-2.5" /> Apto p/ reavaliação
                                                                         </span>
                                                                     )}
                                                                     {prog.mustExtend && !prog.canReassess && (
-                                                                        <span className="text-[9px] bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5">
+                                                                        <span className="text-[9px] bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5 shrink-0">
                                                                             <AlertTriangle className="w-2.5 h-2.5" /> Estender
                                                                         </span>
                                                                     )}
                                                                     {st === 'CRITICAL' && (
-                                                                        <span className="text-[9px] bg-red-500/15 text-red-400 border border-red-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5">
+                                                                        <span className="text-[9px] bg-red-500/15 text-red-400 border border-red-500/30 px-1.5 rounded-full font-medium flex items-center gap-0.5 shrink-0">
                                                                             <AlertTriangle className="w-2.5 h-2.5" /> Crítico
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <span className={`text-base font-bold tabular-nums leading-none ${txtCl}`}>{pct}%</span>
+                                                                <span className={`text-base font-bold tabular-nums leading-none shrink-0 ${txtCl}`}>{pct}%</span>
                                                             </div>
 
                                                             {/* Linha 2: barra de progresso com marcador 85% */}
                                                             <div>
-                                                                <div className="relative h-2.5 bg-muted/20 rounded-full overflow-hidden">
+                                                                <div className="relative h-2 bg-muted/20 rounded-full overflow-hidden">
                                                                     <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${barCl}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                                                                    <div className="absolute inset-y-0 w-0.5 bg-white/25" style={{ left: '85%' }} />
+                                                                    <div className="absolute inset-y-0 w-px bg-white/30" style={{ left: '85%' }} />
                                                                 </div>
-                                                                <div className="flex items-center justify-between mt-1">
-                                                                    <span className="text-[9px] text-muted-foreground">
-                                                                        <span className="font-medium text-foreground/70">{prog.sessionsCompleted}</span> feitas · <span className="font-medium text-foreground/70">{prog.sessionsExpectedByNow}</span> esperadas
-                                                                        {calWeeks > 0 && <span className="text-muted-foreground/55"> ({calWeeks} sem × {spw}x/sem)</span>}
+                                                                <div className="flex items-center justify-between mt-1 gap-1">
+                                                                    <span className="text-[9px] text-muted-foreground min-w-0 truncate">
+                                                                        <span className="font-medium text-foreground/70">{prog.sessionsCompleted}</span> feitas · <span className="font-medium text-foreground/70">{prog.sessionsExpectedByNow}</span> esp.
+                                                                        {calWeeks > 0 && <span className="text-muted-foreground/50"> ({calWeeks}sem×{spw}x)</span>}
                                                                     </span>
-                                                                    {prog.canReassess
-                                                                        ? <span className="text-[9px] text-emerald-400 font-medium">85% atingido ✓</span>
-                                                                        : faltam > 0
-                                                                            ? <span className="text-[9px] text-muted-foreground">faltam {faltam} p/ avançar</span>
-                                                                            : <span className="text-[9px] text-muted-foreground">meta 85%</span>
-                                                                    }
+                                                                    <span className="text-[9px] shrink-0">
+                                                                        {prog.canReassess
+                                                                            ? <span className="text-emerald-400 font-medium">85% ✓</span>
+                                                                            : faltam > 0
+                                                                                ? <span className="text-muted-foreground">-{faltam} p/ avançar</span>
+                                                                                : <span className="text-muted-foreground">meta 85%</span>
+                                                                        }
+                                                                    </span>
                                                                 </div>
                                                             </div>
 
-                                                            {/* Linha 3: dias da semana atual */}
+                                                            {/* Linha 3: dias da semana — Seg a Dom */}
                                                             <div>
-                                                                <p className="text-[9px] text-muted-foreground/60 mb-1 uppercase tracking-wide">Esta semana</p>
-                                                                <div className="flex gap-1">
-                                                                    {weekDayLabels.map((label, idx) => {
-                                                                        const attended  = attendedDays.has(idx)
-                                                                        const isToday   = idx === todayDayIdx
+                                                                <p className="text-[8px] text-muted-foreground/50 mb-1 uppercase tracking-wider">Esta semana</p>
+                                                                <div className="grid grid-cols-7 gap-0.5">
+                                                                    {['S','T','Q','Q','S','S','D'].map((letter, idx) => {
+                                                                        const labels = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']
+                                                                        const attended = attendedDays.has(idx)
+                                                                        const isToday  = idx === todayDayIdx
                                                                         return (
-                                                                            <div key={idx} className="flex-1 flex flex-col items-center gap-0.5">
-                                                                                <div className={`w-full h-4 rounded flex items-center justify-center text-[8px] font-bold transition-all
-                                                                                    ${ attended
-                                                                                        ? isOk ? 'bg-emerald-500 text-white' : isMid ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
-                                                                                        : isToday ? 'border border-primary/40 text-primary/60 bg-transparent' : 'bg-muted/20 text-muted-foreground/30'
-                                                                                    }`}>
-                                                                                    {attended ? '✓' : ''}
+                                                                            <div key={idx} className="flex flex-col items-center gap-0.5">
+                                                                                <div
+                                                                                    title={labels[idx]}
+                                                                                    className={`w-full aspect-square rounded flex items-center justify-center text-[9px] font-bold transition-all
+                                                                                        ${attended
+                                                                                            ? isOk ? 'bg-emerald-500 text-white' : isMid ? 'bg-yellow-400 text-black' : 'bg-red-500 text-white'
+                                                                                            : isToday ? 'border-2 border-primary/50 text-primary bg-transparent' : 'bg-muted/25 text-muted-foreground/30'
+                                                                                        }`}
+                                                                                >
+                                                                                    {attended ? '✓' : isToday ? '·' : ''}
                                                                                 </div>
-                                                                                <span className={`text-[8px] ${isToday ? 'text-primary font-semibold' : 'text-muted-foreground/40'}`}>{label}</span>
+                                                                                <span className={`text-[8px] leading-none ${isToday ? 'text-primary font-bold' : attended ? txtCl : 'text-muted-foreground/35'}`}>
+                                                                                    {letter}
+                                                                                </span>
                                                                             </div>
                                                                         )
                                                                     })}
@@ -939,11 +948,11 @@ export default function PresencaPage() {
 
                                                             {/* Linha 4: fase + semana + início */}
                                                             <div className="flex items-center justify-between pt-1.5 border-t border-muted/20">
-                                                                <span className="text-[9px] text-muted-foreground">
+                                                                <span className="text-[9px] text-muted-foreground truncate">
                                                                     {card.sessionData!.session.periodization?.phaseLabel || prog.currentPhaseLabel} · Sem. {prog.currentWeek}
                                                                 </span>
                                                                 {firstDate && (
-                                                                    <span className="text-[9px] text-muted-foreground/50">desde {firstDate}</span>
+                                                                    <span className="text-[9px] text-muted-foreground/45 shrink-0 ml-1">desde {firstDate}</span>
                                                                 )}
                                                             </div>
 

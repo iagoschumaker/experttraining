@@ -313,16 +313,25 @@ export async function GET(
             select: { date: true },
         })
 
-        // Buscar presenças da SEMANA ATUAL (segunda a domingo)
-        const todayBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-        const dayOfWeek = todayBRT.getDay() // 0=dom, 1=seg...
-        const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-        const weekStart = new Date(todayBRT)
-        weekStart.setDate(todayBRT.getDate() - daysSinceMonday)
-        weekStart.setHours(0, 0, 0, 0)
-        const weekEnd = new Date(weekStart)
-        weekEnd.setDate(weekStart.getDate() + 6)
-        weekEnd.setHours(23, 59, 59, 999)
+        // Buscar presenças da SEMANA ATUAL (segunda a domingo) em horário de Brasília
+        // Usar aritmética UTC pura: Brasília = UTC-3
+        const BRAZIL_OFFSET_MS = 3 * 60 * 60 * 1000
+        const now = new Date()
+
+        // Hora atual em Brasília (representada como UTC)
+        const nowBrazil = new Date(now.getTime() - BRAZIL_OFFSET_MS)
+        const dowBrazil = nowBrazil.getUTCDay() // 0=Dom, 1=Seg...
+        const daysSinceMon = dowBrazil === 0 ? 6 : dowBrazil - 1
+
+        // Segunda-feira desta semana às 00:00 em Brasília
+        const mondayBrazil = new Date(nowBrazil.getTime())
+        mondayBrazil.setUTCDate(nowBrazil.getUTCDate() - daysSinceMon)
+        mondayBrazil.setUTCHours(0, 0, 0, 0)
+        // Converter para UTC real (adicionar 3h)
+        const weekStart = new Date(mondayBrazil.getTime() + BRAZIL_OFFSET_MS)
+
+        // Domingo desta semana às 23:59:59 em Brasília
+        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000 - 1)
 
         const weekLessons = await prisma.lesson.findMany({
             where: {
