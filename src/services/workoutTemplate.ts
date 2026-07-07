@@ -70,6 +70,15 @@ const ATTENDANCE_THRESHOLD = 0.85
 
 /**
  * Calcula o progresso completo do aluno no programa.
+ *
+ * Fórmula de frequência:
+ *   % = sessões_feitas ÷ (sessões_por_semana × semanas_reais_de_calendário)
+ *
+ * Exemplos (2x/semana):
+ *   1 mês (4 semanas): esperado = 8 → feitas 8 = 100%, feitas 6 = 75%
+ *   6 semanas: esperado = 12 → mínimo para avançar = ceil(12 × 0.85) = 11 sessões
+ *
+ * startDate é gravado automaticamente na PRIMEIRA presença do aluno.
  */
 export function calculateProgress(
     sessionsCompleted: number,
@@ -77,7 +86,7 @@ export function calculateProgress(
     targetWeeks: number,
     startDate?: Date | null,
 ): WorkoutProgress {
-    // Semana atual baseada em sessões completadas (não calendário)
+    // Semana atual baseada em sessões (usada para fase e índice de sessão)
     const currentWeek = Math.floor(sessionsCompleted / sessionsPerWeek) + 1
 
     // Fase atual
@@ -88,17 +97,20 @@ export function calculateProgress(
         PEAK: 'Pico',
     }
 
-    // Semanas reais transcorridas (por calendário) para cálculo de frequência
-    let weeksElapsed = currentWeek
+    // Semanas reais de calendário — base do cálculo de frequência.
+    // startDate é gravado na primeira presença (via next-session POST ou training-session POST).
+    // Sem startDate (nenhuma presença ainda): fallback por sessões completadas.
+    let calendarWeeks: number
     if (startDate) {
-        const now = new Date()
-        const diffMs = now.getTime() - startDate.getTime()
-        const calendarWeeks = Math.max(1, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)))
-        weeksElapsed = calendarWeeks
+        const diffMs = Date.now() - startDate.getTime()
+        calendarWeeks = Math.max(1, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)))
+    } else {
+        // Nenhuma presença registrada ainda: estima por sessões (menos preciso)
+        calendarWeeks = Math.max(1, Math.ceil(sessionsCompleted / sessionsPerWeek))
     }
 
-    // Taxa de frequência: sessões feitas vs sessões esperadas por calendário
-    const sessionsExpectedByNow = weeksElapsed * sessionsPerWeek
+    // Frequência: sessões feitas vs sessões esperadas no calendário
+    const sessionsExpectedByNow = calendarWeeks * sessionsPerWeek
     const attendanceRate = sessionsExpectedByNow > 0
         ? Math.min(1, sessionsCompleted / sessionsExpectedByNow)
         : 0
@@ -111,20 +123,25 @@ export function calculateProgress(
         attendanceStatus = 'BELOW_TARGET'
     }
 
-    // Sessões mínimas para a fase de 6 semanas (85%)
+    // Mínimo de sessões para 85% em 6 semanas:
+    //   2x/sem → ceil(6 × 2 × 0.85) = 11
+    //   3x/sem → ceil(6 × 3 × 0.85) = 16
+    //   4x/sem → ceil(6 × 4 × 0.85) = 21
     const sessionsForMinPhase = Math.ceil(MIN_WEEKS * sessionsPerWeek * ATTENDANCE_THRESHOLD)
 
-    // Pode reavaliar?
+    // Pode reavaliar? (somente AVISO — professor decide quando avançar)
+    // Regra: ≥6 semanas reais de calendário E sessões feitas ≥ mínimo (85% de 6 semanas)
     const totalSessionsTarget = targetWeeks * sessionsPerWeek
     const canReassess = (
-        currentWeek >= MIN_WEEKS && attendanceRate >= ATTENDANCE_THRESHOLD
-    ) || currentWeek > MAX_WEEKS
+        calendarWeeks >= MIN_WEEKS && sessionsCompleted >= sessionsForMinPhase
+    ) || calendarWeeks > MAX_WEEKS
 
-    // Precisa estender?
-    const mustExtend = currentWeek >= MIN_WEEKS && currentWeek <= MAX_WEEKS && attendanceRate < ATTENDANCE_THRESHOLD
+    // Precisa estender? (frequência abaixo do mínimo na janela de 6–8 semanas)
+    const mustExtend = calendarWeeks >= MIN_WEEKS && calendarWeeks <= MAX_WEEKS
+        && sessionsCompleted < sessionsForMinPhase
 
     // Programa completo?
-    const isComplete = sessionsCompleted >= totalSessionsTarget || currentWeek > MAX_WEEKS
+    const isComplete = sessionsCompleted >= totalSessionsTarget || calendarWeeks > MAX_WEEKS
 
     // Próxima sessão no template (contínua, não reseta por semana)
     const totalTemplateSessions = sessionsPerWeek * targetWeeks

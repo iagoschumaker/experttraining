@@ -164,8 +164,11 @@ export async function GET(
       const totalExpected = (activeWorkout.sessionsPerWeek || 3) * (activeWorkout.targetWeeks || 8)
       const completed = activeWorkout.sessionsCompleted || 0
 
+      // Frequência baseada na PRIMEIRA PRESENÇA (startDate) ou criação do treino (fallback)
+      // Consistente com workoutTemplate.ts → calculateProgress()
+      const refDate = activeWorkout.startDate || activeWorkout.createdAt
       const weeksSinceStart = Math.max(1, Math.ceil(
-        (Date.now() - new Date(activeWorkout.createdAt).getTime()) / (7 * 24 * 60 * 60 * 1000)
+        (Date.now() - new Date(refDate).getTime()) / (7 * 24 * 60 * 60 * 1000)
       ))
       const expectedByNow = Math.min(totalExpected, weeksSinceStart * (activeWorkout.sessionsPerWeek || 3))
       const rate = expectedByNow > 0 ? completed / expectedByNow : completed > 0 ? 1 : 0

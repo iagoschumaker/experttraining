@@ -148,6 +148,18 @@ export async function GET(
       const totalExpected = sessionsPerWeek * targetWeeks
       const sessionsCompleted = (activeWorkout as any).sessionsCompleted || totalLessons
 
+      // Frequência baseada em semanas de calendário desde a PRIMEIRA PRESENÇA (startDate)
+      // Fórmula: sessõesFeitas / (sessõesPorSemana × semanasDecorridas)
+      // Consistente com workoutTemplate.ts → calculateProgress()
+      const refDate = (activeWorkout as any).startDate ?? (activeWorkout as any).createdAt
+      const weeksSinceStart = refDate
+        ? Math.max(1, Math.ceil((Date.now() - new Date(refDate).getTime()) / (7 * 24 * 60 * 60 * 1000)))
+        : Math.max(1, Math.ceil(sessionsCompleted / sessionsPerWeek))
+      const sessionsExpectedByNow = weeksSinceStart * sessionsPerWeek
+      const attendanceRate = sessionsExpectedByNow > 0
+        ? Math.min(1, sessionsCompleted / sessionsExpectedByNow)
+        : 0
+
       attendanceStats = {
         workoutId: activeWorkout.id,
         workoutName: activeWorkout.name,
@@ -156,7 +168,7 @@ export async function GET(
         targetWeeks,
         totalExpected,
         remaining: Math.max(0, totalExpected - sessionsCompleted),
-        attendanceRate: totalExpected > 0 ? sessionsCompleted / totalExpected : 0,
+        attendanceRate,
         lessonsCount: totalLessons,
       }
     }

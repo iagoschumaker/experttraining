@@ -160,10 +160,15 @@ export async function POST(
                 const currentSession = sessions[sessionIndex] || null
 
                 // Create lesson + increment in transaction
+                // Na primeira presença: grava startDate para base do cálculo de frequência
+                const isFirstSession = workout.sessionsCompleted === 0 && !workout.startDate
                 await prisma.$transaction([
                     prisma.workout.update({
                         where: { id: workout.id },
-                        data: { sessionsCompleted: { increment: 1 } },
+                        data: {
+                            sessionsCompleted: { increment: 1 },
+                            ...(isFirstSession ? { startDate: new Date() } : {}),
+                        },
                     }),
                     prisma.lesson.create({
                         data: {

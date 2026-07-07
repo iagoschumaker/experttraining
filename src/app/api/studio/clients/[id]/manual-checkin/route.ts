@@ -42,7 +42,7 @@ export async function POST(
     // Find active workout for this client
     const activeWorkout = await prisma.workout.findFirst({
       where: { clientId, studioId, isActive: true },
-      select: { id: true, scheduleJson: true, sessionsCompleted: true },
+      select: { id: true, scheduleJson: true, sessionsCompleted: true, startDate: true },
     })
 
     // Build the lesson date and startedAt datetime
@@ -76,10 +76,15 @@ export async function POST(
     })
 
     // Increment sessionsCompleted on the active workout
+    // Na primeira presença: grava startDate com a data do check-in (pode ser retroativo)
     if (activeWorkout) {
+      const isFirstSession = activeWorkout.sessionsCompleted === 0 && !activeWorkout.startDate
       await prisma.workout.update({
         where: { id: activeWorkout.id },
-        data: { sessionsCompleted: { increment: 1 } },
+        data: {
+          sessionsCompleted: { increment: 1 },
+          ...(isFirstSession ? { startDate: lessonDate } : {}),
+        },
       })
     }
 
