@@ -304,10 +304,43 @@ export async function GET(
             select: { id: true, date: true, focus: true, sessionIndex: true },
         })
 
+        // Buscar a PRIMEIRA presença real (data de referência para cálculo de frequência)
+        // Usar a 1ª lesão em vez de workout.startDate, porque treinos antigos tinham
+        // startDate = data de criação (não da primeira presença)
+        const firstLesson = await prisma.lesson.findFirst({
+            where: { workoutId: workout.id, status: 'COMPLETED' },
+            orderBy: { date: 'asc' },
+            select: { date: true },
+        })
+
+        // Buscar presenças da SEMANA ATUAL (segunda a domingo)
+        const todayBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+        const dayOfWeek = todayBRT.getDay() // 0=dom, 1=seg...
+        const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+        const weekStart = new Date(todayBRT)
+        weekStart.setDate(todayBRT.getDate() - daysSinceMonday)
+        weekStart.setHours(0, 0, 0, 0)
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 6)
+        weekEnd.setHours(23, 59, 59, 999)
+
+        const weekLessons = await prisma.lesson.findMany({
+            where: {
+                workoutId: workout.id,
+                status: 'COMPLETED',
+                date: { gte: weekStart, lte: weekEnd },
+            },
+            orderBy: { date: 'asc' },
+            select: { date: true },
+        })
+
+        // Usar primeira presença como referência (mais preciso que workout.startDate)
+        const refStartDate = firstLesson?.date ?? workout.startDate
+
         const { session: templateSession, progress } = getNextSessionWithPeriodization(
             template,
             workout.sessionsCompleted,
-            workout.startDate,
+            refStartDate,
         )
 
         // ====================================================================
@@ -384,6 +417,8 @@ export async function GET(
                 workoutName: workout.name,
                 checkedInToday,
                 availableSessions,
+                firstLessonDate: firstLesson?.date?.toISOString() ?? null,
+                weekLessons: weekLessons.map(l => l.date.toISOString()),
                 todayLesson: todayLesson ? {
                     id: todayLesson.id,
                     date: todayLesson.date,

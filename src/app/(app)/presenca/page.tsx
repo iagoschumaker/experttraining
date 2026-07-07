@@ -60,10 +60,13 @@ interface SessionData {
         currentWeek: number; currentPhaseLabel: string
         sessionsCompleted: number; sessionsExpectedByNow: number
         sessionsPerWeek: number; targetWeeks: number; sessionsForMinimumPhase: number
+        calendarWeeks: number
         canReassess: boolean; mustExtend: boolean; isComplete: boolean
     }
     client: { id: string; name: string }; workoutName: string; checkedInToday?: boolean
     availableSessions?: AvailableSession[]
+    firstLessonDate?: string | null
+    weekLessons?: string[]   // ISO dates das presenças nesta semana
     todayLesson?: { id: string; date: string; startedAt: string; endedAt: string; focus: string | null; sessionIndex: number; weekIndex: number } | null
     lastLesson?: { id: string; date: string; focus: string | null; sessionIndex: number } | null
 }
@@ -836,17 +839,40 @@ export default function PresencaPage() {
                                                     const barCl = isOk ? 'bg-emerald-500' : isMid ? 'bg-yellow-500' : 'bg-red-500'
                                                     const txtCl = isOk ? 'text-emerald-400' : isMid ? 'text-yellow-400' : 'text-red-400'
                                                     const bgCl  = isOk ? 'bg-emerald-500/8' : isMid ? 'bg-yellow-500/8' : 'bg-red-500/8'
-                                                    // Derivar semanas de calendário a partir dos dados disponíveis
-                                                    const spw = prog.sessionsPerWeek || 3
-                                                    const calWeeks = spw > 0
-                                                        ? Math.round(prog.sessionsExpectedByNow / spw)
-                                                        : prog.currentWeek
-                                                    const minSess = prog.sessionsForMinimumPhase || Math.ceil(6 * spw * 0.85)
-                                                    const faltam  = Math.max(0, minSess - prog.sessionsCompleted)
+                                                    const brdCl = isOk ? 'border-emerald-500/20' : isMid ? 'border-yellow-500/20' : 'border-red-500/20'
+
+                                                    // Dados de frequência vindos diretamente do backend (calendarWeeks correto)
+                                                    const spw       = prog.sessionsPerWeek || 3
+                                                    const calWeeks  = prog.calendarWeeks || Math.round(prog.sessionsExpectedByNow / spw)
+                                                    const minSess   = prog.sessionsForMinimumPhase || Math.ceil(6 * spw * 0.85)
+                                                    const faltam    = Math.max(0, minSess - prog.sessionsCompleted)
+
+                                                    // Dias da semana (Seg–Dom) e quais têm presença
+                                                    const weekDayLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+                                                    const weekLessons   = card.sessionData!.weekLessons || []
+                                                    // Normalizar dias com presença: 0=Seg,...6=Dom
+                                                    const attendedDays  = new Set(
+                                                        weekLessons.map(iso => {
+                                                            const d = new Date(iso)
+                                                            const dow = d.getDay() // 0=Dom,1=Seg...
+                                                            return dow === 0 ? 6 : dow - 1
+                                                        })
+                                                    )
+                                                    // Dia de hoje (0=Seg...6=Dom)
+                                                    const todayBRTStr = new Date().toLocaleDateString('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' })
+                                                    const todayIdx = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(todayBRTStr)
+                                                    const todayDayIdx = todayIdx === 0 ? 6 : todayIdx - 1
+
+                                                    // Data de início formatada
+                                                    const firstDate = card.sessionData!.firstLessonDate
+                                                        ? new Date(card.sessionData!.firstLessonDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                                                        : null
+
                                                     return (
-                                                        <div className={`rounded-lg border ${isOk ? 'border-emerald-500/20' : isMid ? 'border-yellow-500/20' : 'border-red-500/20'} ${bgCl} p-2.5`}>
+                                                        <div className={`rounded-lg border ${brdCl} ${bgCl} p-2.5 space-y-2`}>
+
                                                             {/* Linha 1: título + badges + % */}
-                                                            <div className="flex items-center justify-between gap-2 mb-2">
+                                                            <div className="flex items-center justify-between gap-2">
                                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Frequência</span>
                                                                     {prog.canReassess && (
@@ -868,48 +894,59 @@ export default function PresencaPage() {
                                                                 <span className={`text-base font-bold tabular-nums leading-none ${txtCl}`}>{pct}%</span>
                                                             </div>
 
-                                                            {/* Linha 2: barra de progresso com marcador de meta 85% */}
-                                                            <div className="relative h-2.5 bg-muted/20 rounded-full overflow-hidden mb-1.5">
-                                                                <div
-                                                                    className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${barCl}`}
-                                                                    style={{ width: `${Math.min(100, pct)}%` }}
-                                                                />
-                                                                {/* Marcador da meta 85% */}
-                                                                <div
-                                                                    className="absolute inset-y-0 w-0.5 bg-white/30"
-                                                                    style={{ left: '85%' }}
-                                                                />
-                                                            </div>
-
-                                                            {/* Linha 3: cálculo detalhado */}
-                                                            <div className="flex items-center justify-between gap-1">
-                                                                <div className="text-[9px] text-muted-foreground leading-snug">
-                                                                    <span className="font-medium text-foreground/70">{prog.sessionsCompleted}</span>
-                                                                    <span> feitas · </span>
-                                                                    <span className="font-medium text-foreground/70">{prog.sessionsExpectedByNow}</span>
-                                                                    <span> esperadas</span>
-                                                                    {calWeeks > 0 && (
-                                                                        <span className="text-muted-foreground/60">
-                                                                            {' '}({calWeeks} sem × {spw}x/sem)
-                                                                        </span>
-                                                                    )}
+                                                            {/* Linha 2: barra de progresso com marcador 85% */}
+                                                            <div>
+                                                                <div className="relative h-2.5 bg-muted/20 rounded-full overflow-hidden">
+                                                                    <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${barCl}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                                                                    <div className="absolute inset-y-0 w-0.5 bg-white/25" style={{ left: '85%' }} />
                                                                 </div>
-                                                                {prog.canReassess
-                                                                    ? <span className="text-[9px] text-emerald-400 font-medium shrink-0">85% atingido ✓</span>
-                                                                    : faltam > 0
-                                                                        ? <span className="text-[9px] text-muted-foreground shrink-0">faltam {faltam} p/ avançar</span>
-                                                                        : <span className="text-[9px] text-muted-foreground shrink-0">meta: 85%</span>
-                                                                }
+                                                                <div className="flex items-center justify-between mt-1">
+                                                                    <span className="text-[9px] text-muted-foreground">
+                                                                        <span className="font-medium text-foreground/70">{prog.sessionsCompleted}</span> feitas · <span className="font-medium text-foreground/70">{prog.sessionsExpectedByNow}</span> esperadas
+                                                                        {calWeeks > 0 && <span className="text-muted-foreground/55"> ({calWeeks} sem × {spw}x/sem)</span>}
+                                                                    </span>
+                                                                    {prog.canReassess
+                                                                        ? <span className="text-[9px] text-emerald-400 font-medium">85% atingido ✓</span>
+                                                                        : faltam > 0
+                                                                            ? <span className="text-[9px] text-muted-foreground">faltam {faltam} p/ avançar</span>
+                                                                            : <span className="text-[9px] text-muted-foreground">meta 85%</span>
+                                                                    }
+                                                                </div>
                                                             </div>
 
-                                                            {/* Linha 4: fase + semana (só se não for óbvio) */}
-                                                            <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-muted/20">
-                                                                <span className="text-[9px] text-muted-foreground">
-                                                                    {card.sessionData!.session.periodization?.phaseLabel || prog.currentPhaseLabel}
-                                                                </span>
-                                                                <span className="text-[9px] text-muted-foreground/40">·</span>
-                                                                <span className="text-[9px] text-muted-foreground">Sem. {prog.currentWeek}</span>
+                                                            {/* Linha 3: dias da semana atual */}
+                                                            <div>
+                                                                <p className="text-[9px] text-muted-foreground/60 mb-1 uppercase tracking-wide">Esta semana</p>
+                                                                <div className="flex gap-1">
+                                                                    {weekDayLabels.map((label, idx) => {
+                                                                        const attended  = attendedDays.has(idx)
+                                                                        const isToday   = idx === todayDayIdx
+                                                                        return (
+                                                                            <div key={idx} className="flex-1 flex flex-col items-center gap-0.5">
+                                                                                <div className={`w-full h-4 rounded flex items-center justify-center text-[8px] font-bold transition-all
+                                                                                    ${ attended
+                                                                                        ? isOk ? 'bg-emerald-500 text-white' : isMid ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
+                                                                                        : isToday ? 'border border-primary/40 text-primary/60 bg-transparent' : 'bg-muted/20 text-muted-foreground/30'
+                                                                                    }`}>
+                                                                                    {attended ? '✓' : ''}
+                                                                                </div>
+                                                                                <span className={`text-[8px] ${isToday ? 'text-primary font-semibold' : 'text-muted-foreground/40'}`}>{label}</span>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                </div>
                                                             </div>
+
+                                                            {/* Linha 4: fase + semana + início */}
+                                                            <div className="flex items-center justify-between pt-1.5 border-t border-muted/20">
+                                                                <span className="text-[9px] text-muted-foreground">
+                                                                    {card.sessionData!.session.periodization?.phaseLabel || prog.currentPhaseLabel} · Sem. {prog.currentWeek}
+                                                                </span>
+                                                                {firstDate && (
+                                                                    <span className="text-[9px] text-muted-foreground/50">desde {firstDate}</span>
+                                                                )}
+                                                            </div>
+
                                                         </div>
                                                     )
                                                 })()}

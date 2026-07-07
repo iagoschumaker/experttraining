@@ -50,6 +50,7 @@ export interface WorkoutProgress {
     attendanceStatus: 'ON_TRACK' | 'BELOW_TARGET' | 'CRITICAL'
     sessionsExpectedByNow: number
     sessionsForMinimumPhase: number
+    calendarWeeks: number       // semanas reais desde a primeira presença
     canReassess: boolean
     mustExtend: boolean
     isComplete: boolean
@@ -130,18 +131,17 @@ export function calculateProgress(
     const sessionsForMinPhase = Math.ceil(MIN_WEEKS * sessionsPerWeek * ATTENDANCE_THRESHOLD)
 
     // Pode reavaliar? (somente AVISO — professor decide quando avançar)
-    // Regra: ≥6 semanas reais de calendário E sessões feitas ≥ mínimo (85% de 6 semanas)
+    // Regra ESTRITA: ≥6 semanas reais de calendário E sessões feitas ≥ mínimo (85% de 6 sem)
+    // NÃO dispara apenas por ter passado 8 semanas — aluno precisa ter comparecido de verdade
     const totalSessionsTarget = targetWeeks * sessionsPerWeek
-    const canReassess = (
-        calendarWeeks >= MIN_WEEKS && sessionsCompleted >= sessionsForMinPhase
-    ) || calendarWeeks > MAX_WEEKS
+    const canReassess = calendarWeeks >= MIN_WEEKS && sessionsCompleted >= sessionsForMinPhase
 
     // Precisa estender? (frequência abaixo do mínimo na janela de 6–8 semanas)
     const mustExtend = calendarWeeks >= MIN_WEEKS && calendarWeeks <= MAX_WEEKS
         && sessionsCompleted < sessionsForMinPhase
 
-    // Programa completo?
-    const isComplete = sessionsCompleted >= totalSessionsTarget || calendarWeeks > MAX_WEEKS
+    // Programa completo? (baseado em sessões, não calendário)
+    const isComplete = sessionsCompleted >= totalSessionsTarget
 
     // Próxima sessão no template (contínua, não reseta por semana)
     const totalTemplateSessions = sessionsPerWeek * targetWeeks
@@ -159,6 +159,7 @@ export function calculateProgress(
         attendanceStatus,
         sessionsExpectedByNow,
         sessionsForMinimumPhase: sessionsForMinPhase,
+        calendarWeeks,
         canReassess,
         mustExtend,
         isComplete,
