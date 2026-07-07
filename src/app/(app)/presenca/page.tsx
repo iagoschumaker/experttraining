@@ -909,9 +909,15 @@ export default function PresencaPage() {
                                                                     <span className="text-[9px] shrink-0">
                                                                         {prog.canReassess
                                                                             ? <span className="text-emerald-400 font-medium">85% ✓</span>
-                                                                            : faltam > 0
-                                                                                ? <span className="text-muted-foreground">-{faltam} p/ avançar</span>
-                                                                                : <span className="text-muted-foreground">meta 85%</span>
+                                                                            : calWeeks >= 6
+                                                                                // Após 6 semanas: mostra quantas sessões faltam para avançar
+                                                                                ? faltam > 0
+                                                                                    ? <span className="text-muted-foreground">faltam {faltam} p/ avançar</span>
+                                                                                    : <span className="text-muted-foreground">meta 85%</span>
+                                                                                // Antes de 6 semanas: mostra progresso na janela de avaliação
+                                                                                : pct >= 85
+                                                                                    ? <span className="text-emerald-400 font-medium">No caminho ✓</span>
+                                                                                    : <span className="text-muted-foreground">Sem. {calWeeks} de 6</span>
                                                                         }
                                                                     </span>
                                                                 </div>
