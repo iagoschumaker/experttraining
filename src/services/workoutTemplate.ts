@@ -131,14 +131,19 @@ export function calculateProgress(
     const sessionsForMinPhase = Math.ceil(MIN_WEEKS * sessionsPerWeek * ATTENDANCE_THRESHOLD)
 
     // Pode reavaliar? (somente AVISO — professor decide quando avançar)
-    // Regra ESTRITA: ≥6 semanas reais de calendário E sessões feitas ≥ mínimo (85% de 6 sem)
-    // NÃO dispara apenas por ter passado 8 semanas — aluno precisa ter comparecido de verdade
+    // Regra: ≥6 semanas reais de calendário E sessões feitas ≥ mínimo E frequência atual ≥ 85%
+    // As três condições precisam ser verdadeiras ao mesmo tempo para evitar contradição
+    // (ex: aluno fez o mínimo nas semanas 1-6 mas sumiu depois → mostraria "apto" com 60% → ERRADO)
     const totalSessionsTarget = targetWeeks * sessionsPerWeek
-    const canReassess = calendarWeeks >= MIN_WEEKS && sessionsCompleted >= sessionsForMinPhase
+    const canReassess = (
+        calendarWeeks >= MIN_WEEKS
+        && sessionsCompleted >= sessionsForMinPhase
+        && attendanceRate >= ATTENDANCE_THRESHOLD
+    )
 
-    // Precisa estender? (frequência abaixo do mínimo na janela de 6–8 semanas)
+    // Precisa estender? (dentro da janela de 6–8 semanas mas abaixo do mínimo)
     const mustExtend = calendarWeeks >= MIN_WEEKS && calendarWeeks <= MAX_WEEKS
-        && sessionsCompleted < sessionsForMinPhase
+        && (sessionsCompleted < sessionsForMinPhase || attendanceRate < ATTENDANCE_THRESHOLD)
 
     // Programa completo? (baseado em sessões, não calendário)
     const isComplete = sessionsCompleted >= totalSessionsTarget
