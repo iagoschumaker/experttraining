@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - ASSESSMENTS API
 // ============================================================================
 // GET /api/assessments - Lista avaliações
@@ -158,12 +158,13 @@ export async function POST(request: NextRequest) {
 
     const { clientId, inputJson } = validation.data
 
-    // Verify client belongs to studio and user has access
+    // Verificar que o cliente pertence ao studio (sem checar isActive — avaliações
+    // e reavaliações devem funcionar para qualquer aluno, independente do status financeiro)
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
         studioId: payload.studioId,
-        isActive: true,
+        // NÃO filtrar por isActive: avaliações são independentes do status de pagamento
       },
     })
 
