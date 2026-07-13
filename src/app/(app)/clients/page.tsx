@@ -77,7 +77,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [activeTab, setActiveTab] = useState<'all' | 'birthdays' | 'inactive'>('all')
+  const [activeTab, setActiveTab] = useState<'todos' | 'all' | 'birthdays' | 'inactive'>('todos')
   const [allClients, setAllClients] = useState<Client[]>([])
   const [loadingBirthdays, setLoadingBirthdays] = useState(false)
 
@@ -119,6 +119,7 @@ export default function ClientsPage() {
       // Passa filtro de ativo/inativo para a API (server-side)
       if (activeTab === 'all') params.set('onlyActive', 'true')
       if (activeTab === 'inactive') params.set('onlyInactive', 'true')
+      // 'todos' → sem filtro: retorna ativos e inativos
 
       const res = await fetch(`/api/clients?${params}`)
       const data: ClientsResponse = await res.json()
@@ -243,7 +244,14 @@ export default function ClientsPage() {
       </StatsGrid>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-border pb-2">
+      <div className="flex gap-2 border-b border-border pb-2 flex-wrap">
+        <button
+          onClick={() => setActiveTab('todos')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            activeTab === 'todos' ? 'bg-primary/10 text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'
+          }`}>
+          <Users className="h-4 w-4" /> Todos
+        </button>
         <button
           onClick={() => setActiveTab('all')}
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
@@ -267,8 +275,8 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      {/* TAB: Ativos ou Inativos — filtro passado para a API (server-side) */}
-      {(activeTab === 'all' || activeTab === 'inactive') && (
+      {/* TAB: Todos / Ativos / Inativos — filtro passado para a API (server-side) */}
+      {(activeTab === 'todos' || activeTab === 'all' || activeTab === 'inactive') && (
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
