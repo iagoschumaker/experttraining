@@ -79,7 +79,10 @@ export async function POST(
     if (!resolvedCategoryId) {
       const defaultCat = await prisma.financialCategory.findFirst({
         where: {
-          studioId: null,  // categorias globais
+          OR: [
+            { studioId: null },
+            { studioId: studioId },
+          ],
           type: 'RECEITA',
           isActive: true,
         },

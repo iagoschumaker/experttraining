@@ -1,8 +1,9 @@
 // ============================================================================
 // KINEX PERFORMANCE — FINANCIAL CATEGORIES API (STUDIO — SOMENTE LEITURA)
 // ============================================================================
-// GET /api/studio/financeiro/categories — Retorna categorias GLOBAIS do sistema
-// Studios não podem criar/editar/excluir categorias — apenas o superadmin pode.
+// GET /api/studio/financeiro/categories — Retorna categorias disponíveis
+// Retorna: categorias globais (studioId = null) OU do próprio studio.
+// Somente o superadmin pode criar/editar/excluir categorias.
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,20 +16,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
   }
 
+  const { studioId } = auth
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') // RECEITA | CUSTO | DESPESA | null (todos)
 
   try {
-    const where: any = {
-      studioId: null,
-      // Não filtrar por isSystem — categorias criadas pelo superadmin têm isSystem=false (default)
-      // studioId: null já identifica categorias globais
-      isActive: true,
-    }
-    if (type) where.type = type
+    // Buscar categorias globais (studioId = null) OU do próprio studio.
+    // Isso cobre dois cenários:
+    // 1. Categorias verdadeiramente globais criadas pelo superadmin (studioId = null)
+    // 2. Categorias criadas pelo superadmin vinculadas a este studio específico
+    const typeFilter = type ? { type: type as any } : {}
 
     const categories = await prisma.financialCategory.findMany({
-      where,
+      where: {
+        OR: [
+          { studioId: null },
+          { studioId: studioId },
+        ],
+        isActive: true,
+        ...typeFilter,
+      },
       orderBy: { code: 'asc' },
     })
 
