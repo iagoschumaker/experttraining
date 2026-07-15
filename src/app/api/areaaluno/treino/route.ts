@@ -70,12 +70,13 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    if (!client || !client.isActive) {
+    if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Cadastro não encontrado ou inativo.' },
+        { success: false, error: 'Cadastro não encontrado.' },
         { status: 404 }
       )
     }
+    // Nota: não bloqueamos alunos inativos — eles devem ver o treino + aviso de pagamento
 
     // Buscar treino ativo mais recente
     const workout = await prisma.workout.findFirst({

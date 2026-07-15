@@ -17,34 +17,50 @@ const CYCLE_MONTHS: Record<string, number> = {
 }
 
 /**
- * Calcula a PRÓXIMA data de cobrança futura com base na data de adesão.
+ * Calcula a data de cobrança e status correto baseado na data de adesão.
  *
- * Lógica:
- * - Parte da data de adesão, avança 1 ciclo (primeiro vencimento)
- * - Continua avançando até encontrar uma data estritamente FUTURA (> now)
+ * REGRAS:
+ * - Se o 1º vencimento (adesão + 1 ciclo) for FUTURO → ACTIVE, nextBillingDate = 1º vencimento
+ * - Se o 1º vencimento já PASSOU → encontra o vencimento mais recente passado → OVERDUE
  *
- * Exemplos (ciclo MONTHLY, hoje = 03/07/2026):
- *   adhesion = 01/01/2026 → Fev → Mar → Abr → Mai → Jun → Jul → 01/08/2026 ✅
- *   adhesion = 01/06/2026 → Jul → 01/08/2026 ✅
- *   adhesion = 05/07/2026 → 05/08/2026 ✅ (adesão no futuro próximo)
+ * Exemplos (ciclo MONTHLY, hoje = 15/07/2026):
+ *   adhesion = 10/07/2026 → nextBillingDate = 10/08/2026 → ACTIVE ✅
+ *   adhesion = 01/01/2026 → nextBillingDate = 01/07/2026 → OVERDUE (14 dias) ✅
+ *   adhesion = 01/06/2026 → nextBillingDate = 01/07/2026 → OVERDUE (14 dias) ✅
  *
- * Exemplos (ciclo ANNUAL, hoje = 03/07/2026):
- *   adhesion = 01/01/2025 → 01/01/2026 → 01/01/2027 ✅
- *   adhesion = 01/01/2026 → 01/01/2027 ✅
- *
- * Exemplos (ciclo SEMIANNUAL, hoje = 03/07/2026):
- *   adhesion = 01/01/2026 → 01/07/2026 → 01/01/2027 ✅
+ * Exemplos (ciclo ANNUAL, hoje = 15/07/2026):
+ *   adhesion = 01/08/2026 → nextBillingDate = 01/08/2027 → ACTIVE ✅
+ *   adhesion = 01/01/2026 → nextBillingDate = 01/01/2026 → OVERDUE (195 dias) ✅
+ *   adhesion = 01/01/2025 → nextBillingDate = 01/01/2026 → OVERDUE (195 dias) ✅
  */
-function calcSmartNextBillingDate(adhesionDate: Date, cycle: string, now: Date = new Date()): Date {
+function calcNextBillingDate(
+  adhesionDate: Date,
+  cycle: string,
+  now: Date = new Date()
+): { nextDate: Date; isOverdue: boolean } {
   const months = CYCLE_MONTHS[cycle] ?? 1
-  const next = new Date(adhesionDate)
-  // Primeiro vencimento: 1 ciclo após adesão
-  next.setMonth(next.getMonth() + months)
-  // Avançar enquanto ainda estiver no passado ou hoje
-  while (next <= now) {
-    next.setMonth(next.getMonth() + months)
+
+  // Primeiro vencimento: adesão + 1 ciclo
+  const firstBilling = new Date(adhesionDate)
+  firstBilling.setMonth(firstBilling.getMonth() + months)
+
+  // Primeiro vencimento no futuro → ACTIVE
+  if (firstBilling > now) {
+    return { nextDate: firstBilling, isOverdue: false }
   }
-  return next
+
+  // Primeiro vencimento já passou → achar a última data de cobrança passada
+  // (a mais recente que ainda é ≤ hoje)
+  let cursor = new Date(firstBilling)
+  let mostRecentPast = new Date(firstBilling)
+
+  while (cursor <= now) {
+    mostRecentPast = new Date(cursor)
+    cursor = new Date(cursor)
+    cursor.setMonth(cursor.getMonth() + months)
+  }
+
+  return { nextDate: mostRecentPast, isOverdue: true }
 }
 
 export async function GET(request: NextRequest) {
@@ -224,13 +240,15 @@ export async function POST(request: NextRequest) {
     const adhesion = adhesionDate ? new Date(adhesionDate) : new Date()
     const now = new Date()
 
-    // ── Data inteligente ─────────────────────────────────────────────────────
-    // calcSmartNextBillingDate SEMPRE retorna uma data FUTURA.
-    // Se o aluno aderiu em janeiro e estamos configurando em julho (MONTHLY):
-    //   → nextBillingDate = 01/08/2026 (próximo vencimento real)
-    //   → O sistema não marca como OVERDUE imediatamente
-    //   → Quando agosto chegar e não pagar → auto-OVERDUE no próximo GET
-    const nextBillingDate = calcSmartNextBillingDate(adhesion, resolvedCycle, now)
+    // ── Calcular data de vencimento e status ──────────────────────────────────
+    // Se a data de adesão é retroativa e o 1º vencimento já passou → OVERDUE
+    // Se o 1º vencimento ainda está no futuro → ACTIVE
+    const { nextDate: nextBillingDate, isOverdue } = calcNextBillingDate(adhesion, resolvedCycle, now)
+    const billingStatus = isOverdue ? 'OVERDUE' : 'ACTIVE'
+
+    const daysOverdue = isOverdue
+      ? Math.floor((now.getTime() - nextBillingDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0
 
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
       where: { clientId }, // clientId @unique no schema + UNIQUE(client_id) no banco
@@ -242,7 +260,7 @@ export async function POST(request: NextRequest) {
         amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
-        status: 'ACTIVE',
+        status: billingStatus,
         notes: notes ?? null,
       },
       update: {
@@ -251,17 +269,21 @@ export async function POST(request: NextRequest) {
         amount: resolvedAmount,
         adhesionDate: adhesion,
         nextBillingDate,
-        status: 'ACTIVE', // reativar se estava OVERDUE
+        status: billingStatus,
         notes: notes ?? null,
         updatedAt: new Date(),
       },
     })
 
-    // Reativar o aluno ao configurar/atualizar mensalidade
+    // Atualizar isActive do aluno com base no status da mensalidade
     await prisma.client.update({
       where: { id: clientId },
-      data: { isActive: true },
+      data: { isActive: !isOverdue },
     })
+
+    const msg = isOverdue
+      ? `Mensalidade configurada com atraso. Venceu em ${nextBillingDate.toLocaleDateString('pt-BR')} (${daysOverdue} dias atrás)`
+      : `Mensalidade configurada! Próxima cobrança: ${nextBillingDate.toLocaleDateString('pt-BR')}`
 
     return NextResponse.json(
       {
@@ -270,8 +292,11 @@ export async function POST(request: NextRequest) {
           ...mensalidade,
           amount: parseFloat(mensalidade.amount.toString()),
           nextBillingDate: nextBillingDate.toISOString(),
+          status: billingStatus,
+          isOverdue,
+          daysOverdue,
         },
-        message: `Mensalidade configurada! Próxima cobrança: ${nextBillingDate.toLocaleDateString('pt-BR')}`,
+        message: msg,
       },
       { status: 201 }
     )

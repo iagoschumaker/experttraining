@@ -1,7 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // EXPERT PRO TRAINING - ÁREA DO ALUNO - AUTENTICAÇÃO
 // ============================================================================
-// POST /api/areaaluno/auth - Autenticação por celular
+// POST /api/areaaluno/auth - Autenticação por e-mail/celular + data de nascimento
+// DELETE /api/areaaluno/auth - Logout
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,14 +11,29 @@ import { z } from 'zod'
 import { SignJWT } from 'jose'
 
 const authSchema = z.object({
-  phone: z.string().min(8, 'Celular inválido'),
-  name: z.string().optional(), // Para confirmação quando múltiplos resultados
+  // Aceita e-mail ou celular (apenas dígitos internamente)
+  identifier: z.string().min(3, 'Informe e-mail ou celular'),
+  // Data de nascimento no formato YYYY-MM-DD
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento inválida'),
 })
 
 // Secret para JWT do aluno (separado do sistema principal)
 const ALUNO_JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET + '_ALUNO'
 )
+
+/**
+ * Verifica se dois DateTime/Date têm o mesmo dia no calendário (ignorando horas).
+ * birthDate no banco é @db.Date → armazenado como UTC midnight.
+ * birthDate enviado pelo aluno é YYYY-MM-DD.
+ */
+function sameBirthDay(storedDate: Date | null, inputDate: string): boolean {
+  if (!storedDate) return false
+  const stored = new Date(storedDate)
+  // Comparar por ISO string de data (YYYY-MM-DD) via UTC
+  const storedStr = stored.toISOString().slice(0, 10)
+  return storedStr === inputDate
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,33 +47,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { phone, name } = validation.data
+    const { identifier, birthDate } = validation.data
 
-    // Normalizar telefone (remover caracteres especiais)
-    const normalizedPhone = phone.replace(/\D/g, '')
+    // ── Normalizar identificador ───────────────────────────────────────────
+    const isEmail = identifier.includes('@')
+    const normalizedDigits = identifier.replace(/\D/g, '')
 
-    // Buscar cliente ativo pelo celular
-    const whereClause: any = {
-      isActive: true,
-      phone: {
-        contains: normalizedPhone,
-      },
-    }
-
-    // Se nome fornecido, filtrar também por nome
-    if (name) {
-      whereClause.name = {
-        contains: name,
-        mode: 'insensitive',
-      }
-    }
-
+    // ── Buscar clientes (sem filtro de isActive — alunos inativos podem logar) ─
     const clients = await prisma.client.findMany({
-      where: whereClause,
+      where: isEmail
+        ? { email: { equals: identifier.trim().toLowerCase(), mode: 'insensitive' } }
+        : { phone: { contains: normalizedDigits } },
       select: {
         id: true,
         name: true,
+        email: true,
         phone: true,
+        birthDate: true,
+        isActive: true,
         studioId: true,
         studio: {
           select: {
@@ -67,35 +74,39 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      take: 10, // Limitar resultados
+      take: 20,
     })
 
-    // Nenhum cliente encontrado
     if (clients.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Celular não encontrado. Verifique o número informado.' },
+        {
+          success: false,
+          error: isEmail
+            ? 'E-mail não encontrado. Verifique o endereço informado.'
+            : 'Celular não encontrado. Verifique o número informado.',
+        },
         { status: 404 }
       )
     }
 
-    // Múltiplos clientes - pedir confirmação
-    if (clients.length > 1 && !name) {
-      return NextResponse.json({
-        success: false,
-        needsConfirmation: true,
-        message: 'Múltiplos cadastros encontrados. Por favor, informe seu nome.',
-        options: clients.map(c => ({
-          id: c.id,
-          name: c.name,
-          studio: c.studio?.name,
-        })),
-      })
+    // ── Validar data de nascimento como segundo fator ─────────────────────
+    const matched = clients.filter(c => sameBirthDay(c.birthDate, birthDate))
+
+    if (matched.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Data de nascimento não confere. Verifique os dados informados.',
+        },
+        { status: 401 }
+      )
     }
 
-    // Cliente único encontrado - criar sessão
-    const client = clients[0]
+    // Usar o primeiro match (se houver mais de um com mesma identidade + data nascimento,
+    // pega o mais recente pelo studioId — situação muito rara)
+    const client = matched[0]
 
-    // Gerar token JWT para o aluno (válido por 24h)
+    // ── Gerar token JWT para o aluno (válido por 7 dias) ─────────────────
     const token = await new SignJWT({
       clientId: client.id,
       studioId: client.studioId,
@@ -104,10 +115,10 @@ export async function POST(request: NextRequest) {
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('24h')
+      .setExpirationTime('7d')
       .sign(ALUNO_JWT_SECRET)
 
-    // Criar resposta com cookie
+    // ── Criar resposta com cookie ─────────────────────────────────────────
     const response = NextResponse.json({
       success: true,
       data: {
@@ -116,12 +127,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Definir cookie httpOnly
     response.cookies.set('aluno_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 horas
+      maxAge: 60 * 60 * 24 * 7, // 7 dias
       path: '/',
     })
 
@@ -136,9 +146,9 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE - Logout do aluno
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   const response = NextResponse.json({ success: true })
-  
+
   response.cookies.set('aluno_session', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

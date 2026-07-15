@@ -637,16 +637,18 @@ export default function LancamentosPage() {
               </div>
             </div>
 
-            {/* Vencimento */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Vencimento</Label>
-                <Input
-                  type="date"
-                  value={form.dueDate}
-                  onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-                />
-              </div>
+            {/* Vencimento — só para Despesa/Custo (Receita não tem vencimento) */}
+            <div className={`grid gap-3 ${form.type !== 'RECEITA' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {form.type !== 'RECEITA' && (
+                <div>
+                  <Label>Vencimento</Label>
+                  <Input
+                    type="date"
+                    value={form.dueDate}
+                    onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                  />
+                </div>
+              )}
               <div>
                 <Label>Forma de Pagamento</Label>
                 <Select

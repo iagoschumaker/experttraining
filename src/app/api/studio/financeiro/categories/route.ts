@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   try {
     const where: any = {
       studioId: null,
-      isSystem: true,
+      // Não filtrar por isSystem — categorias criadas pelo superadmin têm isSystem=false (default)
+      // studioId: null já identifica categorias globais
       isActive: true,
     }
     if (type) where.type = type
