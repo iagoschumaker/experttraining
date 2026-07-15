@@ -15,6 +15,16 @@ const CYCLE_MONTHS: Record<string, number> = {
   ANNUAL: 12,
 }
 
+/**
+ * Converte uma string de data YYYY-MM-DD em Date local (meio-dia) para evitar
+ * problemas de offset UTC (-3 Brasil). new Date('2026-07-15') = UTC midnight =
+ * 14/07 às 21h no Brasil, o que causa datas erradas.
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d, 12, 0, 0) // meio-dia local → sem risco de virar outro dia
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -46,24 +56,30 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Acesso negado' }, { status: 403 })
     }
 
-    const now = paidDate ? new Date(paidDate) : new Date()
+    // ── Datas ───────────────────────────────────────────────────────────────
+    // Usar parseLocalDate para evitar offset UTC (-3 Brasil) ao converter string de data
+    const paidAt = paidDate ? parseLocalDate(paidDate) : new Date()
     const months = CYCLE_MONTHS[mensalidade.billingCycle] ?? 1
 
-    // Calcular próxima cobrança a partir do nextBillingDate atual (ou de hoje se OVERDUE)
-    const baseDate = mensalidade.status === 'OVERDUE'
-      ? now  // se estava atrasado, conta a partir de hoje
-      : mensalidade.nextBillingDate
-
-    const nextBillingDate = new Date(baseDate)
+    // Próximo vencimento: avança 1 ciclo a partir do vencimento atual armazenado no banco.
+    // Se o vencimento armazenado ainda estiver no passado após +1 ciclo (ex: muito atrasado),
+    // continua avançando até ficar futuro em relação à data de pagamento.
+    const nextBillingDate = new Date(mensalidade.nextBillingDate)
     nextBillingDate.setMonth(nextBillingDate.getMonth() + months)
 
-    // Buscar categoria padrão de RECEITA nas categorias GLOBAIS (não per-studio)
+    // Garantir que nextBillingDate é estritamente futuro em relação ao pagamento
+    while (nextBillingDate <= paidAt) {
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + months)
+    }
+
+    // ── Categoria ─────────────────────────────────────────────────────────
+    // Buscar categoria padrão de RECEITA nas categorias GLOBAIS (studioId = null).
+    // Não filtrar por isSystem (default = false no schema).
     let resolvedCategoryId = categoryId
     if (!resolvedCategoryId) {
       const defaultCat = await prisma.financialCategory.findFirst({
         where: {
           studioId: null,  // categorias globais
-          isSystem: true,
           type: 'RECEITA',
           isActive: true,
         },
@@ -72,7 +88,7 @@ export async function POST(
       resolvedCategoryId = defaultCat?.id
     }
 
-    // Criar lançamento financeiro (RECEITA paga)
+    // ── Criar lançamento financeiro (RECEITA paga) ────────────────────────
     if (resolvedCategoryId) {
       const cycleLabel: Record<string, string> = {
         MONTHLY: 'Mensal',
@@ -88,10 +104,10 @@ export async function POST(
           type: 'RECEITA',
           description: `Mensalidade ${cycleLabel[mensalidade.billingCycle] || ''} — ${mensalidade.client.name}`,
           amount: mensalidade.amount,
-          date: now,
-          dueDate: mensalidade.nextBillingDate,
+          date: paidAt,
+          dueDate: mensalidade.nextBillingDate, // data que estava vencida/pendente
           status: 'PAID',
-          paidAt: now,
+          paidAt,
           paymentMethod: paymentMethod ?? null,
           notes: notes ?? null,
           createdById: userId,
@@ -99,18 +115,18 @@ export async function POST(
       })
     }
 
-    // Atualizar mensalidade: renovar ciclo
+    // ── Atualizar mensalidade: renovar ciclo ────────────────────────────
     const updated = await (prisma as any).clientMensalidade.update({
       where: { id },
       data: {
         status: 'ACTIVE',
-        lastPaymentDate: now,
+        lastPaymentDate: paidAt,
         nextBillingDate,
-        updatedAt: now,
+        updatedAt: new Date(),
       },
     })
 
-    // Reativar aluno
+    // ── Reativar aluno ──────────────────────────────────────────────────
     await prisma.client.update({
       where: { id: mensalidade.clientId },
       data: { isActive: true },

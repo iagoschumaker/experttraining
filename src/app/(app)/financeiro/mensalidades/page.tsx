@@ -235,10 +235,13 @@ function MensalidadeCard({
             <p className="text-xs text-muted-foreground mb-3 bg-muted/30 rounded-lg p-2">{m.notes}</p>
           )}
           <div className="flex gap-2">
-            <Button size="sm" onClick={(e) => { e.stopPropagation(); onPay(m) }} className="flex-1 sm:flex-none">
-              <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-              Receber
-            </Button>
+            {/* Botão Receber só aparece se o aluno tem um plano configurado */}
+            {m.planId && (
+              <Button size="sm" onClick={(e) => { e.stopPropagation(); onPay(m) }} className="flex-1 sm:flex-none">
+                <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+                Receber
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onConfigure(m) }}>
               <Settings className="w-3.5 h-3.5 mr-1.5" />
               Configurar

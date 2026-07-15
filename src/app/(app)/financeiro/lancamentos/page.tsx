@@ -121,7 +121,7 @@ export default function LancamentosPage() {
 
   // Form
   const [form, setForm] = useState({
-    type: 'DESPESA' as 'RECEITA' | 'CUSTO' | 'DESPESA',
+    type: 'DESPESA' as 'RECEITA' | 'DESPESA',
     categoryId: '',
     description: '',
     amount: '',
@@ -396,7 +396,6 @@ export default function LancamentosPage() {
           <SelectContent>
             <SelectItem value="ALL">Todos</SelectItem>
             <SelectItem value="RECEITA">Receita</SelectItem>
-            <SelectItem value="CUSTO">Custo</SelectItem>
             <SelectItem value="DESPESA">Despesa</SelectItem>
           </SelectContent>
         </Select>
@@ -568,14 +567,6 @@ export default function LancamentosPage() {
                 onClick={() => setForm(f => ({ ...f, type: 'DESPESA', categoryId: '' }))}
               >
                 <ArrowDownRight className="h-4 w-4 mr-1" /> Despesa
-              </Button>
-              <Button
-                type="button"
-                variant={form.type === 'CUSTO' ? 'default' : 'outline'}
-                className={form.type === 'CUSTO' ? 'bg-orange-600 hover:bg-orange-700 flex-1' : 'flex-1'}
-                onClick={() => setForm(f => ({ ...f, type: 'CUSTO', categoryId: '' }))}
-              >
-                <ArrowDownRight className="h-4 w-4 mr-1" /> Custo
               </Button>
               <Button
                 type="button"
