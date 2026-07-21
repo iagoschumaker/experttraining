@@ -21,9 +21,11 @@ export async function GET(request: NextRequest) {
   alertDate.setDate(alertDate.getDate() + 3)
 
   try {
-    // Buscar todos os alunos ativos do studio
+    // Buscar TODOS os alunos do studio (incluindo inativos por inadimplência)
+    // IMPORTANTE: não filtrar por isActive aqui — alunos OVERDUE têm isActive=false
+    // e precisam aparecer no mapa de status para o bloqueio de sessão funcionar
     const clients = await prisma.client.findMany({
-      where: { studioId, isActive: true },
+      where: { studioId },
       select: { id: true, name: true },
     })
 
