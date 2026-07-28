@@ -343,8 +343,12 @@ export async function GET(
             select: { date: true },
         })
 
-        // Usar primeira presença como referência (mais preciso que workout.startDate)
-        const refStartDate = firstLesson?.date ?? workout.startDate
+        // Usar PRIMEIRA PRESENÇA como referência (não workout.startDate que é gravado na criação)
+        // workout.startDate é definido em generate/route.ts como new Date() na criação.
+        // Se usado como fallback, um treino criado há 8 semanas com 0 presenças mostraria
+        // "0 de 24 esperadas → 0%" — confuso e incorreto antes do aluno começar a treinar.
+        // Usar null garante que o cálculo começa do zero até a 1ª presença real.
+        const refStartDate = firstLesson?.date ?? null
 
         const { session: templateSession, progress } = getNextSessionWithPeriodization(
             template,

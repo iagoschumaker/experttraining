@@ -147,8 +147,19 @@ export async function POST(
                 }
 
                 // Compute session details
-                const template = workout.templateJson as any
-                const sessions = template.sessions || []
+                // Suporta formato novo (treinos[]) e legado (sessions[])
+                // O formato novo não tem .sessions diretamente no templateJson
+                const rawTpl = workout.templateJson as any
+                function normalizeSessions(tpl: any): { pillar: string; pillarLabel: string }[] {
+                    if (Array.isArray(tpl?.sessions) && tpl.sessions.length > 0) {
+                        return tpl.sessions.map((s: any) => ({ pillar: s.pillar || '', pillarLabel: s.pillarLabel || '' }))
+                    }
+                    if (Array.isArray(tpl?.treinos) && tpl.treinos.length > 0) {
+                        return tpl.treinos.map((t: any) => ({ pillar: t.pillar || '', pillarLabel: t.pillarLabel || '' }))
+                    }
+                    return []
+                }
+                const sessions = normalizeSessions(rawTpl)
 
                 // Use trainer's manual pillar override if provided, otherwise auto-rotate
                 const overrideIdx = pillarOverrides[student.clientId]
