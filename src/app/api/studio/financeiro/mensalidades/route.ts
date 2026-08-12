@@ -112,11 +112,17 @@ export async function GET(request: NextRequest) {
             phone: true,
             isActive: true,
             status: true,
-            studioId: true, // necessário para isolamento SaaS
+            studioId: true,
           },
         },
         studioPlan: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, type: true, pricePerDependent: true },
+        },
+        familyHolder: {
+          select: { id: true, clientId: true, client: { select: { name: true } } },
+        },
+        familyDependents: {
+          select: { id: true, clientId: true, status: true, client: { select: { id: true, name: true } } },
         },
       },
       orderBy: { client: { name: 'asc' } },
@@ -147,6 +153,7 @@ export async function GET(request: NextRequest) {
       clientIsActive: m.client.isActive,
       planId: m.planId ?? null,
       planName: m.studioPlan?.name ?? null,
+      planType: m.studioPlan?.type ?? 'INDIVIDUAL',
       billingCycle: m.billingCycle,
       amount: parseFloat(m.amount.toString()),
       adhesionDate: m.adhesionDate.toISOString(),
@@ -156,6 +163,17 @@ export async function GET(request: NextRequest) {
       notes: m.notes,
       isAlertDue: m.status !== 'OVERDUE' && m.nextBillingDate <= alertDate,
       daysUntilDue: Math.ceil((m.nextBillingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      // Família
+      familyHolderId: m.familyHolderId ?? null,
+      familyHolderName: m.familyHolder?.client?.name ?? null,
+      familyDependents: (m.familyDependents ?? []).map((d: any) => ({
+        mensalidadeId: d.id,
+        clientId: d.clientId,
+        clientName: d.client.name,
+        status: d.status,
+      })),
+      isDependent: !!m.familyHolderId,
+      isHolder: (m.familyDependents ?? []).length > 0,
     }))
 
     const stats = {
@@ -199,7 +217,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { clientId, billingCycle, amount, adhesionDate, notes, planId } = body
+    const { clientId, billingCycle, amount, adhesionDate, notes, planId, dependentIds } = body
 
     if (!clientId) {
       return NextResponse.json({ success: false, error: 'Campo obrigatorio: clientId' }, { status: 400 })
@@ -215,18 +233,26 @@ export async function POST(request: NextRequest) {
     let resolvedCycle = billingCycle
     let resolvedAmount = (amount !== undefined && amount !== null && amount !== '') ? parseFloat(amount) : 0
     let resolvedPlanId = planId ?? null
+    let planData: any = null
 
     if (planId) {
-      const plan = await (prisma as any).studioPlan.findFirst({
+      planData = await (prisma as any).studioPlan.findFirst({
         where: { id: planId, studioId, isActive: true },
       })
-      if (plan) {
-        resolvedCycle = resolvedCycle ?? plan.billingCycle
+      if (planData) {
+        resolvedCycle = resolvedCycle ?? planData.billingCycle
         if (amount === undefined || amount === null || amount === '') {
-          resolvedAmount = parseFloat(plan.price.toString())
+          // Para plano família, calcular valor total
+          if (planData.type === 'FAMILIA' && dependentIds?.length > 0) {
+            const basePrice = parseFloat(planData.price.toString())
+            const depPrice = planData.pricePerDependent ? parseFloat(planData.pricePerDependent.toString()) : 0
+            resolvedAmount = basePrice + (dependentIds.length * depPrice)
+          } else {
+            resolvedAmount = parseFloat(planData.price.toString())
+          }
         }
       } else {
-        resolvedPlanId = null // plano não encontrado neste studio, ignorar
+        resolvedPlanId = null
       }
     }
 
@@ -240,9 +266,6 @@ export async function POST(request: NextRequest) {
     const adhesion = adhesionDate ? new Date(adhesionDate) : new Date()
     const now = new Date()
 
-    // ── Calcular data de vencimento e status ──────────────────────────────────
-    // Se a data de adesão é retroativa e o 1º vencimento já passou → OVERDUE
-    // Se o 1º vencimento ainda está no futuro → ACTIVE
     const { nextDate: nextBillingDate, isOverdue } = calcNextBillingDate(adhesion, resolvedCycle, now)
     const billingStatus = isOverdue ? 'OVERDUE' : 'ACTIVE'
 
@@ -250,8 +273,9 @@ export async function POST(request: NextRequest) {
       ? Math.floor((now.getTime() - nextBillingDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
 
+    // ── Criar/atualizar mensalidade do titular ────────────────────────────
     const mensalidade = await (prisma as any).clientMensalidade.upsert({
-      where: { clientId }, // clientId @unique no schema + UNIQUE(client_id) no banco
+      where: { clientId },
       create: {
         clientId,
         studioId,
@@ -271,11 +295,63 @@ export async function POST(request: NextRequest) {
         nextBillingDate,
         status: billingStatus,
         notes: notes ?? null,
+        familyHolderId: null, // titular nunca é dependente
         updatedAt: new Date(),
       },
     })
 
-    // Atualizar isActive do aluno com base no status da mensalidade
+    // ── Plano Família: configurar dependentes ─────────────────────────────
+    if (planData?.type === 'FAMILIA' && dependentIds?.length > 0) {
+      // Remover vínculos antigos que não estão mais na lista
+      await (prisma as any).clientMensalidade.updateMany({
+        where: {
+          familyHolderId: mensalidade.id,
+          clientId: { notIn: dependentIds },
+        },
+        data: { familyHolderId: null },
+      })
+
+      // Criar/atualizar mensalidade de cada dependente
+      for (const depId of dependentIds) {
+        // Verificar que o dependente pertence ao studio
+        const depClient = await prisma.client.findFirst({ where: { id: depId, studioId } })
+        if (!depClient) continue
+
+        await (prisma as any).clientMensalidade.upsert({
+          where: { clientId: depId },
+          create: {
+            clientId: depId,
+            studioId,
+            planId: resolvedPlanId,
+            billingCycle: resolvedCycle,
+            amount: 0, // dependente não paga separado
+            adhesionDate: adhesion,
+            nextBillingDate,
+            status: billingStatus,
+            familyHolderId: mensalidade.id,
+            notes: `Dependente de ${client.name}`,
+          },
+          update: {
+            planId: resolvedPlanId,
+            billingCycle: resolvedCycle,
+            amount: 0,
+            nextBillingDate,
+            status: billingStatus,
+            familyHolderId: mensalidade.id,
+            notes: `Dependente de ${client.name}`,
+            updatedAt: new Date(),
+          },
+        })
+
+        // Atualizar isActive do dependente
+        await prisma.client.update({
+          where: { id: depId },
+          data: { isActive: !isOverdue },
+        })
+      }
+    }
+
+    // Atualizar isActive do aluno titular
     await prisma.client.update({
       where: { id: clientId },
       data: { isActive: !isOverdue },

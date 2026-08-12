@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       data: plans.map((p: any) => ({
         ...p,
         price: parseFloat(p.price.toString()),
+        pricePerDependent: p.pricePerDependent ? parseFloat(p.pricePerDependent.toString()) : null,
       })),
     })
   } catch (error) {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await verifyAuth(request, ['STUDIO_ADMIN'])
+  const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
   if ('error' in auth) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
   }
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { name, description, billingCycle, price } = body
+    const { name, description, billingCycle, price, type, pricePerDependent, maxDependents } = body
 
     if (!name || !billingCycle || price === undefined) {
       return NextResponse.json(
@@ -54,19 +55,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const plan = await (prisma as any).studioPlan.create({
-      data: {
-        studioId,
-        name: name.trim(),
-        description: description?.trim() ?? null,
-        billingCycle,
-        price: parseFloat(price),
-      },
-    })
+    const data: any = {
+      studioId,
+      name: name.trim(),
+      description: description?.trim() ?? null,
+      billingCycle,
+      price: parseFloat(price),
+      type: type || 'INDIVIDUAL',
+    }
+
+    if (type === 'FAMILIA') {
+      data.pricePerDependent = pricePerDependent ? parseFloat(pricePerDependent) : 0
+      data.maxDependents = maxDependents ? parseInt(maxDependents) : null
+    }
+
+    const plan = await (prisma as any).studioPlan.create({ data })
 
     return NextResponse.json({
       success: true,
-      data: { ...plan, price: parseFloat(plan.price.toString()) },
+      data: {
+        ...plan,
+        price: parseFloat(plan.price.toString()),
+        pricePerDependent: plan.pricePerDependent ? parseFloat(plan.pricePerDependent.toString()) : null,
+      },
       message: 'Plano criado com sucesso',
     }, { status: 201 })
   } catch (error) {

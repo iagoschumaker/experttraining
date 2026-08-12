@@ -129,11 +129,49 @@ export async function POST(
       },
     })
 
-    // ── Reativar aluno ──────────────────────────────────────────────────
+    // ── Reativar aluno titular ──────────────────────────────────────────
     await prisma.client.update({
       where: { id: mensalidade.clientId },
       data: { isActive: true },
     })
+
+    // ── Plano Família: pagar e reativar TODOS os dependentes ────────────
+    const dependents = await (prisma as any).clientMensalidade.findMany({
+      where: { familyHolderId: id },
+      select: { id: true, clientId: true, billingCycle: true, nextBillingDate: true },
+    })
+
+    let dependentsPaid = 0
+    if (dependents.length > 0) {
+      for (const dep of dependents) {
+        // Calcular próximo vencimento do dependente (mesma lógica do titular)
+        const depMonths = CYCLE_MONTHS[dep.billingCycle] ?? 1
+        const depNextBilling = new Date(dep.nextBillingDate)
+        depNextBilling.setMonth(depNextBilling.getMonth() + depMonths)
+        while (depNextBilling <= paidAt) {
+          depNextBilling.setMonth(depNextBilling.getMonth() + depMonths)
+        }
+
+        await (prisma as any).clientMensalidade.update({
+          where: { id: dep.id },
+          data: {
+            status: 'ACTIVE',
+            lastPaymentDate: paidAt,
+            nextBillingDate: depNextBilling,
+            updatedAt: new Date(),
+          },
+        })
+
+        // Reativar aluno dependente
+        await prisma.client.update({
+          where: { id: dep.clientId },
+          data: { isActive: true },
+        })
+        dependentsPaid++
+      }
+    }
+
+    const depMsg = dependentsPaid > 0 ? ` + ${dependentsPaid} dependente(s)` : ''
 
     return NextResponse.json({
       success: true,
@@ -141,8 +179,9 @@ export async function POST(
         ...updated,
         amount: parseFloat(updated.amount.toString()),
         nextBillingDate: updated.nextBillingDate.toISOString(),
+        dependentsPaid,
       },
-      message: `Pagamento registrado. Próxima cobrança: ${nextBillingDate.toLocaleDateString('pt-BR')}`,
+      message: `Pagamento registrado${depMsg}. Próxima cobrança: ${nextBillingDate.toLocaleDateString('pt-BR')}`,
     })
   } catch (error) {
     console.error('Mensalidade pay error:', error)

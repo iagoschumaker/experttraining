@@ -836,30 +836,42 @@ model ClientMensalidade {
   nextBillingDate DateTime         @map("next_billing_date")
   lastPaymentDate DateTime?        @map("last_payment_date")
   status          MensalidadeStatus @default(PENDING)
+  familyHolderId  String?          @map("family_holder_id") // se dependente, aponta pro titular
   notes           String?
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
 
-  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  studio      Studio      @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  studioPlan  StudioPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  client           Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  studio           Studio              @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  studioPlan       StudioPlan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
+  familyHolder     ClientMensalidade?  @relation("FamilyDependents", fields: [familyHolderId], references: [id])
+  familyDependents ClientMensalidade[] @relation("FamilyDependents")
 
   @@index([studioId, nextBillingDate])
   @@index([studioId, status])
+  @@index([familyHolderId])
   @@map("client_mensalidades")
 }
 
 // ─── PLANOS DO STUDIO (templates de mensalidade) ───
+enum PlanType {
+  INDIVIDUAL
+  FAMILIA
+}
+
 model StudioPlan {
-  id           String           @id @default(cuid())
-  studioId     String           @map("studio_id")
-  name         String
-  description  String?
-  billingCycle MensalidadeCycle @map("billing_cycle")
-  price        Decimal          @db.Decimal(10, 2)
-  isActive     Boolean          @default(true) @map("is_active")
-  createdAt    DateTime         @default(now()) @map("created_at")
-  updatedAt    DateTime         @updatedAt @map("updated_at")
+  id                String           @id @default(cuid())
+  studioId          String           @map("studio_id")
+  name              String
+  description       String?
+  billingCycle      MensalidadeCycle @map("billing_cycle")
+  price             Decimal          @db.Decimal(10, 2)
+  type              PlanType         @default(INDIVIDUAL)
+  pricePerDependent Decimal?         @db.Decimal(10, 2) @map("price_per_dependent")
+  maxDependents     Int?             @map("max_dependents")
+  isActive          Boolean          @default(true) @map("is_active")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
 
   studio              Studio              @relation(fields: [studioId], references: [id], onDelete: Cascade)
   clientMensalidades  ClientMensalidade[]

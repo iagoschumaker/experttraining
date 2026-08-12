@@ -61,8 +61,14 @@ interface Mensalidade {
   notes: string | null
   planId: string | null
   planName: string | null
+  planType: 'INDIVIDUAL' | 'FAMILIA'
   isAlertDue: boolean
   daysUntilDue: number
+  familyHolderId: string | null
+  familyHolderName: string | null
+  familyDependents: { mensalidadeId: string; clientId: string; clientName: string; status: string }[]
+  isDependent: boolean
+  isHolder: boolean
 }
 
 interface StudioPlan {
@@ -71,6 +77,9 @@ interface StudioPlan {
   description: string | null
   billingCycle: 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUAL' | 'ANNUAL'
   price: number
+  type: 'INDIVIDUAL' | 'FAMILIA'
+  pricePerDependent: number | null
+  maxDependents: number | null
 }
 
 interface ClientWithoutMens {
@@ -200,6 +209,16 @@ function MensalidadeCard({
         <Badge className={cn('text-xs font-medium border hidden sm:flex', cfg.color)}>
           {cfg.label}
         </Badge>
+        {m.isHolder && (
+          <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-xs font-medium border hidden sm:flex">
+            Titular ({m.familyDependents.length} dep.)
+          </Badge>
+        )}
+        {m.isDependent && (
+          <Badge className="bg-indigo-500/15 text-indigo-400 border-indigo-500/30 text-xs font-medium border hidden sm:flex">
+            Dep. de {m.familyHolderName}
+          </Badge>
+        )}
 
         {expanded
           ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -235,12 +254,15 @@ function MensalidadeCard({
             <p className="text-xs text-muted-foreground mb-3 bg-muted/30 rounded-lg p-2">{m.notes}</p>
           )}
           <div className="flex gap-2">
-            {/* Botão Receber só aparece se o aluno tem um plano configurado */}
-            {m.planId && (
+            {/* Botão Receber só aparece se o aluno tem um plano configurado e NÃO é dependente */}
+            {m.planId && !m.isDependent && (
               <Button size="sm" onClick={(e) => { e.stopPropagation(); onPay(m) }} className="flex-1 sm:flex-none">
                 <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-                Receber
+                Receber{m.isHolder ? ` (+ ${m.familyDependents.length} dep.)` : ''}
               </Button>
+            )}
+            {m.isDependent && (
+              <span className="text-xs text-muted-foreground italic">Pagamento pelo titular</span>
             )}
             <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onConfigure(m) }}>
               <Settings className="w-3.5 h-3.5 mr-1.5" />
@@ -283,6 +305,7 @@ export default function MensalidadesPage() {
   const [configAdhesion, setConfigAdhesion] = useState('')
   const [configNotes, setConfigNotes] = useState('')
   const [configuring, setConfiguring] = useState(false)
+  const [configDependentIds, setConfigDependentIds] = useState<string[]>([])
 
   // Preview: próxima data de cobrança calculada em tempo real
   const previewNextBillingDate = useMemo(() => {
@@ -407,6 +430,7 @@ export default function MensalidadesPage() {
           amount: configAmount !== '' ? parseFloat(configAmount) : undefined,
           adhesionDate: configAdhesion || undefined,
           notes: configNotes || undefined,
+          dependentIds: plan?.type === 'FAMILIA' ? configDependentIds : undefined,
         }),
       })
       const data = await res.json()
@@ -429,6 +453,7 @@ export default function MensalidadesPage() {
     setConfigAmount(m.amount > 0 ? m.amount.toString() : '')
     setConfigAdhesion(m.adhesionDate ? m.adhesionDate.slice(0, 10) : '')
     setConfigNotes(m.notes ?? '')
+    setConfigDependentIds(m.familyDependents?.map(d => d.clientId) ?? [])
   }
 
   function openConfigureNew(c: ClientWithoutMens) {
@@ -438,6 +463,7 @@ export default function MensalidadesPage() {
     setConfigAmount('')
     setConfigAdhesion(new Date().toISOString().slice(0, 10))
     setConfigNotes('')
+    setConfigDependentIds([])
   }
 
   // ─── Loading skeleton ─────────────────────────────────────────────────────
@@ -747,6 +773,83 @@ export default function MensalidadesPage() {
                   onChange={e => setConfigAmount(e.target.value)}
                 />
               </div>
+
+              {/* ── Seletor de dependentes (apenas para plano FAMILIA) ── */}
+              {(() => {
+                const selectedPlan = studioPlans.find(p => p.id === configPlanId)
+                if (!selectedPlan || selectedPlan.type !== 'FAMILIA') return null
+
+                const currentClientId = 'clientId' in configModal! ? (configModal as Mensalidade).clientId : configModal!.id
+                // Candidatos: todos os alunos do studio exceto o titular
+                const allStudents = [
+                  ...mensalidades.filter(m => m.clientId !== currentClientId),
+                  ...clientsWithoutMens.filter(c => c.id !== currentClientId),
+                ]
+
+                const depPrice = selectedPlan.pricePerDependent ?? 0
+                const basePrice = selectedPlan.price
+                const totalPreview = basePrice + (configDependentIds.length * depPrice)
+
+                return (
+                  <div className="space-y-2">
+                    <Label>Dependentes do Plano Família</Label>
+                    <div className="rounded-lg border border-border max-h-[180px] overflow-y-auto">
+                      {allStudents.length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-3 text-center">Nenhum aluno disponível</p>
+                      ) : (
+                        allStudents.map(s => {
+                          const sId = 'clientId' in s ? (s as Mensalidade).clientId : (s as ClientWithoutMens).id
+                          const sName = 'clientName' in s ? (s as Mensalidade).clientName : (s as ClientWithoutMens).name
+                          const checked = configDependentIds.includes(sId)
+                          return (
+                            <label
+                              key={sId}
+                              className={cn(
+                                'flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50 last:border-b-0',
+                                checked && 'bg-primary/5'
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setConfigDependentIds(prev =>
+                                    checked ? prev.filter(x => x !== sId) : [...prev, sId]
+                                  )
+                                }}
+                                className="rounded border-border"
+                              />
+                              <span className="text-sm flex-1">{sName}</span>
+                              {depPrice > 0 && (
+                                <span className="text-xs text-muted-foreground">+{formatCurrency(depPrice)}</span>
+                              )}
+                            </label>
+                          )
+                        })
+                      )}
+                    </div>
+                    {configDependentIds.length > 0 && (
+                      <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-3 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Titular</span>
+                          <span>{formatCurrency(basePrice)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">{configDependentIds.length} dependente(s) × {formatCurrency(depPrice)}</span>
+                          <span>{formatCurrency(configDependentIds.length * depPrice)}</span>
+                        </div>
+                        <div className="flex justify-between items-center font-bold border-t border-purple-500/20 mt-1 pt-1">
+                          <span className="text-purple-400">Total mensal</span>
+                          <span className="text-purple-400">{formatCurrency(totalPreview)}</span>
+                        </div>
+                      </div>
+                    )}
+                    {selectedPlan.maxDependents && configDependentIds.length >= selectedPlan.maxDependents && (
+                      <p className="text-xs text-yellow-400">Máximo de {selectedPlan.maxDependents} dependentes atingido.</p>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Data de adesão */}
               <div className="space-y-2">

@@ -46,6 +46,9 @@ interface StudioPlan {
   description: string | null
   billingCycle: 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUAL' | 'ANNUAL'
   price: number
+  type: 'INDIVIDUAL' | 'FAMILIA'
+  pricePerDependent: number | null
+  maxDependents: number | null
   isActive: boolean
   createdAt: string
 }
@@ -87,6 +90,9 @@ export default function PlanosPage() {
   const [formDescription, setFormDescription] = useState('')
   const [formCycle, setFormCycle] = useState<string>('MONTHLY')
   const [formPrice, setFormPrice] = useState('')
+  const [formType, setFormType] = useState<string>('INDIVIDUAL')
+  const [formPricePerDep, setFormPricePerDep] = useState('')
+  const [formMaxDeps, setFormMaxDeps] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -107,6 +113,9 @@ export default function PlanosPage() {
     setFormDescription('')
     setFormCycle('MONTHLY')
     setFormPrice('')
+    setFormType('INDIVIDUAL')
+    setFormPricePerDep('')
+    setFormMaxDeps('')
     setModalOpen(true)
   }
 
@@ -116,6 +125,9 @@ export default function PlanosPage() {
     setFormDescription(plan.description ?? '')
     setFormCycle(plan.billingCycle)
     setFormPrice(plan.price.toString())
+    setFormType(plan.type || 'INDIVIDUAL')
+    setFormPricePerDep(plan.pricePerDependent?.toString() ?? '')
+    setFormMaxDeps(plan.maxDependents?.toString() ?? '')
     setModalOpen(true)
   }
 
@@ -138,6 +150,9 @@ export default function PlanosPage() {
           description: formDescription.trim() || null,
           billingCycle: formCycle,
           price: parseFloat(formPrice),
+          type: formType,
+          pricePerDependent: formType === 'FAMILIA' && formPricePerDep ? formPricePerDep : undefined,
+          maxDependents: formType === 'FAMILIA' && formMaxDeps ? formMaxDeps : undefined,
         }),
       })
       const data = await res.json()
@@ -243,6 +258,25 @@ export default function PlanosPage() {
                 </span>
               </div>
 
+              {/* Family info */}
+              {plan.type === 'FAMILIA' && (
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-[10px]">
+                    Família
+                  </Badge>
+                  {plan.pricePerDependent != null && plan.pricePerDependent > 0 && (
+                    <span className="text-muted-foreground">
+                      +{formatCurrency(plan.pricePerDependent)} por dependente
+                    </span>
+                  )}
+                  {plan.maxDependents && (
+                    <span className="text-muted-foreground">
+                      (máx {plan.maxDependents})
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex gap-2 pt-1 border-t border-border/50">
                 <Button
@@ -315,7 +349,19 @@ export default function PlanosPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Valor padrão (R$) *</Label>
+                <Label>Tipo de Plano *</Label>
+                <Select value={formType} onValueChange={setFormType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                    <SelectItem value="FAMILIA">Família</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Valor do Titular (R$) *</Label>
                 <Input
                   type="number"
                   min="0"
@@ -325,7 +371,33 @@ export default function PlanosPage() {
                   onChange={e => setFormPrice(e.target.value)}
                 />
               </div>
+              {formType === 'FAMILIA' && (
+                <div className="space-y-2">
+                  <Label>Valor por Dependente (R$)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Ex: 150.00"
+                    value={formPricePerDep}
+                    onChange={e => setFormPricePerDep(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
+            {formType === 'FAMILIA' && (
+              <div className="space-y-2">
+                <Label>Máx. de Dependentes (opcional)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Ilimitado"
+                  value={formMaxDeps}
+                  onChange={e => setFormMaxDeps(e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">Deixe vazio para ilimitado</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
