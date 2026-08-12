@@ -2,11 +2,12 @@
 
 // ============================================================================
 // KINEX PERFORMANCE — DESPESAS
-// Saídas manuais de DESPESA (separado de Mensalidades)
+// Layout: navegação por mês, abas Contratos / Faturas, FAB
+// Contratos = despesas recorrentes | Faturas = despesas avulsas do mês
 // ============================================================================
 
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,15 +21,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  TrendingDown, Plus, ArrowDownRight, CheckCircle, Trash2, Edit,
-  RefreshCw, Undo2, Calendar, XCircle,
+  TrendingDown, Plus, ChevronLeft, ChevronRight, CalendarDays,
+  FileText, ClipboardList, CheckCircle, Trash2, Edit, Undo2,
+  Search, DollarSign, Clock, AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
+// ── Types ──────────────────────────────────────────────────────────────────
+
 interface Entry {
   id: string
-  type: 'RECEITA' | 'DESPESA'
+  type: string
   description: string
   amount: number
   date: string
@@ -39,135 +43,198 @@ interface Entry {
   installment: number | null
   totalInstallments: number | null
   recurrenceId: string | null
+  paidAt: string | null
   category: { id: string; code: string; name: string; type: string }
   client: { id: string; name: string } | null
 }
 
-interface Category {
-  id: string
-  code: string
-  name: string
-  type: string
-  parentId: string | null
+interface Category { id: string; code: string; name: string; type: string }
+
+interface Contract {
+  recurrenceId: string
+  description: string
+  amount: number
+  totalInstallments: number
+  status: 'ACTIVE' | 'PAUSED' | 'CANCELED'
+  categoryName: string
+  startDate: string
+  entries: Entry[]
+  paidCount: number
+  pendingCount: number
 }
+
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
 const PAYMENT_METHODS = [
   { value: 'DINHEIRO', label: 'Dinheiro' },
   { value: 'PIX', label: 'PIX' },
   { value: 'CARTAO_DEBITO', label: 'Cartão Débito' },
   { value: 'CARTAO_CREDITO', label: 'Cartão Crédito' },
-  { value: 'CHEQUE', label: 'Cheque' },
   { value: 'TRANSFERENCIA', label: 'Transferência' },
   { value: 'BOLETO', label: 'Boleto' },
   { value: 'OUTRO', label: 'Outro' },
 ]
 
-const STATUS_OPTIONS = [
-  { value: 'ALL', label: 'Todos' },
-  { value: 'PENDING', label: 'Pendente' },
-  { value: 'PAID', label: 'Pago' },
-  { value: 'OVERDUE', label: 'Vencido' },
-  { value: 'CANCELED', label: 'Cancelado' },
-]
-
-const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+// ── Page ────────────────────────────────────────────────────────────────────
 
 export default function DespesasPage() {
+  const now = new Date()
+  const [month, setMonth] = useState(now.getMonth())
+  const [year, setYear] = useState(now.getFullYear())
+  const [tab, setTab] = useState<'contratos' | 'faturas'>('contratos')
   const [loading, setLoading] = useState(true)
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [total, setTotal] = useState(0)
-  const [page] = useState(1)
 
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [allEntries, setAllEntries] = useState<Entry[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [contracts, setContracts] = useState<Contract[]>([])
+  const [faturas, setFaturas] = useState<Entry[]>([])
+
+  const [contractFilter, setContractFilter] = useState('ALL')
+  const [faturaFilter, setFaturaFilter] = useState('ALL')
+  const [search, setSearch] = useState('')
+
+  const [fabOpen, setFabOpen] = useState(false)
+  const [contractDialogOpen, setContractDialogOpen] = useState(false)
+  const [faturaDialogOpen, setFaturaDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const [editEntry, setEditEntry] = useState<Entry | null>(null)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ description: '', amount: '', date: '', dueDate: '', categoryId: '', paymentMethod: '', notes: '', status: '' })
-  const [savingEdit, setSavingEdit] = useState(false)
-
-  const [filterStatus, setFilterStatus] = useState('')
-
-  const [form, setForm] = useState({
-    categoryId: '',
-    description: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0],
-    dueDate: '',
-    paymentMethod: '',
-    notes: '',
-    isPaid: false,
-    isRecurrent: false,
-    recurrenceType: 'MONTHLY',
-    recurrenceCount: '6',
+  const [contractForm, setContractForm] = useState({
+    description: '', amount: '', categoryId: '',
+    billingDay: '5', startDate: new Date().toISOString().split('T')[0],
+    notes: '', recurrenceCount: '12',
   })
 
-  const loadEntries = useCallback(async () => {
+  const [faturaForm, setFaturaForm] = useState({
+    description: '', amount: '', categoryId: '',
+    date: new Date().toISOString().split('T')[0],
+    dueDate: '', paymentMethod: '', notes: '', isPaid: false,
+  })
+
+  const goBack = () => {
+    if (month === 0) { setMonth(11); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  const goForward = () => {
+    if (month === 11) { setMonth(0); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const params = new URLSearchParams({ page: String(page), limit: '50', type: 'DESPESA' })
-      if (filterStatus) params.set('status', filterStatus)
-      const res = await fetchWithAuth(`/api/studio/financeiro/entries?${params}`)
-      const result = await res.json()
-      if (result.success) {
-        setEntries(result.data.entries)
-        setTotal(result.data.pagination?.total ?? result.data.entries.length)
+      const startDate = new Date(year, month, 1).toISOString().split('T')[0]
+      const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+
+      const [entriesRes, allRes] = await Promise.all([
+        fetchWithAuth(`/api/studio/financeiro/entries?type=DESPESA&dateFrom=${startDate}&dateTo=${endDate}&limit=200`),
+        fetchWithAuth(`/api/studio/financeiro/entries?type=DESPESA&limit=500`),
+      ])
+
+      const entriesData = await entriesRes.json()
+      const allData = await allRes.json()
+
+      const monthEntries: Entry[] = entriesData.success ? entriesData.data.entries : []
+      const allEntriesArr: Entry[] = allData.success ? allData.data.entries : []
+      setAllEntries(allEntriesArr)
+
+      // Montar contratos a partir de TODOS os entries
+      const contractsMap = new Map<string, Entry[]>()
+      for (const e of allEntriesArr) {
+        if (e.recurrenceId) {
+          if (!contractsMap.has(e.recurrenceId)) contractsMap.set(e.recurrenceId, [])
+          contractsMap.get(e.recurrenceId)!.push(e)
+        }
       }
-    } catch {
-      toast.error('Erro ao carregar despesas')
-    } finally {
-      setLoading(false)
-    }
-  }, [page, filterStatus])
+
+      const contractsList: Contract[] = []
+      contractsMap.forEach((entries, recId) => {
+        const sorted = entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        const first = sorted[0]
+        const paidCount = sorted.filter(e => e.status === 'PAID').length
+        const pendingCount = sorted.filter(e => e.status === 'PENDING' || e.status === 'OVERDUE').length
+        const canceledCount = sorted.filter(e => e.status === 'CANCELED').length
+
+        let status: Contract['status'] = 'ACTIVE'
+        if (canceledCount === sorted.length) status = 'CANCELED'
+
+        const cleanDesc = first.description.replace(/\s*\(\d+\/\d+\)$/, '')
+
+        contractsList.push({
+          recurrenceId: recId,
+          description: cleanDesc,
+          amount: first.amount,
+          totalInstallments: first.totalInstallments || sorted.length,
+          status,
+          categoryName: first.category.name,
+          startDate: first.date,
+          entries: sorted,
+          paidCount,
+          pendingCount,
+        })
+      })
+
+      setContracts(contractsList)
+      setFaturas(monthEntries)
+    } catch { toast.error('Erro ao carregar dados') }
+    finally { setLoading(false) }
+  }, [month, year])
 
   const loadCategories = async () => {
     try {
       const res = await fetchWithAuth('/api/studio/financeiro/categories')
       const result = await res.json()
       if (result.success) setCategories((result.data.flat ?? []).filter((c: Category) => c.type === 'DESPESA'))
-    } catch { console.error('Erro ao carregar categorias') }
+    } catch {}
   }
 
-  useEffect(() => { loadEntries(); loadCategories() }, [loadEntries])
+  useEffect(() => { loadData(); loadCategories() }, [loadData])
 
-  const resetForm = () => setForm({
-    categoryId: '', description: '', amount: '',
-    date: new Date().toISOString().split('T')[0],
-    dueDate: '', paymentMethod: '', notes: '', isPaid: false,
-    isRecurrent: false, recurrenceType: 'MONTHLY', recurrenceCount: '6',
-  })
+  // ── Handlers ───────────────────────────────────────────────────────────
 
-  const handleSubmit = async () => {
-    if (!form.categoryId || !form.description || !form.amount || !form.date) {
-      toast.error('Preencha todos os campos obrigatórios')
-      return
+  const handleCreateContract = async () => {
+    if (!contractForm.description || !contractForm.amount || !contractForm.categoryId || !contractForm.startDate) {
+      toast.error('Preencha todos os campos obrigatórios'); return
+    }
+    setSaving(true)
+    try {
+      const body = {
+        categoryId: contractForm.categoryId,
+        type: 'DESPESA',
+        description: contractForm.description,
+        amount: parseFloat(contractForm.amount),
+        date: contractForm.startDate,
+        dueDate: contractForm.startDate,
+        notes: contractForm.notes || null,
+        recurrence: { type: 'MONTHLY', count: parseInt(contractForm.recurrenceCount) || 12 },
+      }
+      const res = await fetchWithAuth('/api/studio/financeiro/entries', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      const result = await res.json()
+      if (result.success) { toast.success('Contrato criado!'); setContractDialogOpen(false); resetContractForm(); loadData() }
+      else toast.error(result.error)
+    } catch { toast.error('Erro ao criar') }
+    finally { setSaving(false) }
+  }
+
+  const handleCreateFatura = async () => {
+    if (!faturaForm.description || !faturaForm.amount || !faturaForm.categoryId || !faturaForm.date) {
+      toast.error('Preencha todos os campos obrigatórios'); return
     }
     setSaving(true)
     try {
       const body: any = {
-        categoryId: form.categoryId,
-        type: 'DESPESA',
-        description: form.description,
-        amount: parseFloat(form.amount),
-        date: form.date,
-        dueDate: form.dueDate || null,
-        paymentMethod: form.paymentMethod || null,
-        notes: form.notes || null,
+        categoryId: faturaForm.categoryId, type: 'DESPESA',
+        description: faturaForm.description, amount: parseFloat(faturaForm.amount),
+        date: faturaForm.date, dueDate: faturaForm.dueDate || faturaForm.date,
+        paymentMethod: faturaForm.paymentMethod || null, notes: faturaForm.notes || null,
       }
-      if (form.isPaid) { body.paidAt = new Date().toISOString(); body.status = 'PAID' }
-      if (form.isRecurrent && parseInt(form.recurrenceCount) > 1) {
-        body.recurrence = { type: form.recurrenceType, count: parseInt(form.recurrenceCount) }
-      }
+      if (faturaForm.isPaid) { body.paidAt = new Date().toISOString(); body.status = 'PAID' }
       const res = await fetchWithAuth('/api/studio/financeiro/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
       const result = await res.json()
-      if (result.success) { toast.success('Despesa criada!'); setDialogOpen(false); resetForm(); loadEntries() }
+      if (result.success) { toast.success('Despesa criada!'); setFaturaDialogOpen(false); resetFaturaForm(); loadData() }
       else toast.error(result.error)
-    } catch { toast.error('Erro ao salvar') }
+    } catch { toast.error('Erro ao criar') }
     finally { setSaving(false) }
   }
 
@@ -177,19 +244,19 @@ export default function DespesasPage() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PAID', paymentMethod: 'PIX' }),
       })
-      const result = await res.json()
-      if (result.success) { toast.success('Marcado como pago!'); loadEntries() }
+      const r = await res.json()
+      if (r.success) { toast.success('Pagamento registrado!'); loadData() }
     } catch { toast.error('Erro') }
   }
 
-  const handleRevertToPending = async (id: string) => {
+  const handleRevert = async (id: string) => {
     try {
       const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PENDING' }),
       })
-      const result = await res.json()
-      if (result.success) { toast.success('Revertido para pendente'); loadEntries() }
+      const r = await res.json()
+      if (r.success) { toast.success('Pagamento desfeito'); loadData() }
     } catch { toast.error('Erro') }
   }
 
@@ -197,281 +264,414 @@ export default function DespesasPage() {
     if (!confirm('Excluir esta despesa?')) return
     try {
       const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, { method: 'DELETE' })
-      const result = await res.json()
-      if (result.success) { toast.success('Excluído!'); loadEntries() }
+      const r = await res.json()
+      if (r.success) { toast.success('Excluído!'); loadData() }
     } catch { toast.error('Erro ao excluir') }
   }
 
-  const handleOpenEdit = (entry: Entry) => {
-    setEditEntry(entry)
-    setEditForm({
-      description: entry.description,
-      amount: String(entry.amount),
-      date: entry.date ? entry.date.split('T')[0] : '',
-      dueDate: entry.dueDate ? entry.dueDate.split('T')[0] : '',
-      categoryId: entry.category.id,
-      paymentMethod: entry.paymentMethod || '',
-      notes: entry.notes || '',
-      status: entry.status,
-    })
-    setEditDialogOpen(true)
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editEntry) return
-    setSavingEdit(true)
-    try {
-      const body: any = {
-        description: editForm.description,
-        amount: parseFloat(editForm.amount),
-        date: editForm.date || undefined,
-        dueDate: editForm.dueDate || null,
-        categoryId: editForm.categoryId || undefined,
-        paymentMethod: editForm.paymentMethod || null,
-        notes: editForm.notes || null,
-        status: editForm.status,
-      }
-      if (editForm.status === 'PAID' && editEntry.status !== 'PAID') body.paidAt = new Date().toISOString()
-      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${editEntry.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      })
-      const result = await res.json()
-      if (result.success) { toast.success('Atualizado!'); setEditDialogOpen(false); setEditEntry(null); loadEntries() }
-      else toast.error(result.error)
-    } catch { toast.error('Erro ao editar') }
-    finally { setSavingEdit(false) }
-  }
-
-  const handleCancelRecurrence = async (recurrenceId: string) => {
-    if (!confirm('Cancelar todos os lançamentos pendentes desta recorrência?')) return
+  const handleDeleteContract = async (recurrenceId: string) => {
+    if (!confirm('Cancelar TODAS as faturas pendentes deste contrato?')) return
     try {
       const res = await fetchWithAuth(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
-      const result = await res.json()
-      if (result.success) { toast.success(result.message); loadEntries() }
-      else toast.error(result.error)
+      const r = await res.json()
+      if (r.success) { toast.success(r.message || 'Contrato cancelado'); loadData() }
+      else toast.error(r.error)
     } catch { toast.error('Erro') }
   }
+
+  const resetContractForm = () => setContractForm({
+    description: '', amount: '', categoryId: '',
+    billingDay: '5', startDate: new Date().toISOString().split('T')[0],
+    notes: '', recurrenceCount: '12',
+  })
+  const resetFaturaForm = () => setFaturaForm({
+    description: '', amount: '', categoryId: '',
+    date: new Date().toISOString().split('T')[0],
+    dueDate: '', paymentMethod: '', notes: '', isPaid: false,
+  })
+
+  // ── Computed ───────────────────────────────────────────────────────────
 
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR')
 
-  // Agrupar por mês
-  const grouped: Record<string, Entry[]> = {}
-  for (const entry of entries) {
-    const d = new Date(entry.date)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(entry)
-  }
-  const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
+  const activeContracts = contracts.filter(c => c.status === 'ACTIVE')
+  const filteredContracts = contracts.filter(c => {
+    if (contractFilter === 'ACTIVE') return c.status === 'ACTIVE'
+    if (contractFilter === 'CANCELED') return c.status === 'CANCELED'
+    return true
+  }).filter(c => !search || c.description.toLowerCase().includes(search.toLowerCase()))
 
-  // Totais rápidos
-  const totalPago = entries.filter(e => e.status === 'PAID').reduce((s, e) => s + e.amount, 0)
-  const totalPendente = entries.filter(e => e.status === 'PENDING').reduce((s, e) => s + e.amount, 0)
-  const totalVencido = entries.filter(e => e.status === 'OVERDUE').reduce((s, e) => s + e.amount, 0)
+  const filteredFaturas = faturas.filter(f => {
+    if (faturaFilter === 'PENDING') return f.status === 'PENDING'
+    if (faturaFilter === 'PAID') return f.status === 'PAID'
+    if (faturaFilter === 'OVERDUE') return f.status === 'OVERDUE'
+    if (faturaFilter === 'CANCELED') return f.status === 'CANCELED'
+    return true
+  }).filter(f => !search || f.description.toLowerCase().includes(search.toLowerCase()))
+
+  const totalAPagar = faturas.filter(f => f.status === 'PENDING' || f.status === 'OVERDUE').reduce((s, e) => s + e.amount, 0)
+  const totalPago = faturas.filter(f => f.status === 'PAID').reduce((s, e) => s + e.amount, 0)
+  const totalAtrasado = faturas.filter(f => f.status === 'OVERDUE').reduce((s, e) => s + e.amount, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative pb-20">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <TrendingDown className="h-6 w-6 text-red-500" />
-            Despesas
-          </h1>
-          <p className="text-sm text-muted-foreground">{total} despesas registradas</p>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
+        <p className="text-sm text-muted-foreground">Gerencie contratos e contas a pagar</p>
+      </div>
+
+      {/* Navegação de mês */}
+      <div className="flex items-center justify-center gap-3">
+        <Button variant="outline" size="icon" className="h-9 w-9 border-border" onClick={goBack}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2 text-base font-semibold min-w-[180px] justify-center">
+          <CalendarDays className="h-4 w-4 text-red-500" />
+          {MONTHS[month]} {year}
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true) }}
-          className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Despesa
+        <Button variant="outline" size="icon" className="h-9 w-9 border-border" onClick={goForward}>
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-          <p className="text-xs text-red-400/70 mb-1 uppercase tracking-wide">Pago</p>
-          <p className="text-xl font-bold text-red-400">-{fmt(totalPago)}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-lg bg-blue-500/20"><ClipboardList className="h-4 w-4 text-blue-400" /></div>
+            <span className="text-2xl font-bold text-blue-400">{activeContracts.length}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Contratos Ativos</p>
+          <p className="text-[10px] text-muted-foreground/60">de {contracts.length} total</p>
         </div>
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-          <p className="text-xs text-amber-400/70 mb-1 uppercase tracking-wide">Pendente</p>
-          <p className="text-xl font-bold text-amber-400">-{fmt(totalPendente)}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-lg bg-amber-500/20"><DollarSign className="h-4 w-4 text-amber-400" /></div>
+            <span className="text-lg font-bold text-amber-400">{fmt(totalAPagar)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">A Pagar</p>
+          <p className="text-[10px] text-muted-foreground/60">{faturas.filter(f => f.status === 'PENDING').length} fatura(s)</p>
+        </div>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-lg bg-red-500/20"><CheckCircle className="h-4 w-4 text-red-400" /></div>
+            <span className="text-lg font-bold text-red-400">{fmt(totalPago)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Pago</p>
+          <p className="text-[10px] text-muted-foreground/60">{faturas.filter(f => f.status === 'PAID').length} fatura(s)</p>
         </div>
         <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
-          <p className="text-xs text-orange-400/70 mb-1 uppercase tracking-wide">Vencido</p>
-          <p className="text-xl font-bold text-orange-400">-{fmt(totalVencido)}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-lg bg-orange-500/20"><AlertTriangle className="h-4 w-4 text-orange-400" /></div>
+            <span className="text-lg font-bold text-orange-400">{fmt(totalAtrasado)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Atrasado</p>
+          <p className="text-[10px] text-muted-foreground/60">{faturas.filter(f => f.status === 'OVERDUE').length} fatura(s)</p>
         </div>
       </div>
 
-      {/* Filtro de status */}
-      <div className="flex gap-2 flex-wrap">
-        <Select value={filterStatus || 'ALL'} onValueChange={v => setFilterStatus(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-36 bg-card">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      {/* Abas */}
+      <div className="border-b border-border">
+        <div className="flex gap-0">
+          <button
+            onClick={() => setTab('contratos')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              tab === 'contratos' ? 'border-red-500 text-red-500' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}>
+            <ClipboardList className="h-4 w-4" />
+            Contratos
+            <Badge className="bg-red-500/20 text-red-400 text-[10px] h-5 px-1.5">{contracts.length}</Badge>
+          </button>
+          <button
+            onClick={() => setTab('faturas')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              tab === 'faturas' ? 'border-amber-500 text-amber-500' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}>
+            <FileText className="h-4 w-4" />
+            Faturas
+            <Badge className="bg-amber-500/20 text-amber-400 text-[10px] h-5 px-1.5">{faturas.length}</Badge>
+          </button>
+        </div>
       </div>
 
-      {/* Lista agrupada por mês */}
-      {loading ? (
-        <Card className="bg-card border-border"><CardContent className="pt-4">
-          <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14" />)}</div>
-        </CardContent></Card>
-      ) : entries.length === 0 ? (
-        <Card className="bg-card border-border"><CardContent className="pt-4">
-          <div className="text-center py-12 text-muted-foreground">
-            <TrendingDown className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Nenhuma despesa encontrada</p>
-            <p className="text-xs mt-1">Clique em "Nova Despesa" para adicionar</p>
-          </div>
-        </CardContent></Card>
-      ) : (
-        sortedKeys.map(key => {
-          const [yr, mo] = key.split('-').map(Number)
-          const monthEntries = grouped[key]
-          const monthTotal = monthEntries.filter(e => e.status !== 'CANCELED').reduce((s, e) => s + e.amount, 0)
+      {/* Filtros + Busca */}
+      <div className="flex flex-wrap items-center gap-2">
+        {tab === 'contratos' ? (
+          ['ALL','ACTIVE','CANCELED'].map(f => (
+            <button key={f} onClick={() => setContractFilter(f)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                contractFilter === f
+                  ? f === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : f === 'CANCELED' ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                  : 'bg-muted/50 text-muted-foreground border-border hover:border-foreground/30'
+              }`}>
+              {f === 'ALL' ? `Todos ${contracts.length}` : f === 'ACTIVE' ? `Ativos ${contracts.filter(c => c.status === 'ACTIVE').length}` : `Cancelados ${contracts.filter(c => c.status === 'CANCELED').length}`}
+            </button>
+          ))
+        ) : (
+          ['ALL','PENDING','PAID','OVERDUE','CANCELED'].map(f => (
+            <button key={f} onClick={() => setFaturaFilter(f)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                faturaFilter === f
+                  ? f === 'PENDING' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  : f === 'PAID' ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                  : f === 'OVERDUE' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                  : f === 'CANCELED' ? 'bg-muted text-muted-foreground border-border'
+                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                  : 'bg-muted/50 text-muted-foreground border-border hover:border-foreground/30'
+              }`}>
+              {f === 'ALL' ? `Todas ${faturas.length}` : f === 'PENDING' ? `Pendentes ${faturas.filter(e => e.status === 'PENDING').length}` : f === 'PAID' ? `Pagas ${faturas.filter(e => e.status === 'PAID').length}` : f === 'OVERDUE' ? `Atrasadas ${faturas.filter(e => e.status === 'OVERDUE').length}` : `Canceladas ${faturas.filter(e => e.status === 'CANCELED').length}`}
+            </button>
+          ))
+        )}
+        <div className="ml-auto relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Buscar..." className="pl-8 h-8 w-40 text-xs bg-card"
+            value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
 
-          return (
-            <Card key={key} className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-red-500" />
-                    {MONTH_NAMES[mo - 1]} {yr}
-                    <Badge className="bg-muted text-muted-foreground text-[10px] ml-1">{monthEntries.length}</Badge>
-                  </CardTitle>
-                  <span className="text-red-400 font-semibold text-sm">-{fmt(monthTotal)}</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-0.5">
-                  {monthEntries.map(entry => (
-                    <div key={entry.id} className="p-2.5 rounded-lg hover:bg-muted/50">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="p-1.5 rounded-md flex-shrink-0 bg-red-500/10">
-                          <ArrowDownRight className="h-4 w-4 text-red-500" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{entry.description}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {entry.category.name}
-                            {entry.client && ` · ${entry.client.name}`}
-                            {entry.installment && ` · ${entry.installment}/${entry.totalInstallments}`}
-                            {' · '}{fmtDate(entry.date)}
-                            {entry.dueDate && ` · Venc: ${fmtDate(entry.dueDate)}`}
-                          </p>
-                        </div>
-                        <span className="text-sm font-bold flex-shrink-0 text-red-400">
-                          -{fmt(entry.amount)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1 mt-1.5 pl-9">
-                        <Badge className={
-                          entry.status === 'PAID' ? 'bg-red-500/20 text-red-400 text-[10px]' :
-                          entry.status === 'OVERDUE' ? 'bg-orange-500/20 text-orange-400 text-[10px]' :
-                          entry.status === 'CANCELED' ? 'bg-muted text-muted-foreground text-[10px]' :
-                          'bg-amber-500/20 text-amber-400 text-[10px]'
-                        }>
-                          {entry.status === 'PAID' ? 'Pago' :
-                           entry.status === 'OVERDUE' ? 'Vencido' :
-                           entry.status === 'CANCELED' ? 'Cancelado' : 'Pendente'}
-                        </Badge>
-                        {entry.recurrenceId && (
-                          <Badge className="bg-yellow-500/15 text-yellow-600 text-[10px]">
-                            <RefreshCw className="h-3 w-3 mr-1" /> Rec.
-                          </Badge>
-                        )}
-                        {(entry.status === 'PENDING' || entry.status === 'OVERDUE') && (
-                          <Button size="sm" className={`h-6 px-2 text-xs ${
-                            entry.status === 'OVERDUE' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'
-                          }`} onClick={() => handleMarkPaid(entry.id)}>
-                            <CheckCircle className="h-3 w-3 mr-1" /> Pagar
-                          </Button>
-                        )}
-                        {entry.status === 'PAID' && (
-                          <Button size="sm" variant="outline" className="h-6 px-2 text-xs border-amber-500/30 text-amber-400"
-                            onClick={() => handleRevertToPending(entry.id)}>
-                            <Undo2 className="h-3 w-3 mr-1" /> Desfazer
-                          </Button>
-                        )}
-                        {entry.recurrenceId && entry.status !== 'CANCELED' && (
-                          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-orange-500"
-                            onClick={() => handleCancelRecurrence(entry.recurrenceId!)}>
-                            <XCircle className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" className="h-6 px-1.5 text-yellow-600"
-                          onClick={() => handleOpenEdit(entry)}>
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-6 px-1.5 text-red-500"
-                          onClick={() => handleDelete(entry.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+      {/* Conteúdo */}
+      {loading ? (
+        <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
+      ) : tab === 'contratos' ? (
+        filteredContracts.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Nenhum contrato de despesa</p>
+            <p className="text-xs mt-1">Clique no + para criar uma despesa recorrente</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredContracts.map(c => (
+              <div key={c.recurrenceId} className="bg-card border border-border rounded-xl p-4 hover:border-red-500/30 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-1 h-12 rounded-full flex-shrink-0 ${c.status === 'ACTIVE' ? 'bg-red-500' : 'bg-muted-foreground'}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm truncate">{c.description}</span>
+                      <Badge className="bg-red-500/20 text-red-400 text-[10px]">Mensal</Badge>
+                      <Badge className={`text-[10px] ${c.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                        {c.status === 'ACTIVE' ? 'Ativo' : 'Cancelado'}
+                      </Badge>
                     </div>
-                  ))}
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {c.categoryName} · {fmtDate(c.startDate)} → {c.totalInstallments > 100 ? 'Indeterminado' : `${c.totalInstallments} meses`}
+                      {' · '}{c.paidCount} paga(s) · {c.pendingCount} pendente(s)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="text-right">
+                      <span className="text-red-400 font-bold text-sm">-{fmt(c.amount)}</span>
+                      <p className="text-[10px] text-muted-foreground">/mês</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-500/10"
+                      onClick={() => handleDeleteContract(c.recurrenceId)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        filteredFaturas.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Nenhuma despesa em {MONTHS[month]}</p>
+            <p className="text-xs mt-1">Clique no + para registrar uma despesa</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredFaturas.map(f => (
+              <div key={f.id} className="bg-card border border-border rounded-xl p-4 hover:border-red-500/30 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-1 h-12 rounded-full flex-shrink-0 ${
+                    f.status === 'PAID' ? 'bg-red-500' : f.status === 'OVERDUE' ? 'bg-orange-500' : 'bg-amber-500'
+                  }`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm truncate">{f.description}</span>
+                      <Badge className={`text-[10px] ${
+                        f.status === 'PAID' ? 'bg-red-500/20 text-red-400' :
+                        f.status === 'OVERDUE' ? 'bg-orange-500/20 text-orange-400' :
+                        f.status === 'CANCELED' ? 'bg-muted text-muted-foreground' :
+                        'bg-amber-500/20 text-amber-400'
+                      }`}>
+                        {f.status === 'PAID' ? 'Pago' : f.status === 'OVERDUE' ? 'Atrasado' : f.status === 'CANCELED' ? 'Cancelado' : 'Pendente'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {f.dueDate && <>Venc: {fmtDate(f.dueDate)} · </>}
+                      {f.category.name}
+                      {f.paidAt && <> · Pago em {fmtDate(f.paidAt)}</>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-red-400 font-bold text-sm mr-1">-{fmt(f.amount)}</span>
+                    {(f.status === 'PENDING' || f.status === 'OVERDUE') && (
+                      <Button size="icon" className="h-7 w-7 bg-red-600 hover:bg-red-700"
+                        onClick={() => handleMarkPaid(f.id)}>
+                        <CheckCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {f.status === 'PAID' && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-amber-400"
+                        onClick={() => handleRevert(f.id)}>
+                        <Undo2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:bg-red-500/10"
+                      onClick={() => handleDelete(f.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
 
-      {/* Dialog Nova Despesa */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* ═══ FAB ═══ */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col gap-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              onClick={() => { setFabOpen(false); resetContractForm(); setContractDialogOpen(true) }}
+              className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-lg hover:border-red-500/40 transition-colors">
+              <div className="p-2 rounded-lg bg-red-500"><ClipboardList className="h-4 w-4 text-white" /></div>
+              <span className="font-medium text-sm whitespace-nowrap">Novo Contrato</span>
+            </button>
+            <button
+              onClick={() => { setFabOpen(false); resetFaturaForm(); setFaturaDialogOpen(true) }}
+              className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-lg hover:border-red-500/40 transition-colors">
+              <div className="p-2 rounded-lg bg-red-500"><FileText className="h-4 w-4 text-white" /></div>
+              <span className="font-medium text-sm whitespace-nowrap">Nova Despesa</span>
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg flex items-center justify-center transition-transform ${fabOpen ? 'rotate-45' : ''}`}>
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
+      {fabOpen && <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setFabOpen(false)} />}
+
+      {/* ═══ Modal Novo Contrato ═══ */}
+      <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowDownRight className="h-5 w-5 text-red-500" />
-              Nova Despesa
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Novo Contrato de Despesa</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
+              <Label>Nome *</Label>
+              <Input value={contractForm.description}
+                onChange={e => setContractForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Ex: Aluguel, Internet, Energia..." />
+            </div>
+            <div>
               <Label>Categoria *</Label>
-              <Select value={form.categoryId} onValueChange={v => setForm(f => ({ ...f, categoryId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione a categoria..." /></SelectTrigger>
+              <Select value={contractForm.categoryId} onValueChange={v => setContractForm(f => ({ ...f, categoryId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor Mensal (R$) *</Label>
+                <Input type="number" step="0.01" value={contractForm.amount}
+                  onChange={e => setContractForm(f => ({ ...f, amount: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div>
+                <Label>Dia da Cobrança</Label>
+                <Input type="number" min="1" max="28" value={contractForm.billingDay}
+                  onChange={e => setContractForm(f => ({ ...f, billingDay: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data do 1º Vencimento *</Label>
+                <Input type="date" value={contractForm.startDate}
+                  onChange={e => setContractForm(f => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Duração (meses)</Label>
+                <Select value={contractForm.recurrenceCount} onValueChange={v => setContractForm(f => ({ ...f, recurrenceCount: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3 meses</SelectItem>
+                    <SelectItem value="6">6 meses</SelectItem>
+                    <SelectItem value="12">12 meses</SelectItem>
+                    <SelectItem value="24">24 meses</SelectItem>
+                    <SelectItem value="36">36 meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={contractForm.notes}
+                onChange={e => setContractForm(f => ({ ...f, notes: e.target.value }))}
+                rows={2} placeholder="Detalhes..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContractDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateContract} disabled={saving} className="bg-red-500 hover:bg-red-600">
+              {saving ? 'Criando...' : 'Criar Contrato'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
+      {/* ═══ Modal Nova Despesa ═══ */}
+      <Dialog open={faturaDialogOpen} onOpenChange={setFaturaDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nova Despesa</DialogTitle></DialogHeader>
+          <div className="space-y-4">
             <div>
               <Label>Descrição *</Label>
-              <Input value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Ex: Aluguel, equipamento, manutenção..." />
+              <Input value={faturaForm.description}
+                onChange={e => setFaturaForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Ex: Material de limpeza, manutenção..." />
             </div>
-
+            <div>
+              <Label>Categoria *</Label>
+              <Select value={faturaForm.categoryId} onValueChange={v => setFaturaForm(f => ({ ...f, categoryId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Valor (R$) *</Label>
-                <Input type="number" step="0.01" value={form.amount}
-                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                  placeholder="0,00" />
+                <Input type="number" step="0.01" value={faturaForm.amount}
+                  onChange={e => setFaturaForm(f => ({ ...f, amount: e.target.value }))} placeholder="0,00" />
               </div>
               <div>
                 <Label>Data *</Label>
-                <Input type="date" value={form.date}
-                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                <Input type="date" value={faturaForm.date}
+                  onChange={e => setFaturaForm(f => ({ ...f, date: e.target.value }))} />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Vencimento</Label>
-                <Input type="date" value={form.dueDate}
-                  onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+                <Input type="date" value={faturaForm.dueDate}
+                  onChange={e => setFaturaForm(f => ({ ...f, dueDate: e.target.value }))} />
               </div>
               <div>
                 <Label>Forma de Pagamento</Label>
-                <Select value={form.paymentMethod} onValueChange={v => setForm(f => ({ ...f, paymentMethod: v }))}>
+                <Select value={faturaForm.paymentMethod} onValueChange={v => setFaturaForm(f => ({ ...f, paymentMethod: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
@@ -479,145 +679,22 @@ export default function DespesasPage() {
                 </Select>
               </div>
             </div>
-
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.isPaid}
-                onChange={e => setForm(f => ({ ...f, isPaid: e.target.checked }))}
-                className="rounded" />
+              <input type="checkbox" checked={faturaForm.isPaid}
+                onChange={e => setFaturaForm(f => ({ ...f, isPaid: e.target.checked }))} className="rounded" />
               <span className="text-sm">Já está pago</span>
             </label>
-
-            <div className="border rounded-lg p-3 space-y-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isRecurrent}
-                  onChange={e => setForm(f => ({ ...f, isRecurrent: e.target.checked }))}
-                  className="rounded" />
-                <span className="text-sm flex items-center gap-1"><RefreshCw className="h-3.5 w-3.5" /> Despesa Recorrente</span>
-              </label>
-              {form.isRecurrent && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Frequência</Label>
-                    <Select value={form.recurrenceType} onValueChange={v => setForm(f => ({ ...f, recurrenceType: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MONTHLY">Mensal</SelectItem>
-                        <SelectItem value="QUARTERLY">Trimestral</SelectItem>
-                        <SelectItem value="SEMIANNUAL">Semestral</SelectItem>
-                        <SelectItem value="YEARLY">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Repetições</Label>
-                    <Select value={form.recurrenceCount} onValueChange={v => setForm(f => ({ ...f, recurrenceCount: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">3 vezes</SelectItem>
-                        <SelectItem value="6">6 vezes</SelectItem>
-                        <SelectItem value="12">12 vezes</SelectItem>
-                        <SelectItem value="24">24 vezes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-            </div>
-
             <div>
               <Label>Observações</Label>
-              <Textarea value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              <Textarea value={faturaForm.notes}
+                onChange={e => setFaturaForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2} placeholder="Opcional..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={saving} className="bg-red-600 hover:bg-red-700">
-              {saving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Editar */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar Despesa</DialogTitle>
-          </DialogHeader>
-          {editEntry && (
-            <div className="space-y-4">
-              <div>
-                <Label>Descrição *</Label>
-                <Input value={editForm.description}
-                  onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Valor (R$) *</Label>
-                  <Input type="number" step="0.01" value={editForm.amount}
-                    onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Data *</Label>
-                  <Input type="date" value={editForm.date}
-                    onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Vencimento</Label>
-                  <Input type="date" value={editForm.dueDate}
-                    onChange={e => setEditForm(f => ({ ...f, dueDate: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PENDING">Pendente</SelectItem>
-                      <SelectItem value="PAID">Pago</SelectItem>
-                      <SelectItem value="OVERDUE">Vencido</SelectItem>
-                      <SelectItem value="CANCELED">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Categoria</Label>
-                  <Select value={editForm.categoryId} onValueChange={v => setEditForm(f => ({ ...f, categoryId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Forma de Pagamento</Label>
-                  <Select value={editForm.paymentMethod || 'none'}
-                    onValueChange={v => setEditForm(f => ({ ...f, paymentMethod: v === 'none' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Não informado</SelectItem>
-                      {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label>Observações</Label>
-                <Textarea value={editForm.notes}
-                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                  rows={2} placeholder="Opcional..." />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveEdit} disabled={savingEdit} className="bg-red-600 hover:bg-red-700">
-              {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
+            <Button variant="outline" onClick={() => setFaturaDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateFatura} disabled={saving} className="bg-red-600 hover:bg-red-700">
+              {saving ? 'Criando...' : 'Registrar Despesa'}
             </Button>
           </DialogFooter>
         </DialogContent>
