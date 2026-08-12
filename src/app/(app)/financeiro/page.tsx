@@ -18,12 +18,8 @@ import {
   ArrowDownRight,
   Clock,
   CheckCircle,
-  FileDown,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { generateMonthlyReportPDF } from '@/lib/financial-pdf-generator'
 import { fetchWithAuth } from '@/lib/fetchWithAuth'
 
 interface DashboardData {
@@ -128,33 +124,12 @@ export default function FinanceiroDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-emerald-500" />
-            Dashboard Financeiro
+            Fluxo Financeiro
           </h1>
           <p className="text-sm text-muted-foreground">
             {monthNames[(data.period.month || 1) - 1]} de {data.period.year}
           </p>
         </div>
-        <Button variant="outline" className="border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/15"
-          onClick={async () => {
-            try {
-              const entriesRes = await fetchWithAuth(`/api/studio/financeiro/entries?limit=200&page=1`)
-              const entriesData = await entriesRes.json()
-              const allEntries = entriesData.success ? entriesData.data.entries : []
-              await generateMonthlyReportPDF({
-                studio: { name: 'Studio' },
-                month: data.period.month, year: data.period.year,
-                totalReceita: summary.totalReceita, totalDespesa: summary.totalDespesa,
-                totalCusto: 0, lucroBruto: summary.lucro, lucroLiquido: summary.lucro,
-                entries: allEntries.map((e: any) => ({
-                  description: e.description, type: e.type, amount: e.amount,
-                  date: e.date, status: e.status, category: e.category?.name || '',
-                })),
-                topCategories: [],
-              })
-            } catch { toast.error('Erro ao gerar relatório') }
-          }}>
-          <FileDown className="h-4 w-4 mr-2" /> Relatório PDF
-        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -252,7 +227,7 @@ export default function FinanceiroDashboardPage() {
                 Vencendo em 7 dias
               </span>
               <Link
-                href="/financeiro/contas-pagar"
+                href="/financeiro/despesas"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Ver todas →
@@ -294,7 +269,7 @@ export default function FinanceiroDashboardPage() {
           <CardTitle className="text-foreground text-base flex items-center justify-between">
             <span>Últimas Movimentações</span>
             <Link
-              href="/financeiro/lancamentos"
+              href="/financeiro/recebiveis"
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               Ver todos →

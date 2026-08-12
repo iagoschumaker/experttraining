@@ -17,10 +17,8 @@ import {
   Settings,
   UserCheck,
   DollarSign,
-  FileText,
   TrendingDown,
   TrendingUp,
-  BarChart2,
   BadgeDollarSign,
   Tag,
 } from 'lucide-react'
@@ -68,14 +66,20 @@ const sidebarLinks: SidebarLink[] = [
   // ─── MÓDULO FINANCEIRO ───
   {
     href: '/financeiro',
-    label: 'Financeiro',
+    label: 'Fluxo Financeiro',
     icon: <DollarSign className="w-5 h-5" />,
     module: 'FINANCEIRO',
   },
   {
-    href: '/financeiro/lancamentos',
-    label: 'Lançamentos',
-    icon: <FileText className="w-5 h-5" />,
+    href: '/financeiro/recebiveis',
+    label: 'Recebíveis',
+    icon: <TrendingUp className="w-5 h-5" />,
+    module: 'FINANCEIRO',
+  },
+  {
+    href: '/financeiro/despesas',
+    label: 'Despesas',
+    icon: <TrendingDown className="w-5 h-5" />,
     module: 'FINANCEIRO',
   },
   {
@@ -90,24 +94,6 @@ const sidebarLinks: SidebarLink[] = [
     icon: <Tag className="w-5 h-5" />,
     module: 'FINANCEIRO',
     requiresAdmin: true,
-  },
-  {
-    href: '/financeiro/contas-pagar',
-    label: 'Contas a Pagar',
-    icon: <TrendingDown className="w-5 h-5" />,
-    module: 'FINANCEIRO',
-  },
-  {
-    href: '/financeiro/contas-receber',
-    label: 'Contas a Receber',
-    icon: <TrendingUp className="w-5 h-5" />,
-    module: 'FINANCEIRO',
-  },
-  {
-    href: '/financeiro/dre',
-    label: 'DRE',
-    icon: <BarChart2 className="w-5 h-5" />,
-    module: 'FINANCEIRO',
   },
 
   // ─── GESTÃO ───
