@@ -124,8 +124,8 @@ export default function DespesasPage() {
       const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
 
       const [entriesRes, allRes] = await Promise.all([
-        fetchWithAuth(`/api/studio/financeiro/entries?type=DESPESA&dateFrom=${startDate}&dateTo=${endDate}&limit=200`),
-        fetchWithAuth(`/api/studio/financeiro/entries?type=DESPESA&limit=500`),
+        fetchWithAuth(`/api/studio/financeiro/entries?type=DESPESA&source=manual&dateFrom=${startDate}&dateTo=${endDate}&limit=200`),
+        fetchWithAuth(`/api/studio/financeiro/entries?type=DESPESA&source=manual&limit=500`),
       ])
 
       const entriesData = await entriesRes.json()

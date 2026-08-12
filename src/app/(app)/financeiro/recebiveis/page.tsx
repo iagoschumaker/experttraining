@@ -140,9 +140,9 @@ export default function RecebiveisPage() {
       
       const [entriesRes, allRes] = await Promise.all([
         // Entries do mês selecionado
-        fetchWithAuth(`/api/studio/financeiro/entries?type=RECEITA&dateFrom=${startDate}&dateTo=${endDate}&limit=200`),
+        fetchWithAuth(`/api/studio/financeiro/entries?type=RECEITA&source=manual&dateFrom=${startDate}&dateTo=${endDate}&limit=200`),
         // Todos os entries RECEITA para mapear contratos
-        fetchWithAuth(`/api/studio/financeiro/entries?type=RECEITA&limit=500`),
+        fetchWithAuth(`/api/studio/financeiro/entries?type=RECEITA&source=manual&limit=500`),
       ])
 
       const entriesData = await entriesRes.json()

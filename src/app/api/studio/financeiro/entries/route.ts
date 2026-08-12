@@ -51,6 +51,12 @@ export async function GET(request: NextRequest) {
     if (unitId) where.unitId = unitId
     if (paymentMethod) where.paymentMethod = paymentMethod
 
+    // source=manual → excluir entries auto-geradas pelo pagamento de mensalidade
+    const source = searchParams.get('source')
+    if (source === 'manual') {
+      where.description = { not: { startsWith: 'Mensalidade ' } }
+    }
+
     if (dateFrom || dateTo) {
       where.date = {}
       if (dateFrom) where.date.gte = new Date(dateFrom)
