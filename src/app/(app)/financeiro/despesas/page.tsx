@@ -98,6 +98,14 @@ export default function DespesasPage() {
   const [faturaDialogOpen, setFaturaDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Edit
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editEntry, setEditEntry] = useState<Entry | null>(null)
+  const [editForm, setEditForm] = useState({
+    description: '', amount: '', categoryId: '',
+    dueDate: '', paymentMethod: '', notes: '',
+  })
+
   const [contractForm, setContractForm] = useState({
     description: '', amount: '', categoryId: '',
     billingDay: '5', startDate: new Date().toISOString().split('T')[0],
@@ -266,6 +274,7 @@ export default function DespesasPage() {
       const res = await fetchWithAuth(`/api/studio/financeiro/entries/${id}`, { method: 'DELETE' })
       const r = await res.json()
       if (r.success) { toast.success('Excluído!'); loadData() }
+      else toast.error(r.error || 'Erro ao excluir')
     } catch { toast.error('Erro ao excluir') }
   }
 
@@ -275,8 +284,49 @@ export default function DespesasPage() {
       const res = await fetchWithAuth(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
       const r = await res.json()
       if (r.success) { toast.success(r.message || 'Contrato cancelado'); loadData() }
-      else toast.error(r.error)
+      else toast.error(r.error || 'Erro ao excluir contrato')
     } catch { toast.error('Erro') }
+  }
+
+  // ── Edição ──
+  const openEditEntry = (f: Entry) => {
+    setEditEntry(f)
+    setEditForm({
+      description: f.description,
+      amount: f.amount.toString(),
+      categoryId: f.category.id,
+      dueDate: f.dueDate ? f.dueDate.split('T')[0] : '',
+      paymentMethod: f.paymentMethod ?? '',
+      notes: f.notes ?? '',
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleEditEntry = async () => {
+    if (!editEntry) return
+    setSaving(true)
+    try {
+      const res = await fetchWithAuth(`/api/studio/financeiro/entries/${editEntry.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editForm.description,
+          amount: parseFloat(editForm.amount),
+          categoryId: editForm.categoryId,
+          dueDate: editForm.dueDate || null,
+          paymentMethod: editForm.paymentMethod || null,
+          notes: editForm.notes || null,
+        }),
+      })
+      const r = await res.json()
+      if (r.success) {
+        toast.success('Despesa atualizada!')
+        setEditDialogOpen(false)
+        setEditEntry(null)
+        loadData()
+      } else toast.error(r.error || 'Erro ao atualizar')
+    } catch { toast.error('Erro ao atualizar') }
+    finally { setSaving(false) }
   }
 
   const resetContractForm = () => setContractForm({
@@ -525,6 +575,10 @@ export default function DespesasPage() {
                         <Undo2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => openEditEntry(f)}>
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:bg-red-500/10"
                       onClick={() => handleDelete(f.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -695,6 +749,69 @@ export default function DespesasPage() {
             <Button variant="outline" onClick={() => setFaturaDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateFatura} disabled={saving} className="bg-red-600 hover:bg-red-700">
               {saving ? 'Criando...' : 'Registrar Despesa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Modal: Editar Despesa ═══ */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Despesa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>Descrição *</Label>
+              <Input value={editForm.description}
+                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Descrição da despesa" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor (R$) *</Label>
+                <Input type="number" min="0" step="0.01" value={editForm.amount}
+                  onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <Select value={editForm.categoryId}
+                  onValueChange={v => setEditForm(f => ({ ...f, categoryId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data de vencimento</Label>
+                <Input type="date" value={editForm.dueDate}
+                  onChange={e => setEditForm(f => ({ ...f, dueDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Método de pagamento</Label>
+                <Select value={editForm.paymentMethod}
+                  onValueChange={v => setEditForm(f => ({ ...f, paymentMethod: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={editForm.notes}
+                onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                rows={2} placeholder="Opcional..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditEntry} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>

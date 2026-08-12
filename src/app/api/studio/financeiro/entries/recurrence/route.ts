@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await verifyAuth(request, ['STUDIO_ADMIN'])
+  const auth = await verifyAuth(request, ['STUDIO_ADMIN', 'TRAINER'])
   if ('error' in auth) {
     return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
   }
