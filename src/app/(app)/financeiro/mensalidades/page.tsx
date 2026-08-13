@@ -143,6 +143,80 @@ function calcSmartNextBillingDateUI(adhesionDate: Date, cycle: string): Date {
 
 // ─── Card de cada aluno ──────────────────────────────────────────────────────
 
+// ─── Search-based Dependent Selector ────────────────────────────────────────
+
+function DepSearchBox({
+  allStudents,
+  selectedIds,
+  depPrice,
+  onToggle,
+}: {
+  allStudents: (Mensalidade | ClientWithoutMens)[]
+  selectedIds: string[]
+  depPrice: number
+  onToggle: (id: string) => void
+}) {
+  const [depSearch, setDepSearch] = useState('')
+  const formatCurrency = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+
+  const filtered = depSearch.trim()
+    ? allStudents.filter(s => {
+        const sName = 'clientName' in s ? (s as Mensalidade).clientName : (s as ClientWithoutMens).name
+        return sName.toLowerCase().includes(depSearch.toLowerCase())
+      })
+    : []
+
+  return (
+    <div className="space-y-1">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          placeholder="Buscar aluno para vincular..."
+          className="pl-8 h-9 text-sm"
+          value={depSearch}
+          onChange={e => setDepSearch(e.target.value)}
+        />
+      </div>
+      {depSearch.trim() && (
+        <div className="rounded-lg border border-border max-h-[160px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3 text-center">Nenhum aluno encontrado</p>
+          ) : (
+            filtered.map(s => {
+              const sId = 'clientId' in s ? (s as Mensalidade).clientId : (s as ClientWithoutMens).id
+              const sName = 'clientName' in s ? (s as Mensalidade).clientName : (s as ClientWithoutMens).name
+              const checked = selectedIds.includes(sId)
+              return (
+                <label
+                  key={sId}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50 last:border-b-0',
+                    checked && 'bg-primary/5'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(sId)}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm flex-1">{sName}</span>
+                  {depPrice > 0 && (
+                    <span className="text-xs text-muted-foreground">+{formatCurrency(depPrice)}</span>
+                  )}
+                </label>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Components ─────────────────────────────────────────────────────────────
+
 function MensalidadeCard({
   m,
   onPay,
@@ -780,7 +854,6 @@ export default function MensalidadesPage() {
                 if (!selectedPlan || selectedPlan.type !== 'FAMILIA') return null
 
                 const currentClientId = 'clientId' in configModal! ? (configModal as Mensalidade).clientId : configModal!.id
-                // Candidatos: todos os alunos do studio exceto o titular
                 const allStudents = [
                   ...mensalidades.filter(m => m.clientId !== currentClientId),
                   ...clientsWithoutMens.filter(c => c.id !== currentClientId),
@@ -790,44 +863,45 @@ export default function MensalidadesPage() {
                 const basePrice = selectedPlan.price
                 const totalPreview = basePrice + (configDependentIds.length * depPrice)
 
+                // Selecionados (para mostrar como chips)
+                const selectedStudents = allStudents.filter(s => {
+                  const sId = 'clientId' in s ? (s as Mensalidade).clientId : (s as ClientWithoutMens).id
+                  return configDependentIds.includes(sId)
+                })
+
                 return (
                   <div className="space-y-2">
                     <Label>Dependentes do Plano Família</Label>
-                    <div className="rounded-lg border border-border max-h-[180px] overflow-y-auto">
-                      {allStudents.length === 0 ? (
-                        <p className="text-sm text-muted-foreground p-3 text-center">Nenhum aluno disponível</p>
-                      ) : (
-                        allStudents.map(s => {
+
+                    {/* Chips dos selecionados */}
+                    {selectedStudents.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedStudents.map(s => {
                           const sId = 'clientId' in s ? (s as Mensalidade).clientId : (s as ClientWithoutMens).id
                           const sName = 'clientName' in s ? (s as Mensalidade).clientName : (s as ClientWithoutMens).name
-                          const checked = configDependentIds.includes(sId)
                           return (
-                            <label
-                              key={sId}
-                              className={cn(
-                                'flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50 last:border-b-0',
-                                checked && 'bg-primary/5'
-                              )}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => {
-                                  setConfigDependentIds(prev =>
-                                    checked ? prev.filter(x => x !== sId) : [...prev, sId]
-                                  )
-                                }}
-                                className="rounded border-border"
-                              />
-                              <span className="text-sm flex-1">{sName}</span>
-                              {depPrice > 0 && (
-                                <span className="text-xs text-muted-foreground">+{formatCurrency(depPrice)}</span>
-                              )}
-                            </label>
+                            <span key={sId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                              {sName}
+                              <button type="button" onClick={() => setConfigDependentIds(prev => prev.filter(x => x !== sId))}
+                                className="hover:text-red-400 transition-colors ml-0.5">×</button>
+                            </span>
                           )
-                        })
-                      )}
-                    </div>
+                        })}
+                      </div>
+                    )}
+
+                    {/* Campo de busca */}
+                    <DepSearchBox
+                      allStudents={allStudents}
+                      selectedIds={configDependentIds}
+                      depPrice={depPrice}
+                      onToggle={(sId) => {
+                        setConfigDependentIds(prev =>
+                          prev.includes(sId) ? prev.filter(x => x !== sId) : [...prev, sId]
+                        )
+                      }}
+                    />
+
                     {configDependentIds.length > 0 && (
                       <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-3 text-sm">
                         <div className="flex justify-between items-center">

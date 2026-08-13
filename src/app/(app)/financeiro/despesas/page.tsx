@@ -23,7 +23,7 @@ import {
 import {
   TrendingDown, Plus, ChevronLeft, ChevronRight, CalendarDays,
   FileText, ClipboardList, CheckCircle, Trash2, Edit, Undo2,
-  Search, DollarSign, Clock, AlertTriangle,
+  Search, DollarSign, Clock, AlertTriangle, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchWithAuth } from '@/lib/fetchWithAuth'
@@ -278,14 +278,29 @@ export default function DespesasPage() {
     } catch { toast.error('Erro ao excluir') }
   }
 
-  const handleDeleteContract = async (recurrenceId: string) => {
-    if (!confirm('Cancelar TODAS as faturas pendentes deste contrato?')) return
+  const handleDeleteContract = async (recurrenceId: string, force = false) => {
+    const msg = force
+      ? 'EXCLUIR COMPLETAMENTE este contrato e todas as suas faturas (incluindo pagas)?'
+      : 'Cancelar as faturas pendentes deste contrato?'
+    if (!confirm(msg)) return
     try {
-      const res = await fetchWithAuth(`/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`, { method: 'DELETE' })
+      const url = force
+        ? `/api/studio/financeiro/entries/recurrence?id=${recurrenceId}&force=true`
+        : `/api/studio/financeiro/entries/recurrence?id=${recurrenceId}`
+      const res = await fetchWithAuth(url, { method: 'DELETE' })
       const r = await res.json()
-      if (r.success) { toast.success(r.message || 'Contrato cancelado'); loadData() }
+      if (r.success) { toast.success(r.message || 'Contrato excluído'); loadData() }
       else toast.error(r.error || 'Erro ao excluir contrato')
     } catch { toast.error('Erro') }
+  }
+
+  const handleEditContract = async (contract: Contract) => {
+    const pendingEntry = contract.entries.find(e => e.status === 'PENDING' || e.status === 'OVERDUE')
+    if (pendingEntry) {
+      openEditEntry(pendingEntry)
+    } else if (contract.entries.length > 0) {
+      openEditEntry(contract.entries[0])
+    }
   }
 
   // ── Edição ──
@@ -513,13 +528,23 @@ export default function DespesasPage() {
                       {' · '}{c.paidCount} paga(s) · {c.pendingCount} pendente(s)
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <div className="text-right">
                       <span className="text-red-400 font-bold text-sm">-{fmt(c.amount)}</span>
                       <p className="text-[10px] text-muted-foreground">/mês</p>
                     </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      title="Editar" onClick={() => handleEditContract(c)}>
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    {c.pendingCount > 0 && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-500 hover:bg-amber-500/10"
+                        title="Cancelar pendentes" onClick={() => handleDeleteContract(c.recurrenceId, false)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-500/10"
-                      onClick={() => handleDeleteContract(c.recurrenceId)}>
+                      title="Excluir contrato" onClick={() => handleDeleteContract(c.recurrenceId, true)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
