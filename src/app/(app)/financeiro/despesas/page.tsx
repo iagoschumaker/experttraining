@@ -358,7 +358,11 @@ export default function DespesasPage() {
   // ── Computed ───────────────────────────────────────────────────────────
 
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR')
+  const fmtDate = (d: string) => {
+    const dateStr = d.split('T')[0]
+    const [y, m, day] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, day).toLocaleDateString('pt-BR')
+  }
 
   const activeContracts = contracts.filter(c => c.status === 'ACTIVE')
   const filteredContracts = contracts.filter(c => {

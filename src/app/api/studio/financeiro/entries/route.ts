@@ -33,11 +33,23 @@ export async function GET(request: NextRequest) {
 
   try {
     // Auto-OVERDUE: marcar lançamentos PENDING com dueDate vencido como OVERDUE
+    // O servidor roda em UTC, mas o negócio está em BRT (UTC-3).
+    // Precisamos comparar com o início do dia em BRT.
+    const nowUtc = new Date()
+    const brtOffset = -3 * 60 // BRT = UTC-3
+    const nowBrt = new Date(nowUtc.getTime() + brtOffset * 60 * 1000)
+    // Início do dia em BRT, convertido de volta para UTC para a query
+    const todayStartBrt = new Date(Date.UTC(
+      nowBrt.getUTCFullYear(),
+      nowBrt.getUTCMonth(),
+      nowBrt.getUTCDate(),
+      3, 0, 0 // 00:00 BRT = 03:00 UTC
+    ))
     await prisma.financialEntry.updateMany({
       where: {
         studioId,
         status: 'PENDING',
-        dueDate: { lt: new Date() },
+        dueDate: { lt: todayStartBrt },
       },
       data: { status: 'OVERDUE' },
     })
@@ -59,8 +71,13 @@ export async function GET(request: NextRequest) {
 
     if (dateFrom || dateTo) {
       where.date = {}
-      if (dateFrom) where.date.gte = new Date(dateFrom)
-      if (dateTo) where.date.lte = new Date(dateTo)
+      if (dateFrom) where.date.gte = parseLocalDate(dateFrom)
+      if (dateTo) {
+        // Incluir o dia inteiro do dateTo (até 23:59:59)
+        const endOfDay = parseLocalDate(dateTo)
+        endOfDay.setHours(23, 59, 59, 999)
+        where.date.lte = endOfDay
+      }
     }
 
     const [entries, total] = await Promise.all([

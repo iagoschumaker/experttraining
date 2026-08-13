@@ -92,6 +92,24 @@ export async function PUT(
       if (body.status !== 'PAID') updateData.paidAt = null
     }
 
+    // Se dueDate mudou e status NÃO é PAID/CANCELED, recalcular PENDING vs OVERDUE
+    if (body.dueDate !== undefined && !['PAID', 'CANCELED'].includes(updateData.status ?? existing.status)) {
+      if (body.dueDate) {
+        // Usar BRT (UTC-3) para comparação
+        const nowUtc = new Date()
+        const brtOffset = -3 * 60
+        const nowBrt = new Date(nowUtc.getTime() + brtOffset * 60 * 1000)
+        const todayStartBrt = new Date(Date.UTC(
+          nowBrt.getUTCFullYear(), nowBrt.getUTCMonth(), nowBrt.getUTCDate(),
+          3, 0, 0 // 00:00 BRT = 03:00 UTC
+        ))
+        const newDueDate = parseLocalDate(body.dueDate)
+        updateData.status = newDueDate < todayStartBrt ? 'OVERDUE' : 'PENDING'
+      } else {
+        updateData.status = 'PENDING'
+      }
+    }
+
     const entry = await prisma.financialEntry.update({
       where: { id: params.id },
       data: updateData,

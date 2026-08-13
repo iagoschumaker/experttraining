@@ -401,7 +401,13 @@ export default function RecebiveisPage() {
   // ── Computed ───────────────────────────────────────────────────────────
 
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR')
+  const fmtDate = (d: string) => {
+    // Corrigir timezone: se a data vem como "2026-08-13T12:00:00.000Z" ou "2026-08-13",
+    // usar apenas a parte da data para evitar shift de timezone
+    const dateStr = d.split('T')[0] // "2026-08-13"
+    const [y, m, day] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, day).toLocaleDateString('pt-BR')
+  }
 
   const activeContracts = contracts.filter(c => c.status === 'ACTIVE')
   const filteredContracts = contracts.filter(c => {
